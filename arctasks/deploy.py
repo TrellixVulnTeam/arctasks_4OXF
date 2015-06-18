@@ -7,7 +7,7 @@ from urllib.request import urlretrieve
 from invoke.tasks import ctask as task
 
 from .config import configured, show_config
-from .remote import manage as remote_manage, rsync, scp
+from .remote import manage as remote_manage, rsync, copy_file
 from .runners import local, remote
 from .static import build_static
 from .util import abort, confirm
@@ -21,25 +21,29 @@ def provision(ctx, overwrite=False):
         # Remove existing build directory if present
         remote(ctx, ('rm -rf', build_dir, venv))
     # Make build dir
-    remote(ctx, ('mkdir -p', build_dir))
-    remote(ctx, ('mkdir -p', ctx.remote.build.dist, ctx.remote.build.wsgi))
+    remote(
+        ctx, 'mkdir -p {remote.build.dir} {remote.build.dist} {remote.build.wsgi} -m ug=rwx,o-rwx')
     # Create virtualenv for build
-    remote(ctx, ('test -d', venv, '||', 'virtualenv -p python3', venv))
+    result = remote(ctx, ('test -d', venv), abort_on_failure=False)
+    if result.failed:
+        remote(ctx, ('virtualenv -p python3', venv))
     # Provision virtualenv with basics
     pip = ctx.remote.build.pip
     find_links = ctx.remote.pip.find_links
     remote(ctx, (
-        pip, 'install -U setuptools &&',
-        pip, 'install --find-links', find_links, '"pip>={task.provision.pip.version}" &&',
-        pip, 'install --find-links', find_links, '--cache-dir {remote.pip.download_cache} wheel',
-    ), cd=build_dir)
+        (pip, 'install -U setuptools'),
+        (pip, 'install --find-links', find_links, '"pip>={task.provision.pip.version}"'),
+        (pip, 'install --find-links', find_links, '--cache-dir {remote.pip.download_cache} wheel'),
+    ), cd=build_dir, many=True)
 
 
 @task(configured)
 def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, install=True,
            copy_settings=True, copy_wsgi_module=True, migrate=False, link=True):
     try:
-        result = remote(ctx, 'readlink {remote.path.env} || true', cd=None, echo=False, hide=True)
+        result = remote(
+            ctx, 'readlink {remote.path.env}', cd=None, echo=False, hide=True,
+            abort_on_failure=False)
         active_path = result.stdout.strip()
 
         print('Preparing to deploy {name} to {env}'.format(**ctx))
@@ -85,8 +89,9 @@ def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, insta
                 wheel(ctx, '{remote.build.dist}/{distribution}*')
 
             if install:
+                remote(
+                    ctx, '{remote.build.pip} uninstall -y {distribution}', abort_on_failure=False)
                 remote(ctx, (
-                    '{remote.build.pip} uninstall -y {distribution} || true &&',
                     '{remote.build.pip} install',
                     '--no-index',
                     '--find-links file://{remote.pip.wheel_dir}',
@@ -94,15 +99,15 @@ def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, insta
                     '{distribution}',
                 ), cd='{remote.build.dir}')
 
-            scp(ctx, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
+            copy_file(ctx, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
                 mode='ug+rwx,o-rwx')
 
             if copy_settings:
-                scp(ctx, 'local.base.cfg', '{remote.build.dir}')
-                scp(ctx, '{local_settings_file}', '{remote.build.dir}/local.cfg')
+                copy_file(ctx, 'local.base.cfg', '{remote.build.dir}')
+                copy_file(ctx, '{local_settings_file}', '{remote.build.dir}/local.cfg')
 
             if copy_wsgi_module:
-                scp(ctx, '{package}/wsgi.py', '{remote.build.wsgi}')
+                copy_file(ctx, '{package}/wsgi.py', '{remote.build.wsgi}')
 
             if migrate:
                 remote_manage(ctx, 'migrate')
@@ -110,6 +115,9 @@ def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, insta
             if link:
                 tasks['link'](ctx, ctx.version)
                 restart(ctx)
+
+            # Permissions are updated after restarting because this could take a *long* time
+            remote(ctx, 'chmod -R ug=rwX,o-rwx {remote.path.root}/* {remote.path.root}/.??*')
 
     except KeyboardInterrupt:
         abort(message='\nDeployment aborted')
@@ -128,18 +136,22 @@ def builds(ctx, active=False, rm=None, yes=False):
     """
     build_root = ctx.remote.build.root
     if active:
-        remote(
-            ctx, 'readlink {remote.path.env} || echo "Could not read link for active version"')
+        result = remote(ctx, 'readlink {remote.path.env}', abort_on_failure=False)
+        if result.failed:
+            print('Could not read link for active version')
     elif rm:
         version = rm
         build_dir = '{build_root}/{version}'.format(**locals())
-        remote(ctx, 'test -d {build_dir}'.format(**locals()))
-        prompt = 'Really delete build {version} at {build_dir}?'.format(**locals())
-        if yes or confirm(ctx, prompt):
-            remote(ctx, 'rm -r {build_dir}'.format(**locals()))
+        result = remote(ctx, ('test -d', build_dir), echo=False, abort_on_failure=False)
+        if result.failed:
+            print('Build directory', build_dir, 'does not exist')
+        else:
+            prompt = 'Really delete build {version} at {build_dir}?'.format(**locals())
+            if yes or confirm(ctx, prompt):
+                remote(ctx, ('rm -r', build_dir))
     else:
         print('Builds:')
-        remote(ctx, 'stat -c "%n %y" * | sort -k2,3', cd=build_root)
+        remote(ctx, ('stat -c "%n %y" *', 'sort -k2,3'), cd=build_root, many='|')
 
 
 @task(configured)
@@ -152,7 +164,7 @@ def link(ctx, version):
 def push_app(ctx):
     local(ctx, (sys.executable, 'setup.py sdist -d {path.build.dist}'), hide='stdout')
     remote(ctx, 'rm -f {remote.build.dist}/{package}*')
-    scp(ctx, '{path.build.dist}/{distribution}*', '{remote.build.dist}')
+    copy_file(ctx, '{path.build.dist}/{distribution}*', '{remote.build.dist}')
 
 
 @task(configured, build_static)

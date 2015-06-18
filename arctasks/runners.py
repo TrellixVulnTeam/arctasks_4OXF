@@ -37,45 +37,85 @@ def local(ctx, args, cd=None, sudo=False, run_as=None, echo=True, hide=False,
 
 
 @task(configured)
-def remote(ctx, args, user=None, host=None, cd=None, path=None, echo=True, hide=False,
-           abort_on_failure=True):
+def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_as=None, echo=True,
+           hide=False, abort_on_failure=True, many=False):
     """Run a command on the remote host using ssh.
 
     ``args`` can be a string or a list of strings that will be joined
-    with " " into a single string.
+    with " " into a single command string.
 
-    The directory specified by ``cd`` is changed into on the remote host
-    before the command is run.
+    .. note:: If ``args`` is something like ``"abc && xyz"``, only the
+              ``abc`` command will be run as the user indicated by ``sudo``
+              or ``run_as``. To get around this, instead pass ``args`` as
+              ``("abc", "xyz")`` with ``many=True`` or ``many='&&'`` or
+              ``many='||'``.
+
+    ``user`` is the user to log in as. ``host`` is the host that will be
+    logged in to. Commands will be run as ``user`` unless ``sudo`` or
+    ``run_as`` is specified.
 
     ``path`` will be *appended* to the remote $PATH before running the
     command. It can be a string or a list of strings that will be joined
     with ":".
 
+    TODO: Make it possible to *prepend* to the remote $PATH?
+
+    The directory specified by ``cd`` will be changed into on the remote
+    host before the command is run. By default, the remote working directory
+    will be the home directory of ``user``.
+
+    If ``sudo`` is specified, commands will be run on the remote host as
+    ``sudo COMMAND``. If ``run_as`` is specified, commands will be run on
+    the remote host as ``sudo -u USER COMMAND``.
+
     ``echo`` and ``hide`` are passed to ``ctx.run()``.
+
+    If ``many`` is specified, ``args`` must be a list of commands. Each item
+    can be a string or a list of strings that will be joined with " " (just
+    like when running a single command). The list of commands will be joined
+    with the string indicated by ``many`` ("&&" will be used if ``many`` is
+    ``True``). All the commands will be run as the same user (as indicated
+    by ``sudo`` or ``run_as``) in the same directory using the same $PATH.
+
+    .. note:: ``many`` is kind of a hack for cases where you want to run
+              commands on the remote host as a certain user but can't log
+              in as that user (as is the case currently with service users).
 
     """
     cmd = []
     user = user if user is not None else ctx.task.remote.user
     host = host if host is not None else ctx.task.remote.host
+    run_as = run_as if run_as is not None else ctx.task.remote.get('run_as', '')
 
     if path is not None:
-        path = args_to_str(path, joiner=':')
-        path = 'export PATH="$PATH:{path}" &&'.format(path=path)
-        cmd.append(path)
+        path = args_to_str(('$PATH', path), joiner=':')
+        path = 'PATH="{path}"'.format(path=path)
+        cmd.extend(('export', path, '&&'))
 
     if cd:
-        cd = cd.format(**ctx)
-        cd = 'cd {cd} &&'.format(cd=cd)
-        cmd.append(cd)
+        cmd.extend(('cd', cd, '&&'))
 
-    args = args_to_str(args, format_kwargs=ctx)
-    cmd.append(args)
+    if sudo:
+        run_as = 'sudo'
+    elif run_as:
+        run_as = 'sudo -u {run_as}'.format(run_as=run_as)
 
-    cmd = ' '.join(cmd)
+    if many:
+        if not isinstance(args, (list, tuple)):
+            raise TypeError('args must be a list or tuple when --many')
+        if many is True:
+            many = '&&'
+        if many not in ('&&', '||', '|'):
+            raise ValueError('many must be one of True, "&&", "||", "|", or ";"')
+    else:
+        args = [args]
+
+    for a in args[:-1]:
+        cmd.extend((run_as, a, many))
+    cmd.extend((run_as, args[-1]))
+
+    cmd = args_to_str(cmd, format_kwargs=ctx)
     cmd = "'{cmd}'".format(cmd=cmd)
-
-    ssh = 'ssh {user}@{host}'.format(user=user, host=host)
-    cmd = [ssh, cmd]
-    cmd = ' '.join(cmd)
+    cmd = args_to_str(('ssh', '{user}@{host}', cmd), format_kwargs=locals())
 
     return local(ctx, cmd, echo=echo, hide=hide, abort_on_failure=abort_on_failure)
