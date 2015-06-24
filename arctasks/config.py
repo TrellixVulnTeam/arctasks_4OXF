@@ -234,7 +234,8 @@ prod = make_env_task('prod')
 @task
 def configured(ctx):
     if not ctx.get('__configured__'):
-        abort(1, 'Task must be configured (i.e., you must call the configure task first)')
+        configure(ctx, 'dev')
+        print('Configuring for dev environment since no config task was specified\n')
 
 
 @task(configured)
