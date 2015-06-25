@@ -85,7 +85,7 @@ DEFAULT_CONFIG = (
         '*.swp',
     )),
 
-    # Copied from Bootstrap
+    # Copied from Bootstrap (from grunt/configBridge.json in the source)
     ('task.lessc.autoprefix.browsers', ','.join((
         'Android 2.3',
         'Android >= 4',
