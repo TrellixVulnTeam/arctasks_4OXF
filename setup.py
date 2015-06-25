@@ -1,4 +1,12 @@
+import sys
 from distutils.core import setup
+
+install_requires = [
+    'invoke>=0.10.1',
+]
+
+if sys.version_info[:2] < (3, 4):
+    install_requires.append('enum34')
 
 setup(
     name='psu.oit.arc.tasks',
@@ -9,9 +17,7 @@ setup(
     license='MIT',
     packages=['arctasks'],
     url='https://github.com/PSU-OIT-ARC/arctasks',
-    install_requires=[
-        'invoke',
-    ],
+    install_requires=install_requires,
     classifiers=[
         'Development Status :: 3 - Alpha',
         'Intended Audience :: Developers',

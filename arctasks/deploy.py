@@ -10,7 +10,7 @@ from .config import configured, show_config
 from .remote import manage as remote_manage, rsync, copy_file
 from .runners import local, remote
 from .static import build_static
-from .util import abort, confirm
+from .util import abort, confirm, print_header, print_info, print_warning, print_error
 
 
 @task(configured)
@@ -46,18 +46,16 @@ def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, insta
             abort_on_failure=False)
         active_path = result.stdout.strip()
 
-        print('Preparing to deploy {name} to {env}'.format(**ctx))
-        print('New version: {version} ({remote.build.dir})'.format(**ctx))
+        print_header('Preparing to deploy {name} to {env}'.format(**ctx))
+        print_info('New version: {version} ({remote.build.dir})'.format(**ctx))
         if active_path:
             active_version = posixpath.basename(active_path)
-            print('Active version: {} ({})'.format(active_version, active_path))
+            print_info('Active version: {} ({})'.format(active_version, active_path))
         else:
-            print('There is no active version')
-        print()
-        print('Configuration:')
+            print_warning('There is no active version')
+        print_info('Configuration:')
         show_config(ctx, tasks=False, initial_level=1)
-        print()
-        print('Please review the configuration above.\n')
+        print_warning('\nPlease review the configuration above.')
 
         if confirm(ctx, 'Continue with deployment to {env}?'):
             # For access to tasks that are shadowed by args.
@@ -118,6 +116,8 @@ def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, insta
 
             # Permissions are updated after restarting because this could take a *long* time
             remote(ctx, 'chmod -R ug=rwX,o-rwx {remote.path.root}/* {remote.path.root}/.??*')
+        else:
+            abort(message='Deployment aborted')
 
     except KeyboardInterrupt:
         abort(message='\nDeployment aborted')
@@ -138,20 +138,20 @@ def builds(ctx, active=False, rm=None, yes=False):
     if active:
         result = remote(ctx, 'readlink {remote.path.env}', abort_on_failure=False)
         if result.failed:
-            print('Could not read link for active version')
+            print_error('Could not read link for active version')
     elif rm:
         version = rm
         build_dir = '{build_root}/{version}'.format(**locals())
         result = remote(ctx, ('test -d', build_dir), echo=False, abort_on_failure=False)
         if result.failed:
-            print('Build directory', build_dir, 'does not exist')
+            print_error('Build directory', build_dir, 'does not exist')
         else:
             prompt = 'Really delete build {version} at {build_dir}?'.format(**locals())
             if yes or confirm(ctx, prompt):
                 remote(ctx, ('rm -r', build_dir))
     else:
-        print('Builds:')
-        remote(ctx, ('stat -c "%n %y" *', 'sort -k2,3'), cd=build_root, many='|')
+        print_header('Builds:')
+        remote(ctx, ('stat -c "%n %y" *', 'sort -k2,3'), cd=build_root, echo=False, many='|')
 
 
 @task(configured)
@@ -190,5 +190,5 @@ def wheel(ctx, distribution):
 def restart(ctx):
     from django.conf import settings
     remote(ctx, 'touch {remote.build.wsgi}/wsgi.py', cd=None)
-    print('Getting {0.DOMAIN_NAME}...'.format(settings))
+    print_info('Getting {0.DOMAIN_NAME}...'.format(settings))
     urlretrieve('http://{0.DOMAIN_NAME}/'.format(settings), os.devnull)

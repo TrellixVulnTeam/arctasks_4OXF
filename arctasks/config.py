@@ -7,7 +7,7 @@ from collections import Mapping, OrderedDict
 
 from invoke import ctask as task
 
-from .util import abort, as_list, get_git_hash
+from .util import abort, as_list, get_git_hash, print_warning
 
 
 DEFAULT_CONFIG = (
@@ -235,7 +235,7 @@ prod = make_env_task('prod')
 def configured(ctx):
     if not ctx.get('__configured__'):
         configure(ctx, 'dev')
-        print('Configuring for dev environment since no config task was specified\n')
+        print_warning('Configuring for dev environment since no config task was specified')
 
 
 @task(configured)

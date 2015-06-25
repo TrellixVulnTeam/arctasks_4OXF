@@ -1,9 +1,15 @@
+import enum
 import subprocess
 import sys
+from functools import partial
 
 
-def abort(code=0, message='Aborted'):
+def abort(code=0, message='Aborted', color=True):
     if message:
+        if color:
+            if color is True:
+                color = 'error' if code else 'warning'
+            message = colorize(message, color=color)
         if code != 0:
             print(message, file=sys.stderr)
         else:
@@ -41,9 +47,11 @@ def as_list(items, sep=','):
     return items
 
 
-def confirm(ctx, prompt='Really?'):
+def confirm(ctx, prompt='Really?', color='warning'):
     prompt = prompt.format(**ctx)
     prompt = '{prompt} [y/N] '.format(prompt=prompt)
+    if color is not None:
+        prompt = colorize(prompt, color=color)
     answer = input(prompt)
     answer = answer.strip().lower()
     return answer in ('y', 'yes')
@@ -55,3 +63,71 @@ def get_git_hash(short=True):
         args.append('--short')
     args.append('HEAD')
     return subprocess.check_output(args).decode().strip()
+
+
+class Color(enum.Enum):
+
+    none = ''
+    reset = '\033[0m'
+    black = '\033[90m'
+    red = '\033[91m'
+    green = '\033[92m'
+    yellow = '\033[93m'
+    blue = '\033[94m'
+    magenta = '\033[95m'
+    cyan = '\033[96m'
+    white = '\033[97m'
+
+    def __str__(self):
+        return self.value
+
+
+COLOR_MAP = {
+    'header': Color.magenta,
+    'info': Color.blue,
+    'success': Color.green,
+    'warning': Color.yellow,
+    'error': Color.red,
+}
+
+
+def colorize(*args, color=Color.none, sep=' ', end=Color.reset):
+    if not isinstance(color, Color):
+        if color in COLOR_MAP:
+            color = COLOR_MAP[color]
+        else:
+            try:
+                color = Color[color]
+            except KeyError:
+                raise ValueError('Unknown color: {color}'.format(color=color))
+    args = (color,) + args
+    string = []
+    for arg in args[:-1]:
+        string.append(str(arg))
+        if not isinstance(arg, Color):
+            string.append(sep)
+    string.append(str(args[-1]))
+    string = ''.join(string)
+    if end:
+        string = '{string}{end}'.format(**locals())
+    return string
+
+
+def print_color(*args, color=Color.none, file=sys.stdout, **kwargs):
+        try:
+            is_a_tty = file.isatty()
+        except AttributeError:
+            is_a_tty = False
+        if is_a_tty:
+            string = colorize(*args, color=color, **kwargs)
+            print(string, **kwargs)
+        else:
+            args = [a for a in args if not isinstance(a, Color)]
+            print(*args, **kwargs)
+
+
+print_header = partial(print_color, color=COLOR_MAP['header'])
+print_info = partial(print_color, color=COLOR_MAP['info'])
+print_success = partial(print_color, color=COLOR_MAP['success'])
+print_warning = partial(print_color, color=COLOR_MAP['warning'])
+print_error = partial(print_color, color=COLOR_MAP['error'])
