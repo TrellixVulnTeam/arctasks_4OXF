@@ -232,10 +232,12 @@ prod = make_env_task('prod')
 
 
 @task
-def configured(ctx):
+def configured(ctx, default_env='dev'):
     if not ctx.get('__configured__'):
-        configure(ctx, 'dev')
-        print_warning('Configuring for dev environment since no config task was specified')
+        configure(ctx, default_env)
+        print_warning(
+            'Configuring for {env} environment since no config task was specified'
+            .format(env=default_env))
 
 
 @task(configured)
