@@ -4,7 +4,7 @@ import shutil
 import sys
 from urllib.request import urlretrieve
 
-from invoke.tasks import ctask as task
+from invoke.tasks import ctask as task, call
 
 from .config import configured, show_config
 from .remote import manage as remote_manage, rsync, copy_file
@@ -37,7 +37,7 @@ def provision(ctx, overwrite=False):
     ), cd=build_dir, many=True)
 
 
-@task(configured)
+@task(call(configured, default_env='stage'))
 def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, install=True,
            copy_settings=True, copy_wsgi_module=True, migrate=False, link=True):
     try:
