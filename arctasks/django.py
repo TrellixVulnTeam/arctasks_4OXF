@@ -26,6 +26,6 @@ def migrate(ctx, app='', migration=''):
 
 
 @task
-def test(ctx, test=''):
+def test(ctx, test='', keepdb=True):
     configure(ctx, 'test')
-    manage(ctx, ('test', test))
+    manage(ctx, ('test', '--keepdb' if keepdb else '', test))
