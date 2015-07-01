@@ -1,23 +1,21 @@
-from invoke.tasks import ctask as task
-
-from .config import configure, configured
+from .arctask import arctask
 from .runners import local
 from .util import abort
 
 
-@task(configured)
+@arctask(configured='dev')
 def manage(ctx, args, cd=None, sudo=False, run_as=None, echo=True, hide=False,
            abort_on_failure=True):
     """Run a Django management command."""
     local(ctx, ('{python}', 'manage.py', args), cd, sudo, run_as, echo, hide, abort_on_failure)
 
 
-@task(configured)
+@arctask(configured='dev')
 def makemigrations(ctx, app=''):
     manage(ctx, ('makemigrations', app))
 
 
-@task(configured)
+@arctask(configured='dev')
 def migrate(ctx, app='', migration=''):
     args = ('migrate', app, migration)
     if migration and not app:
@@ -25,7 +23,6 @@ def migrate(ctx, app='', migration=''):
     manage(ctx, args)
 
 
-@task
+@arctask(configured='test')
 def test(ctx, test='', keepdb=True):
-    configure(ctx, 'test')
     manage(ctx, ('test', '--keepdb' if keepdb else '', test))

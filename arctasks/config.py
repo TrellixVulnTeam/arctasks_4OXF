@@ -5,8 +5,7 @@ import os
 import pkg_resources
 from collections import Mapping, OrderedDict
 
-from invoke import ctask as task
-
+from .arctask import arctask
 from .util import abort, as_list, get_git_hash, print_warning
 
 
@@ -137,7 +136,7 @@ class Config(OrderedDict):
         return '\n'.join(out)
 
 
-@task
+@arctask
 def configure(ctx, env, file_name=None, config=None):
     """Configure the environment tasks are run in.
 
@@ -221,7 +220,7 @@ def make_env_task(env_name):
         configure(ctx, env_name, file_name, config)
     func.__name__ = env_name
     func.__doc__ = 'Configure for {env_name} environment'.format(**locals())
-    return task(func)
+    return arctask(func)
 
 
 # These let us do `inv dev ...` instead of `inv config dev ...`
@@ -231,16 +230,7 @@ stage = make_env_task('stage')
 prod = make_env_task('prod')
 
 
-@task
-def configured(ctx, default_env='dev'):
-    if not ctx.get('__configured__'):
-        configure(ctx, default_env)
-        print_warning(
-            'Configuring for {env} environment since no config task was specified'
-            .format(env=default_env))
-
-
-@task(configured)
+@arctask(configured='dev')
 def show_config(ctx, tasks=True, initial_level=0):
     def show(config, skip=(), level=initial_level):
         indent = ' ' * (level * 4)

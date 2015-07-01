@@ -4,16 +4,15 @@ import shutil
 import sys
 from urllib.request import urlretrieve
 
-from invoke.tasks import ctask as task, call
-
-from .config import configured, show_config
+from .arctask import arctask
+from .config import show_config
 from .remote import manage as remote_manage, rsync, copy_file
 from .runners import local, remote
 from .static import build_static
 from .util import abort, confirm, print_header, print_info, print_warning, print_error
 
 
-@task(configured)
+@arctask(configured=True)
 def provision(ctx, overwrite=False):
     build_dir = ctx.remote.build.dir
     venv = ctx.remote.build.venv
@@ -37,7 +36,7 @@ def provision(ctx, overwrite=False):
     ), cd=build_dir, many=True)
 
 
-@task(call(configured, default_env='stage'))
+@arctask(configured='stage', timed=True)
 def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, install=True,
            copy_settings=True, copy_wsgi_module=True, migrate=False, link=True):
     try:
@@ -123,7 +122,7 @@ def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, insta
         abort(message='\nDeployment aborted')
 
 
-@task(configured, help={'rm': 'Remove the specified build', 'yes': 'Skip confirmations'})
+@arctask(configured=True, help={'rm': 'Remove the specified build', 'yes': 'Skip confirmations'})
 def builds(ctx, active=False, rm=None, yes=False):
     """List/manage builds on remote host.
 
@@ -150,30 +149,30 @@ def builds(ctx, active=False, rm=None, yes=False):
             if yes or confirm(ctx, prompt):
                 remote(ctx, ('rm -r', build_dir))
     else:
-        print_header('Builds:')
+        print_header('Builds ({env}):'.format(**ctx))
         remote(ctx, ('stat -c "%n %y" *', 'sort -k2,3'), cd=build_root, echo=False, many='|')
 
 
-@task(configured)
+@arctask(configured=True)
 def link(ctx, version):
     build_dir = '{remote.build.root}/{v}'.format(v=version, **ctx)
     remote(ctx, ('ln', '-sfn', build_dir, '{env}'), cd='{remote.path.root}')
 
 
-@task(configured)
+@arctask(configured=True)
 def push_app(ctx):
     local(ctx, (sys.executable, 'setup.py sdist -d {path.build.dist}'), hide='stdout')
     remote(ctx, 'rm -f {remote.build.dist}/{package}*')
     copy_file(ctx, '{path.build.dist}/{distribution}*', '{remote.build.dist}')
 
 
-@task(configured, build_static)
+@arctask(build_static, configured=True)
 def push_static(ctx, delete=False):
     from django.conf import settings
     rsync(ctx, '{0.STATIC_ROOT}/'.format(settings), ctx.remote.path.static, delete=delete)
 
 
-@task(configured)
+@arctask(configured=True)
 def wheel(ctx, distribution):
     remote(ctx, (
         '{remote.build.pip} wheel',
@@ -186,7 +185,7 @@ def wheel(ctx, distribution):
     ), path='/usr/pgsql-9.3/bin', cd='{remote.build.dir}')
 
 
-@task(configured)
+@arctask(configured=True)
 def restart(ctx):
     from django.conf import settings
     remote(ctx, 'touch {remote.build.wsgi}/wsgi.py', cd=None)

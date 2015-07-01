@@ -1,15 +1,13 @@
 import os
 import pkg_resources
 
-from invoke.tasks import ctask as task
-
-from .config import configured
+from .arctask import arctask
 from .django import manage
 from .runners import local
 from .util import abort, args_to_str, as_list
 
 
-@task(configured)
+@arctask(configured='dev')
 def bower(ctx, update=False):
     which = local(ctx, 'which bower', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
@@ -17,7 +15,7 @@ def bower(ctx, update=False):
     local(ctx, ('bower', 'update' if update else 'install'), cd='{package}/static')
 
 
-@task(configured)
+@arctask(configured='dev')
 def lessc(ctx, sources=None, optimize=True):
     """Compile the LESS files specified by ``sources``.
 
@@ -46,7 +44,7 @@ def lessc(ctx, sources=None, optimize=True):
         ))
 
 
-@task(configured)
+@arctask(configured='dev')
 def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, collect=True,
                  optimize=True):
     if js:
@@ -57,7 +55,7 @@ def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, coll
         manage(ctx, 'collectstatic --noinput --clear', hide='stdout')
 
 
-@task(configured)
+@arctask(configured='dev')
 def build_js(ctx, sources=None, optimize=True):
     sources = sources or ctx.task.build_js.sources
     sources = as_list(sources)

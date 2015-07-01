@@ -1,10 +1,8 @@
-from invoke.tasks import ctask as task
-
-from .config import configured
+from .arctask import arctask
 from .runners import local
 
 
-@task(configured)
+@arctask(configured='dev')
 def createdb(ctx, type=None, name='{db.name}', drop=False):
     if type is None:
         type = ctx.db.type
@@ -16,7 +14,7 @@ def createdb(ctx, type=None, name='{db.name}', drop=False):
         raise ValueError('Unknown database type: {db.type}'.format(**ctx))
 
 
-@task
+@arctask
 def create_postgresql_db(ctx, name='{db.name}', drop=False):
     """Create a PostgreSQL database with the specified ``name``."""
     # Try to run the drop and create commands with the postgres user; if
@@ -32,6 +30,6 @@ def create_postgresql_db(ctx, name='{db.name}', drop=False):
     local(ctx, ('createdb', name), **args)
 
 
-@task
+@arctask
 def create_mysql_db(ctx, name='{db.name}', drop=False):
     raise NotImplementedError

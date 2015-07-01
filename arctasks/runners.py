@@ -1,11 +1,10 @@
 from invoke.exceptions import Failure
-from invoke.tasks import ctask as task
 
-from .config import configured
+from .arctask import arctask
 from .util import abort, args_to_str
 
 
-@task(configured)
+@arctask(configured='dev')
 def local(ctx, args, cd=None, sudo=False, run_as=None, echo=True, hide=False,
           abort_on_failure=True):
     """Run a command locally using ``ctx.run()``.
@@ -36,7 +35,7 @@ def local(ctx, args, cd=None, sudo=False, run_as=None, echo=True, hide=False,
             return result
 
 
-@task(configured)
+@arctask(configured='dev')
 def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_as=None, echo=True,
            hide=False, abort_on_failure=True, many=False):
     """Run a command on the remote host using ssh.

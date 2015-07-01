@@ -1,6 +1,6 @@
-from invoke.tasks import ctask as task
+from .arctask import arctask
 from .base import clean, install, virtualenv
-from .config import configure, configured, show_config, dev, stage, prod
+from .config import configure, show_config, dev, stage, prod
 from .db import createdb
 from .deploy import builds, deploy, link, restart
 from .django import manage, makemigrations, migrate, test

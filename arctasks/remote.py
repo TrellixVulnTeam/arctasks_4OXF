@@ -1,9 +1,7 @@
 import os
 import tempfile
 
-from invoke.tasks import ctask as task
-
-from .config import configured
+from .arctask import arctask
 from .runners import local, remote
 from .util import as_list
 
@@ -11,13 +9,13 @@ from .util import as_list
 DEFAULT_MODE = 'ug=rwX,o-rwx'
 
 
-@task(configured)
+@arctask(configured=True)
 def manage(ctx, args):
     """Run a Django management command on the remote host."""
     remote(ctx, ('{remote.build.python}', '{remote.build.manage}', args), cd='{remote.build.dir}')
 
 
-@task
+@arctask(configured=True)
 def rsync(ctx, local_path, remote_path, dry_run=False, delete=False, exclude_patterns=(), echo=True,
           hide=True, mode=DEFAULT_MODE):
     run_as = ctx.task.remote.get('run_as', None)
@@ -33,7 +31,7 @@ def rsync(ctx, local_path, remote_path, dry_run=False, delete=False, exclude_pat
     ), echo=echo, hide=hide)
 
 
-@task(configured)
+@arctask(configured=True)
 def copy_file(ctx, local_path, remote_path, template=False, mode=DEFAULT_MODE):
     if template:
         local_path = local_path.format(**ctx)
