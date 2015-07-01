@@ -76,7 +76,7 @@ DEFAULT_CONFIG = (
     ('task.remote.user', getpass.getuser()),
     ('task.remote.host', 'hrimfaxi.oit.pdx.edu'),
 
-    ('task.provision.pip.version', '7.0.3'),
+    ('task.provision.pip.version', '7.1.0'),
 
     ('task.rsync.default_excludes', (
         '__pycache__/',
