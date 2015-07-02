@@ -182,7 +182,7 @@ def wheel(ctx, distribution):
         '--find-links file://{remote.pip.wheel_dir}',
         '--find-links {remote.pip.find_links}',
         distribution,
-    ), path='/usr/pgsql-9.3/bin', cd='{remote.build.dir}')
+    ), path='{task.deploy.wheel.path}', cd='{remote.build.dir}')
 
 
 @arctask(configured=True)
