@@ -45,7 +45,7 @@ def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, insta
             abort_on_failure=False)
         active_path = result.stdout.strip()
 
-        print_header('Preparing to deploy {name} to {env}'.format(**ctx))
+        print_header('Preparing to deploy {name} to {env} ({task.remote.host})'.format(**ctx))
         print_info('New version: {version} ({remote.build.dir})'.format(**ctx))
         if active_path:
             active_version = posixpath.basename(active_path)
