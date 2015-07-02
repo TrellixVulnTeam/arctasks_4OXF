@@ -152,11 +152,15 @@ def configure(ctx, env, file_name=None, config=None):
           for one-off runs.
 
     """
-    all_config = Config()
+    all_config = Config(env=env)
 
+    # Start with defaults
+    for k, v in DEFAULT_CONFIG:
+        all_config.setdefault(k, v)
+
+    # Extend from config file, if there is one
     if file_name is None and os.path.exists(DEFAULT_CONFIG_FILE):
         file_name = DEFAULT_CONFIG_FILE
-
     if file_name is not None:
         if not os.path.exists(file_name):
             abort(1, 'Config file "{}" not found'.format(file_name))
@@ -168,6 +172,7 @@ def configure(ctx, env, file_name=None, config=None):
             v = json.loads(v)
             all_config[k] = v
 
+    # Extend/override from command line.
     # XXX: I don't particularly care for this bit of custom parsing, but
     # I also don't want to add a billion args to this task, and Invoke
     # doesn't currently parse dict-style options (although it may in the
@@ -183,10 +188,6 @@ def configure(ctx, env, file_name=None, config=None):
             all_config[k] = v
     elif isinstance(config, Mapping):
         all_config.update(config)
-
-    all_config.setdefault('env', env)
-    for k, v in DEFAULT_CONFIG:
-        all_config.setdefault(k, v)
 
     for k in all_config:
         v = all_config[k]
