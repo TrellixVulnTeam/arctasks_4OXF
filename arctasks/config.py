@@ -163,7 +163,7 @@ def configure(ctx, env, file_name=None, config=None):
         parser = configparser.ConfigParser()
         with open(file_name) as config_fp:
             parser.read_file(config_fp)
-        section = env if parser.has_section('env') else 'DEFAULT'
+        section = env if parser.has_section(env) else 'DEFAULT'
         for k, v in parser[section].items():
             v = json.loads(v)
             all_config[k] = v
