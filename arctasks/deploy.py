@@ -37,8 +37,8 @@ def provision(ctx, overwrite=False):
 
 
 @arctask(configured='stage', timed=True)
-def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, install=True,
-           copy_settings=True, copy_wsgi_module=True, migrate=False, link=True):
+def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True, wheels=True,
+           install=True, copy_settings=True, copy_wsgi_module=True, migrate=False, link=True):
     try:
         result = remote(
             ctx, 'readlink {remote.path.env}', cd=None, echo=False, hide=True,
@@ -67,8 +67,8 @@ def deploy(ctx, provision=True, overwrite=False, static=True, wheels=True, insta
                 shutil.rmtree(build_dir)
             os.makedirs(build_dir)
 
-            if static:
-                build_static(ctx)
+            if static and build_static:
+                tasks['build_static'](ctx)
 
             # Do remote stuff down here
 
