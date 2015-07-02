@@ -86,7 +86,9 @@ def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_
     host = host if host is not None else ctx.task.remote.host
     run_as = run_as if run_as is not None else ctx.task.remote.get('run_as', '')
 
-    if path is not None:
+    if path is None:
+        path = ''
+    else:
         path = args_to_str(('$PATH', path), joiner=':')
         path = 'PATH="{path}"'.format(path=path)
         cmd.extend(('export', path, '&&'))
@@ -110,8 +112,8 @@ def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_
         args = [args]
 
     for a in args[:-1]:
-        cmd.extend((run_as, a, many))
-    cmd.extend((run_as, args[-1]))
+        cmd.extend((run_as, path, a, many))
+    cmd.extend((run_as, path, args[-1]))
 
     cmd = args_to_str(cmd, format_kwargs=ctx)
     cmd = "'{cmd}'".format(cmd=cmd)
