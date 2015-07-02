@@ -189,11 +189,6 @@ def configure(ctx, env, file_name=None, config=None):
     elif isinstance(config, Mapping):
         all_config.update(config)
 
-    for k in all_config:
-        v = all_config[k]
-        if isinstance(v, str):
-            all_config[k] = v.format(**all_config)
-
     def interpolate(config):
         for k in config:
             v = config[k]
