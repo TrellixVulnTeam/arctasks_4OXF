@@ -114,7 +114,7 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
                 restart(ctx)
 
             # Permissions are updated after restarting because this could take a *long* time
-            remote(ctx, 'chmod -R ug=rwX,o-rwx {remote.path.root}/* {remote.path.root}/.??*')
+            remote(ctx, 'chmod -R ug=rwX,o-rwx {remote.build.dir} {remote.path.static}')
         else:
             abort(message='Deployment aborted')
 
