@@ -71,8 +71,7 @@ DEFAULT_CONFIG = (
     ('remote.pip.find_links', 'file:///vol/www/cdn/pypi/dist'),
 
     ## Default task config
-    ('task.deploy.wheel.path', '/usr/pgsql-9.3/bin'),
-
+    ('task.remote.path', '/usr/pgsql-9.3/bin'),
     ('task.remote.user', getpass.getuser()),
     ('task.remote.host', 'hrimfaxi.oit.pdx.edu'),
 
