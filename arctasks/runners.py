@@ -92,7 +92,6 @@ def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_
     if path:
         path = args_to_str(('$PATH', path), joiner=':')
         path = 'PATH="{path}"'.format(path=path)
-        cmd.extend(('export', path, '&&'))
 
     if cd:
         cmd.extend(('cd', cd, '&&'))
