@@ -87,8 +87,9 @@ def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_
     run_as = run_as if run_as is not None else ctx.task.remote.get('run_as', '')
 
     if path is None:
-        path = ''
-    else:
+        path = ctx.task.remote.get('path', '')
+
+    if path:
         path = args_to_str(('$PATH', path), joiner=':')
         path = 'PATH="{path}"'.format(path=path)
         cmd.extend(('export', path, '&&'))
