@@ -160,9 +160,15 @@ def builds(ctx, active=False, rm=None, yes=False):
 
 
 @arctask(configured=True)
-def link(ctx, version):
+def link(ctx, version, old_style=None):
     build_dir = '{remote.build.root}/{v}'.format(v=version, **ctx)
     remote(ctx, ('ln', '-sfn', build_dir, '{env}'), cd='{remote.path.root}')
+    # XXX: This supports old-style deployments where the media and
+    #      static directories are in the source directory.
+    if old_style:
+        remote(ctx, 'ln -sfn /vol/www/{package}/media/{env} media', cd=build_dir)
+        remote(ctx, 'ln -sfn /vol/www/{package}/static/{env} static', cd=build_dir)
+
 
 
 @arctask(configured=True)
