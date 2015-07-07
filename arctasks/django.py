@@ -26,3 +26,13 @@ def migrate(ctx, app='', migration=''):
 @arctask(configured='test')
 def test(ctx, test='', keepdb=True):
     manage(ctx, ('test', '--keepdb' if keepdb else '', test))
+
+
+@arctask(configured='test')
+def coverage(ctx, keepdb=True):
+    local(ctx, (
+        'coverage run --source={package}',
+        'manage.py test',
+        '--keepdb' if keepdb else ''
+    ))
+    local(ctx, 'coverage report')
