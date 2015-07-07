@@ -113,8 +113,14 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
                 tasks['link'](ctx, ctx.version)
                 restart(ctx)
 
-            # Permissions are updated after restarting because this could take a *long* time
-            remote(ctx, 'chmod -R ug=rwX,o-rwx {remote.build.dir} {remote.path.static}')
+            # Permissions are updated after restarting because this
+            # could take a while. A screen session is used to run the
+            # chmod command because we don't want to sit around waiting,
+            # and we assume the chmod will succeed.
+            remote(ctx, (
+                'screen -d -m',
+                'chmod -R ug=rwX,o-rwx {remote.build.dir} {remote.path.static}'
+            ))
         else:
             abort(message='Deployment aborted')
 
