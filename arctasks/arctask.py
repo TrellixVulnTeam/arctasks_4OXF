@@ -10,6 +10,10 @@ Its main features are:
       used to specify a task must be explicitly configured (by passing
       ``True``)
     - Tasks can be timed using the ``timed`` arg
+    - Tasks can have default option values specified via config. To do
+      this, set the option's value to ``None`` in the task def and then
+      add a config item named ``package.module.task_name.option_name``
+      with the default value.
 
 Note: The name of this module is "arctask" instead of just "task"
 because the latter causes Invoke to choke for some reason.
@@ -33,20 +37,32 @@ class Task(BaseTask):
         kwargs.setdefault('contextualized', True)
         super().__init__(*args, **kwargs)
 
-    def __call__(self, ctx, *args, **kwargs):
+    def __call__(self, ctx, *args, **options):
         assert isinstance(ctx, Context), 'This task must be called with a Context'
 
-        if self.configured and not ctx.get('__configured__'):
-            if self.configured is True:
-                abort(1, 'You must explicitly configure the {0.__name__} task'.format(self))
-            elif isinstance(self.configured, str):
-                env = self.configured
-            configure(ctx, env)
+        if self.configured:
+            if not ctx.get('__configured__'):
+                if self.configured is True:
+                    abort(1, 'You must explicitly configure the {0.__name__} task'.format(self))
+                elif isinstance(self.configured, str):
+                    env = self.configured
+                configure(ctx, env)
+
+            # Fill in options from config. For each option that is not
+            # present or is None, this looks for a default value for the
+            # option in the config. This skips positional args
+            config = ctx['__config__']
+            for argument in self.get_arguments():
+                name = argument.name
+                if not argument.positional and options.get(name) is None:
+                    path = '.'.join((self.body.__module__, self.body.__qualname__, name))
+                    if path in config:
+                        options[name] = config[path]
 
         if self.timed:
             start_time = time.monotonic()
 
-        result = super().__call__(ctx, *args, **kwargs)
+        result = super().__call__(ctx, *args, **options)
 
         if self.timed:
             self.print_elapsed_time(time.monotonic() - start_time)

@@ -126,6 +126,15 @@ class Config(OrderedDict):
             except KeyError:
                 raise attribute_error
 
+    def __contains__(self, key):
+        obj = self
+        path = key.split('.')
+        for segment in path:
+            if not super(Config, obj).__contains__(segment):
+                return False
+            obj = super(Config, obj).__getitem__(segment)
+        return True
+
     def __str__(self):
         out = []
         for k, v in self.items():
