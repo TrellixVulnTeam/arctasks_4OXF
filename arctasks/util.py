@@ -1,4 +1,6 @@
 import enum
+import importlib
+import os
 import subprocess
 import sys
 from functools import partial
@@ -15,6 +17,47 @@ def abort(code=0, message='Aborted', color=True):
         else:
             print(message)
     sys.exit(code)
+
+
+def abs_path(path, format_kwargs={}):
+    """Get abs. path for ``path``.
+
+    ``path`` may be a relative or absolute file system path or an asset
+    path. If ``path`` is already an abs. path, it will be returned as
+    is. Otherwise, it will be converted into a normalized abs. path.
+
+    """
+    if format_kwargs:
+        path = path.format(**format_kwargs)
+    if not os.path.isabs(path):
+        if ':' in path:
+            path = asset_path(path)
+        else:
+            path = os.path.expanduser(path)
+            path = os.path.normpath(os.path.abspath(path))
+    return path
+
+
+def asset_path(path, format_kwargs={}):
+    """Get absolute path to asset in package.
+
+    ``path`` can be just a package name like 'arctasks' or it can be
+    a package name and a relative file system path like 'arctasks:util'.
+
+    """
+    if ':' in path:
+        package_name, *rel_path = path.split(':', 1)
+    else:
+        package_name, rel_path = path, ()
+    package = importlib.import_module(package_name)
+    if not hasattr(package, '__file__'):
+        raise ValueError("Can't compute path relative to namespace package")
+    package_path = os.path.dirname(package.__file__)
+    path = os.path.join(package_path, *rel_path)
+    path = os.path.normpath(os.path.abspath(path))
+    if format_kwargs:
+        path = path.format(**format_kwargs)
+    return path
 
 
 def args_to_str(args, joiner=' ', format_kwargs={}):
