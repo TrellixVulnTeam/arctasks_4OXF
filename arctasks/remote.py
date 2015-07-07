@@ -3,7 +3,7 @@ import tempfile
 
 from .arctask import arctask
 from .runners import local, remote
-from .util import as_list
+from .util import as_tuple
 
 
 DEFAULT_MODE = 'ug=rwX,o-rwx'
@@ -16,23 +16,28 @@ def manage(ctx, args):
 
 
 @arctask(configured=True)
-def rsync(ctx, local_path, remote_path, dry_run=False, delete=False, exclude_patterns=(), echo=True,
-          hide=True, mode=DEFAULT_MODE):
-    run_as = ctx.task.remote.get('run_as', None)
-    exclude_patterns += tuple(as_list(ctx.task.rsync.default_excludes))
+def rsync(ctx, local_path, remote_path, user=None, host=None, run_as=None, dry_run=False,
+          delete=False, excludes=(), echo=True, hide=True, mode=DEFAULT_MODE):
+    excludes = as_tuple(excludes)
+    default_excludes = ctx.arctasks.remote.rsync.get('default_excludes')
+    if default_excludes:
+        excludes += as_tuple(default_excludes)
     local(ctx, (
-        'rsync', '-rltvz',
+        'rsync',
+        '-rltvz',
         '--dry-run' if dry_run else '',
         '--delete' if delete else '',
         '--rsync-path "sudo -u {run_as} rsync"'.format(run_as=run_as) if run_as else '',
         '--no-perms', '--no-group', '--chmod=%s' % mode,
-        tuple("--exclude '{p}'".format(p=p) for p in exclude_patterns),
-        local_path, '{task.remote.user}@{task.remote.host}:%s' % remote_path,
+        tuple("--exclude '{p}'".format(p=p) for p in excludes),
+        local_path,
+        '{user}@{host}:{remote_path}'.format(**locals()),
     ), echo=echo, hide=hide)
 
 
 @arctask(configured=True)
-def copy_file(ctx, local_path, remote_path, template=False, mode=DEFAULT_MODE):
+def copy_file(ctx, local_path, remote_path, user=None, host=None, run_as=None, template=False,
+              mode=DEFAULT_MODE):
     if template:
         local_path = local_path.format(**ctx)
         with open(local_path) as in_fp:
@@ -43,4 +48,4 @@ def copy_file(ctx, local_path, remote_path, template=False, mode=DEFAULT_MODE):
             text=True)
         os.write(temp_fd, contents.encode('utf-8'))
         os.close(temp_fd)
-    rsync(ctx, local_path, remote_path, mode=mode)
+    rsync(ctx, local_path, remote_path, user=user, host=host, run_as=run_as, mode=mode)

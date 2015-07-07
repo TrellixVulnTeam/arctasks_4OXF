@@ -1,10 +1,9 @@
 import os
-import pkg_resources
 
 from .arctask import arctask
 from .django import manage
 from .runners import local
-from .util import abort, args_to_str, as_list
+from .util import abort, abs_path, args_to_str, as_list
 
 
 @arctask(configured='dev')
@@ -16,7 +15,7 @@ def bower(ctx, update=False):
 
 
 @arctask(configured='dev')
-def lessc(ctx, sources=None, optimize=True):
+def lessc(ctx, sources=None, optimize=True, autoprefix_browsers=None):
     """Compile the LESS files specified by ``sources``.
 
     Each LESS file will be compiled into a CSS file with the same root
@@ -28,9 +27,7 @@ def lessc(ctx, sources=None, optimize=True):
     which = local(ctx, 'which lessc', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
         abort(1, 'less must be installed (via npm) and on $PATH')
-    if sources is None:
-        sources = ctx.task.lessc.sources
-    sources = as_list(sources)
+    sources = [abs_path(s) for s in as_list(sources)]
     for source in sources:
         root, ext = os.path.splitext(source)
         if ext != '.less':
@@ -38,7 +35,7 @@ def lessc(ctx, sources=None, optimize=True):
         destination = '{root}.css'.format(root=root)
         local(ctx, (
             'lessc',
-            '--autoprefix="{task.lessc.autoprefix.browsers}"',
+            '--autoprefix="%s"' % autoprefix_browsers,
             '--clean-css' if optimize else '',
             source, destination
         ))
@@ -48,20 +45,22 @@ def lessc(ctx, sources=None, optimize=True):
 def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, collect=True,
                  optimize=True):
     if js:
-        build_js(ctx, js_sources, optimize)
+        build_js(ctx, sources=js_sources, optimize=optimize)
     if css:
-        lessc(ctx, css_sources, optimize)
+        lessc(ctx, sources=css_sources, optimize=optimize)
     if collect:
         manage(ctx, 'collectstatic --noinput --clear', hide='stdout')
 
 
 @arctask(configured='dev')
-def build_js(ctx, sources=None, optimize=True):
-    sources = sources or ctx.task.build_js.sources
-    sources = as_list(sources)
+def build_js(ctx, sources=None, main_config_file=None, base_url=None, optimize=True, paths=None):
+    sources = [abs_path(s) for s in as_list(sources)]
+    main_config_file = abs_path(main_config_file)
+    base_url = abs_path(base_url)
     optimize = 'uglify' if optimize else 'none'
-    main_config_file = pkg_resources.resource_filename(ctx.package, 'static/requireConfig.js')
-    base_url = pkg_resources.resource_filename(ctx.package, 'static')
+    paths = as_list(paths)
+    if paths:
+        paths = ' '.join('paths.{k}={v}'.format(k=k, v=v) for k, v in paths.items())
     for source in sources:
         name = os.path.relpath(source, base_url)
         if name.endswith('.js'):
@@ -74,6 +73,7 @@ def build_js(ctx, sources=None, optimize=True):
             'baseUrl={base_url}',
             'name={name}',
             'optimize={optimize}',
+            paths or '',
             'out={out}',
         ), format_kwargs=locals())
     local(ctx, cmd, hide='stdout')

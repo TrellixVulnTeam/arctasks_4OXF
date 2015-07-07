@@ -82,16 +82,12 @@ def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_
 
     """
     cmd = []
-    user = user if user is not None else ctx.task.remote.user
-    host = host if host is not None else ctx.task.remote.host
-    run_as = run_as if run_as is not None else ctx.task.remote.get('run_as', '')
-
-    if path is None:
-        path = ctx.task.remote.get('path', '')
 
     if path:
         path = args_to_str(('$PATH', path), joiner=':')
         path = 'PATH="{path}"'.format(path=path)
+    else:
+        path = ''
 
     if cd:
         cmd.extend(('cd', cd, '&&'))
@@ -100,6 +96,8 @@ def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_
         run_as = 'sudo'
     elif run_as:
         run_as = 'sudo -u {run_as}'.format(run_as=run_as)
+    else:
+        run_as = ''
 
     if many:
         if not isinstance(args, (list, tuple)):

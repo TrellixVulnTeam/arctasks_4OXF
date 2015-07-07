@@ -9,7 +9,8 @@ from .config import show_config
 from .remote import manage as remote_manage, rsync, copy_file
 from .runners import local, remote
 from .static import build_static
-from .util import abort, confirm, print_header, print_info, print_warning, print_error
+from .util import abort, abs_path, as_list, confirm
+from .util import print_header, print_info, print_warning, print_error
 
 
 @arctask(configured=True)
@@ -20,8 +21,10 @@ def provision(ctx, overwrite=False):
         # Remove existing build directory if present
         remote(ctx, ('rm -rf', build_dir, venv))
     # Make build dir
-    remote(
-        ctx, 'mkdir -p {remote.build.dir} {remote.build.dist} {remote.build.wsgi} -m ug=rwx,o-rwx')
+    remote(ctx, (
+        'mkdir -p -m ug=rwx,o-rwx',
+        '{remote.build.dir} {remote.build.dist} {remote.build.wsgi_dir}',
+    ))
     # Create virtualenv for build
     result = remote(ctx, ('test -d', venv), abort_on_failure=False)
     if result.failed:
@@ -31,7 +34,7 @@ def provision(ctx, overwrite=False):
     find_links = ctx.remote.pip.find_links
     remote(ctx, (
         (pip, 'install -U setuptools'),
-        (pip, 'install --find-links', find_links, '"pip=={task.provision.pip.version}"'),
+        (pip, 'install --find-links', find_links, '"pip=={arctasks.deploy.provision.pip.version}"'),
         (pip, 'install --find-links', find_links, '--cache-dir {remote.pip.download_cache} wheel'),
     ), cd=build_dir, many=True)
 
@@ -45,7 +48,8 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
             abort_on_failure=False)
         active_path = result.stdout.strip()
 
-        print_header('Preparing to deploy {name} to {env} ({task.remote.host})'.format(**ctx))
+        print_header(
+            'Preparing to deploy {name} to {env} ({arctasks.runners.remote.host})'.format(**ctx))
         print_info('New version: {version} ({remote.build.dir})'.format(**ctx))
         if active_path:
             active_version = posixpath.basename(active_path)
@@ -96,15 +100,16 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
                     '{distribution}',
                 ), cd='{remote.build.dir}')
 
-            copy_file(ctx, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
-                mode='ug+rwx,o-rwx')
+            copy_file(
+                ctx, abs_path(ctx.remote.build.manage_template), ctx.remote.build.manage,
+                template=True, mode='ug+rwx,o-rwx')
 
             if copy_settings:
                 copy_file(ctx, 'local.base.cfg', '{remote.build.dir}')
                 copy_file(ctx, '{local_settings_file}', '{remote.build.dir}/local.cfg')
 
             if copy_wsgi_module:
-                copy_file(ctx, '{package}/wsgi.py', '{remote.build.wsgi}')
+                copy_file(ctx, '{package}/wsgi.py', '{remote.build.wsgi_dir}')
 
             if migrate:
                 remote_manage(ctx, 'migrate')
@@ -203,6 +208,6 @@ def wheel(ctx, distribution):
 @arctask(configured=True)
 def restart(ctx):
     from django.conf import settings
-    remote(ctx, 'touch {remote.build.wsgi}/wsgi.py', cd=None)
+    remote(ctx, 'touch {remote.build.wsgi_dir}/wsgi.py', cd=None)
     print_info('Getting {0.DOMAIN_NAME}...'.format(settings))
     urlretrieve('http://{0.DOMAIN_NAME}/'.format(settings), os.devnull)

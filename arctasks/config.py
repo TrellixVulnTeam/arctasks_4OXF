@@ -2,103 +2,10 @@ import configparser
 import getpass
 import json
 import os
-import pkg_resources
 from collections import Mapping, OrderedDict
 
 from .arctask import arctask
-from .util import abort, as_list, get_git_hash, print_warning
-
-
-DEFAULT_CONFIG = (
-    # Meta
-    ('_arctasks.dir', pkg_resources.resource_filename('arctasks', '')),
-    ('_invoke.version', '0.10.1'),
-    ('cwd', os.getcwd()),
-    ('distribution', '{package}'),
-    ('version', get_git_hash()),
-
-    # Local
-    ('venv', '.env'),
-    ('bin', '{venv}/bin'),
-    ('python', '{bin}/python'),
-    ('pip', '{bin}/pip'),
-    ('requirements', 'requirements.txt'),
-
-    # Local paths
-    ('path.build.root', '{cwd}/build/{version}'),
-    ('path.build.dist', '{path.build.root}/dist'),
-
-    # Django
-    ('django_settings_module', '{package}.settings'),
-    ('local_settings_file', 'local.{env}.cfg'),
-
-    # Database
-    ('db.type', 'postgresql'),
-    ('db.name', '{package}'),
-
-    ## Remote paths
-
-    # Project root directory
-    ('remote.path.root', '/vol/www/{package}'),
-    # Pointer to active build for env (stage, prod)
-    ('remote.path.env', '{remote.path.root}/{env}'),
-    # Media and static directories for env
-    ('remote.path.media', '/vol/www/{package}/media/{env}'),
-    ('remote.path.static', '/vol/www/{package}/static/{env}'),
-
-    # Build root for env; contains all the builds for an env
-    ('remote.build.root', '{remote.path.root}/builds/{env}'),
-    # Where the current build will be built and what remote.path.env will end up pointing at
-    ('remote.build.dir', '{remote.build.root}/{version}'),
-    # Virtualenv for build
-    ('remote.build.venv', '{remote.build.dir}/.env'),
-    ('remote.build.bin', '{remote.build.venv}/bin'),
-    ('remote.build.pip', '{remote.build.bin}/pip'),
-    ('remote.build.python', '{remote.build.bin}/python'),
-    # Source distributions for build
-    ('remote.build.dist', '{remote.build.dir}/dist'),
-    ('remote.build.manage_template', '{_arctasks.dir}/templates/manage.py.template'),
-    ('remote.build.manage', '{remote.build.dir}/manage.py'),
-    ('remote.build.wsgi', '{remote.build.dir}/wsgi'),
-
-    # Pip root directory for env
-    ('remote.pip.root', '{remote.path.root}/pip/{env}'),
-    # Shared pip cache for env
-    ('remote.pip.download_cache', '{remote.pip.root}/download-cache'),
-    # Shared pip wheel dir for env
-    ('remote.pip.wheel_dir', '{remote.pip.root}/wheelhouse'),
-    # ARC's local package index
-    ('remote.pip.find_links', 'file:///vol/www/cdn/pypi/dist'),
-
-    ## Default task config
-    ('task.remote.path', '/usr/pgsql-9.3/bin'),
-    ('task.remote.user', getpass.getuser()),
-    ('task.remote.host', 'hrimfaxi.oit.pdx.edu'),
-
-    ('task.provision.pip.version', '7.1.0'),
-
-    ('task.rsync.default_excludes', (
-        '__pycache__/',
-        '.DS_Store',
-        '*.pyc',
-        '*.swp',
-    )),
-
-    # Copied from Bootstrap (from grunt/configBridge.json in the source)
-    ('task.lessc.autoprefix.browsers', ','.join((
-        'Android 2.3',
-        'Android >= 4',
-        'Chrome >= 20',
-        'Firefox >= 24',
-        'Explorer >= 8',
-        'iOS >= 6',
-        'Opera >= 12',
-        'Safari >= 6',
-    ))),
-)
-
-
-DEFAULT_CONFIG_FILE = os.path.join(os.getcwd(), 'tasks.cfg')
+from .util import abort, abs_path, asset_path, as_list, get_git_hash
 
 
 class Config(OrderedDict):
@@ -149,10 +56,12 @@ class Config(OrderedDict):
 def configure(ctx, env, file_name=None, config=None):
     """Configure the environment tasks are run in.
 
-    Configuration can come from three places, listed here in order of
+    Configuration can come from several places, listed here in order of
     increasing precedence:
 
-        - Defaults defined in this module in :global:`.DEFAULT_CONFIG`.
+        - Dynamically set defaults such as the current working directory
+          and user.
+        - Defaults defined in arctasks:tasks.cfg.
         - The config file specified by --file-name or tasks.cfg in the
           directory containing this module if --file-name isn't given.
         - Command line options specified as ``--config pants=cool,x=1``.
@@ -161,25 +70,35 @@ def configure(ctx, env, file_name=None, config=None):
           for one-off runs.
 
     """
-    all_config = Config(env=env)
+    cwd = os.getcwd()
 
-    # Start with defaults
-    for k, v in DEFAULT_CONFIG:
-        all_config.setdefault(k, v)
+    all_config = Config((
+        ('env', env),
+        ('version', get_git_hash()),
+        ('current_user', getpass.getuser()),
+        ('cwd', cwd),
+    ))
 
-    # Extend from config file, if there is one
-    if file_name is None and os.path.exists(DEFAULT_CONFIG_FILE):
-        file_name = DEFAULT_CONFIG_FILE
-    if file_name is not None:
+    # Mix in static defaults
+    parser = configparser.ConfigParser()
+    with open(asset_path('arctasks:tasks.cfg')) as config_fp:
+        parser.read_file(config_fp)
+
+    # Extend from project config file, if there is one
+    if file_name is None:
+        parser.read(os.path.join(cwd, 'tasks.cfg'))
+    else:
+        original_file_name = file_name
+        file_name = abs_path(file_name)
         if not os.path.exists(file_name):
-            abort(1, 'Config file "{}" not found'.format(file_name))
-        parser = configparser.ConfigParser()
+            abort(1, 'Config file "{}" not found'.format(original_file_name))
         with open(file_name) as config_fp:
             parser.read_file(config_fp)
-        section = env if parser.has_section(env) else 'DEFAULT'
-        for k, v in parser[section].items():
-            v = json.loads(v)
-            all_config[k] = v
+
+    section = env if parser.has_section(env) else 'DEFAULT'
+    for k, v in parser[section].items():
+        v = json.loads(v)
+        all_config[k] = v
 
     # Extend/override from command line.
     # XXX: I don't particularly care for this bit of custom parsing, but
@@ -208,7 +127,7 @@ def configure(ctx, env, file_name=None, config=None):
 
     interpolate(all_config)
     all_config.move_to_end('remote')
-    all_config.move_to_end('task')
+    all_config.move_to_end('arctasks')
     ctx.update(all_config)
     ctx['__configured__'] = True
     ctx['__config__'] = all_config
@@ -243,11 +162,11 @@ def show_config(ctx, tasks=True, initial_level=0):
         for k, v in config.items():
             if k.startswith('_') or k in skip:
                 continue
-            display_value = ' = {}'.format(v) if isinstance(v, str) else ''
+            display_value = ' = {}'.format(v) if not isinstance(v, Config) else ''
             print(
                 '{indent}{k:<{longest}}{display_value}'
                     .format(indent=indent, k=k, longest=longest, display_value=display_value))
             if isinstance(v, Config):
                 show(v, level=level + 1)
-    skip = () if tasks else ('task',)
+    skip = () if tasks else ('arctasks',)
     show(ctx['__config__'], skip=skip)
