@@ -170,7 +170,6 @@ def link(ctx, version, old_style=None):
         remote(ctx, 'ln -sfn /vol/www/{package}/static/{env} static', cd=build_dir)
 
 
-
 @arctask(configured=True)
 def push_app(ctx, deps=None):
     sdist = 'setup.py sdist -d {path.build.dist}'
