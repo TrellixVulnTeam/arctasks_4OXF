@@ -172,10 +172,14 @@ def link(ctx, version, old_style=None):
 
 
 @arctask(configured=True)
-def push_app(ctx):
-    local(ctx, (sys.executable, 'setup.py sdist -d {path.build.dist}'), hide='stdout')
-    remote(ctx, 'rm -f {remote.build.dist}/{package}*')
-    copy_file(ctx, '{path.build.dist}/{distribution}*', '{remote.build.dist}')
+def push_app(ctx, deps=None):
+    sdist = 'setup.py sdist -d {path.build.dist}'
+    local(ctx, (sys.executable, sdist), hide='stdout')
+    if deps:
+        for path in as_list(deps):
+            local(ctx, (sys.executable, sdist), hide='stdout', cd=path)
+    remote(ctx, 'rm -f {remote.build.dist}/*')
+    rsync(ctx, '{path.build.dist}/*', '{remote.build.dist}')
 
 
 @arctask(build_static, configured=True)
