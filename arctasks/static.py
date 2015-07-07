@@ -7,11 +7,12 @@ from .util import abort, abs_path, args_to_str, as_list
 
 
 @arctask(configured='dev')
-def bower(ctx, update=False):
+def bower(ctx, where=None, update=False):
     which = local(ctx, 'which bower', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
         abort(1, 'bower must be installed (via npm) and on $PATH')
-    local(ctx, ('bower', 'update' if update else 'install'), cd='{package}/static')
+    where = abs_path(where)
+    local(ctx, ('bower', 'update' if update else 'install'), cd=where)
 
 
 @arctask(configured='dev')
