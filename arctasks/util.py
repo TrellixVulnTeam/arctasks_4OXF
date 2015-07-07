@@ -90,6 +90,10 @@ def as_list(items, sep=','):
     return items
 
 
+def as_tuple(items, sep=','):
+    return tuple(as_list(items, sep))
+
+
 def confirm(ctx, prompt='Really?', color='warning'):
     prompt = prompt.format(**ctx)
     prompt = '{prompt} [y/N] '.format(prompt=prompt)
