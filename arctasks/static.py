@@ -1,7 +1,7 @@
 import os
 
 from .arctask import arctask
-from .django import manage
+from .django import call_command
 from .runners import local
 from .util import abort, abs_path, args_to_str, as_list
 
@@ -50,7 +50,7 @@ def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, coll
     if css:
         lessc(ctx, sources=css_sources, optimize=optimize)
     if collect:
-        manage(ctx, 'collectstatic --noinput --clear', hide='stdout')
+        call_command('collectstatic', '--noinput', '--clear', hide=True)
 
 
 @arctask(configured='dev')
