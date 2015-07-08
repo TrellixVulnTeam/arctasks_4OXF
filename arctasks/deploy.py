@@ -208,6 +208,6 @@ def wheel(ctx, distribution):
 @arctask(configured=True)
 def restart(ctx):
     from django.conf import settings
-    remote(ctx, 'touch {remote.build.wsgi_dir}/wsgi.py', cd=None)
+    remote(ctx, 'touch {remote.path.wsgi_dir}/wsgi.py', cd=None)
     print_info('Getting {0.DOMAIN_NAME}...'.format(settings))
     urlretrieve('http://{0.DOMAIN_NAME}/'.format(settings), os.devnull)
