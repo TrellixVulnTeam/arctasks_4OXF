@@ -58,3 +58,27 @@ def coverage(ctx, keepdb=True):
         '--keepdb' if keepdb else ''
     ))
     local(ctx, 'coverage report')
+
+
+@arctask(configured='dev')
+def runserver(ctx, host=None, port=None):
+    call_command('runserver', '{host}:{port}'.format(**locals()))
+
+
+@arctask(configured='dev')
+def run_mod_wsgi(ctx, host=None, port=None, processes=2, threads=25):
+    local(ctx, (
+        '{bin}/mod_wsgi-express start-server {package}/wsgi.py',
+        '--processes', str(processes),
+        '--threads', str(threads),
+        '--host', host,
+        '--port', str(port),
+        '--url-alias /media media',
+        '--url-alias /static static',
+        '--reload-on-changes --shutdown-timeout 1 --log-to-terminal',
+    ))
+
+
+@arctask(configured='dev')
+def shell(ctx):
+    call_command('shell')
