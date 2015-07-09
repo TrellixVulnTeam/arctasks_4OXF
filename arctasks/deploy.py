@@ -42,6 +42,28 @@ def provision(ctx, overwrite=False):
 @arctask(configured='stage', timed=True)
 def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True, wheels=True,
            install=True, copy_settings=True, copy_wsgi_module=True, migrate=False, link=True):
+    """Deploy a new version.
+
+    The default directory structure on the server looks like this::
+
+        /vol/www/{package}/
+            {env}                 # Symlink pointing at active build in builds/{env}/
+            builds/{env}/         # Builds for env (stage, prod)
+                {version}/        # Current build root
+                    .env/         # Virtualenv directory
+                    wsgi/wsgi.py  # WSGI entry point [1]
+                    media         # Symlink to media/{env} [2]
+                    static        # Symlink to static/{env} [2]
+            pip/download-cache/   # Cached package downloads
+            pip/wheelhouse/       # Cached package builds
+            media/{env}/          # Media files for env (shared across builds)
+            static/{env}/         # Static files for env (shared across builds)
+
+    [1] Use {package}/wsgi.py for legacy builds.
+    [2] Only necessary for legacy Apache config; only created when the
+        ``--old-style`` flag is passed to the :func:`.link` task.
+
+    """
     try:
         result = remote(
             ctx, 'readlink {remote.path.env}', cd=None, echo=False, hide=True,
