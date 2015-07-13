@@ -3,6 +3,7 @@ import shutil
 
 from .arctask import arctask
 from .runners import local
+from .util import print_header, print_error, print_success
 
 
 @arctask
@@ -34,3 +35,24 @@ def virtualenv(ctx, executable='python3', overwrite=False):
         local(ctx, '{pip} install -U pip')
         # The following is necessary for bootstrapping purposes
         local(ctx, '{pip} install invoke=={_invoke.version}')
+
+
+@arctask(configured='dev')
+def lint(ctx):
+    """Check source files for issues.
+
+    For Python code, this uses the flake8 package, which wraps pep8 and
+    pyflakes. To configure flake8 for your project, add a setup.cfg file
+    with a [flake8] section.
+
+    TODO: Lint JS?
+    TODO: Lint CSS?
+
+    """
+    print_header('Checking for Python lint in {package}...'.format(**ctx))
+    result = local(ctx, 'flake8 {package}', echo=False, abort_on_failure=False)
+    if result.failed:
+        pieces_of_lint = len(result.stdout.strip().splitlines())
+        print_error(pieces_of_lint, 'pieces of Python lint found')
+    else:
+        print_success('Python is clean')
