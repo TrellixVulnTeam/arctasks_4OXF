@@ -123,8 +123,8 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
                 ), cd='{remote.build.dir}')
 
             copy_file(
-                ctx, abs_path(ctx.remote.build.manage_template), ctx.remote.build.manage,
-                template=True, mode='ug+rwx,o-rwx')
+                ctx, abs_path(ctx.remote.build.manage_template, format_kwargs=ctx),
+                ctx.remote.build.manage, template=True, mode='ug+rwx,o-rwx')
 
             if copy_settings:
                 copy_file(ctx, 'local.base.cfg', '{remote.build.dir}')
