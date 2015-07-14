@@ -11,7 +11,7 @@ def bower(ctx, where=None, update=False):
     which = local(ctx, 'which bower', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
         abort(1, 'bower must be installed (via npm) and on $PATH')
-    where = abs_path(where)
+    where = abs_path(where, format_kwargs=ctx)
     local(ctx, ('bower', 'update' if update else 'install'), cd=where)
 
 
@@ -28,7 +28,7 @@ def lessc(ctx, sources=None, optimize=True, autoprefix_browsers=None):
     which = local(ctx, 'which lessc', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
         abort(1, 'less must be installed (via npm) and on $PATH')
-    sources = [abs_path(s) for s in as_list(sources)]
+    sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
     for source in sources:
         root, ext = os.path.splitext(source)
         if ext != '.less':
@@ -55,9 +55,9 @@ def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, coll
 
 @arctask(configured='dev')
 def build_js(ctx, sources=None, main_config_file=None, base_url=None, optimize=True, paths=None):
-    sources = [abs_path(s) for s in as_list(sources)]
-    main_config_file = abs_path(main_config_file)
-    base_url = abs_path(base_url)
+    sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
+    main_config_file = abs_path(main_config_file, format_kwargs=ctx)
+    base_url = abs_path(base_url, format_kwargs=ctx)
     optimize = 'uglify' if optimize else 'none'
     paths = as_list(paths)
     if paths:
