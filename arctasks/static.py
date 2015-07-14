@@ -77,4 +77,4 @@ def build_js(ctx, sources=None, main_config_file=None, base_url=None, optimize=T
             paths or '',
             'out={out}',
         ), format_kwargs=locals())
-    local(ctx, cmd, hide='stdout')
+        local(ctx, cmd, hide='stdout')
