@@ -4,13 +4,28 @@ from .arctask import arctask
 from .runners import local
 from .util import abort
 
+try:
+    import django
+except ImportError:
+    DJANGO_INSTALLED = False
+else:
+    import django.conf
+    import django.core.management
+    DJANGO_INSTALLED = True
+
 
 DJANGO_SET_UP = False
 
 
+def get_settings():
+    if DJANGO_INSTALLED:
+        return django.conf.settings
+    else:
+        abort(1, 'Django is not installed')
+
+
 def call_command(*args, hide=False, **kwargs):
-    import django
-    import django.core.management
+    get_settings()
     global DJANGO_SET_UP
     if not DJANGO_SET_UP:
         django.setup()

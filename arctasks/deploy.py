@@ -4,6 +4,7 @@ import shutil
 import sys
 from urllib.request import urlretrieve
 
+from . import django
 from .arctask import arctask
 from .config import show_config
 from .remote import manage as remote_manage, rsync, copy_file
@@ -210,8 +211,8 @@ def push_app(ctx, deps=None):
 
 @arctask(build_static, configured=True)
 def push_static(ctx, delete=False):
-    from django.conf import settings
     rsync(ctx, '{0.STATIC_ROOT}/'.format(settings), ctx.remote.path.static, delete=delete)
+    settings = django.get_settings()
 
 
 @arctask(configured=True)
@@ -229,7 +230,7 @@ def wheel(ctx, distribution):
 
 @arctask(configured=True)
 def restart(ctx):
-    from django.conf import settings
+    settings = django.get_settings()
     remote(ctx, 'touch {remote.path.wsgi_dir}/wsgi.py', cd=None)
     print_info('Getting {0.DOMAIN_NAME}...'.format(settings))
     urlretrieve('http://{0.DOMAIN_NAME}/'.format(settings), os.devnull)
