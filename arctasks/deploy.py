@@ -191,6 +191,10 @@ def builds(ctx, active=False, rm=None, yes=False):
 def link(ctx, version, old_style=None):
     build_dir = '{remote.build.root}/{v}'.format(v=version, **ctx)
     remote(ctx, ('ln', '-sfn', build_dir, '{env}'), cd='{remote.path.root}')
+
+    # Link the specified version's static manifest
+    remote(ctx, 'ln -sf {remote.build.dir}/staticfiles.json', cd='{remote.path.static}')
+
     # XXX: This supports old-style deployments where the media and
     #      static directories are in the source directory.
     if old_style:
@@ -211,8 +215,12 @@ def push_app(ctx, deps=None):
 
 @arctask(build_static, configured=True)
 def push_static(ctx, delete=False):
-    rsync(ctx, '{0.STATIC_ROOT}/'.format(settings), ctx.remote.path.static, delete=delete)
     settings = django.get_settings()
+    static_root = '{0.STATIC_ROOT}{1}'.format(settings, os.sep)
+    rsync(ctx, static_root, ctx.remote.path.static, delete=delete)
+    manifest = os.path.join(settings.STATIC_ROOT, 'staticfiles.json')
+    if os.path.isfile(manifest):
+        copy_file(ctx, manifest, ctx.remote.build.dir)
 
 
 @arctask(configured=True)
