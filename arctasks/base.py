@@ -3,7 +3,7 @@ import shutil
 
 from .arctask import arctask
 from .runners import local
-from .util import print_header, print_error, print_success
+from .util import abort, as_list, print_header, print_error, print_success, print_warning
 
 
 @arctask
@@ -56,3 +56,24 @@ def lint(ctx):
         print_error(pieces_of_lint, 'pieces of Python lint found')
     else:
         print_success('Python is clean')
+
+
+@arctask(configured='dev')
+def npm_install(ctx, modules=None, force=False):
+    """Install node modules via npm into ./node_modules.
+
+    By default, any modules that are already installed will be skipped.
+    Pass --force to install all specified modules.
+
+    """
+    result = local(ctx, 'which npm', echo=False, hide='stdout', abort_on_failure=False)
+    if result.failed:
+        abort(1, 'node and npm must be installed first')
+    modules = as_list(modules)
+    if not force:
+        modules = [
+            m for m in modules if not os.path.isdir(os.path.join(ctx.cwd, 'node_modules', m))]
+        if not modules:
+            print_warning('All specified modules already installed; maybe pass --force?')
+    if modules:
+        local(ctx, ('npm install', modules), hide='stdout')
