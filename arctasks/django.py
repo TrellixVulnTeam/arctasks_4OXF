@@ -74,12 +74,12 @@ def test(ctx, test=None, keepdb=True):
 
 @arctask(configured='test')
 def coverage(ctx, keepdb=True):
-    local(ctx, (
-        'coverage run --source={package}',
-        'manage.py test',
-        '--keepdb' if keepdb else ''
-    ))
-    local(ctx, 'coverage report')
+    from coverage import coverage
+    cov = coverage(source=[ctx.package])
+    cov.start()
+    call_command('test', keepdb=keepdb)
+    cov.stop()
+    cov.report()
 
 
 @arctask(configured='dev')
