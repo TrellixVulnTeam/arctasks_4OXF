@@ -17,6 +17,14 @@ else:
 DJANGO_SET_UP = False
 
 
+def setup():
+    get_settings()
+    global DJANGO_SET_UP
+    if not DJANGO_SET_UP:
+        django.setup()
+    DJANGO_SET_UP = True
+
+
 def get_settings():
     if DJANGO_INSTALLED:
         return django.conf.settings
@@ -25,11 +33,7 @@ def get_settings():
 
 
 def call_command(*args, hide=False, **kwargs):
-    get_settings()
-    global DJANGO_SET_UP
-    if not DJANGO_SET_UP:
-        django.setup()
-    DJANGO_SET_UP = True
+    setup()
     if hide:
         with open(os.devnull, 'w') as devnull:
             django.core.management.call_command(*args, stdout=devnull, **kwargs)
