@@ -119,6 +119,7 @@ def configure(ctx, env, file_name=None, config=None):
 
     if not os.path.exists(all_config['local_settings_file']):
         all_config['local_settings_file'] = 'local.cfg'
+    all_config['local_settings_file'] = abs_path(all_config.local_settings_file)
 
     def interpolate(config):
         for k in config:
