@@ -117,6 +117,9 @@ def configure(ctx, env, file_name=None, config=None):
     elif isinstance(config, Mapping):
         all_config.update(config)
 
+    if not os.path.exists(all_config['local_settings_file']):
+        all_config['local_settings_file'] = 'local.cfg'
+
     def interpolate(config):
         for k in config:
             v = config[k]
@@ -132,8 +135,6 @@ def configure(ctx, env, file_name=None, config=None):
     ctx['__configured__'] = True
     ctx['__config__'] = all_config
 
-    if not os.path.exists(ctx.local_settings_file):
-        ctx.local_settings_file = 'local.cfg'
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', ctx.django_settings_module)
     os.environ.setdefault('LOCAL_SETTINGS_FILE', ctx.local_settings_file)
     os.environ.setdefault('LOCAL_SETTINGS_CONFIG_QUIET', 'true')
