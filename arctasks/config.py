@@ -24,14 +24,11 @@ class Config(OrderedDict):
             obj = super(Config, obj).setdefault(k, Config())
         super(Config, obj).__setitem__(keys[-1], value)
 
-    def __getattribute__(self, key):
+    def __getattr__(self, key):
         try:
-            return super().__getattribute__(key)
-        except AttributeError as attribute_error:
-            try:
-                return self[key]
-            except KeyError:
-                raise attribute_error
+            return self[key]
+        except KeyError:
+            raise AttributeError(key)
 
     def __contains__(self, key):
         obj = self
