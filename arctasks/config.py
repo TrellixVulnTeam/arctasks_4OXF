@@ -5,7 +5,7 @@ import os
 from collections import Mapping, OrderedDict
 
 from .arctask import arctask
-from .util import abort, abs_path, asset_path, as_list, get_git_hash
+from .util import abort, abs_path, asset_path, as_list, get_git_hash, print_error
 
 
 class Config(OrderedDict):
@@ -155,7 +155,19 @@ prod = make_env_task('prod')
 
 
 @arctask(configured='dev')
-def show_config(ctx, tasks=True, initial_level=0):
+def show_config(ctx, item=None, tasks=True, initial_level=0):
+    """Show config; pass --item=<item> to show just one config item."""
+    config = ctx['__config__']
+
+    if item is not None:
+        try:
+            value = config[item]
+        except KeyError:
+            print_error('Unknown config item: {}'.format(item))
+        else:
+            print(item, '=', value)
+        return
+
     def show(config, skip=(), level=initial_level):
         indent = ' ' * (level * 4)
         longest = len(max(config, key=len))
@@ -168,5 +180,6 @@ def show_config(ctx, tasks=True, initial_level=0):
                     .format(indent=indent, k=k, longest=longest, display_value=display_value))
             if isinstance(v, Config):
                 show(v, level=level + 1)
-    show(ctx['__config__'], skip=skip)
+
     skip = () if tasks else ('arctasks', 'tasks')
+    show(config, skip=skip)
