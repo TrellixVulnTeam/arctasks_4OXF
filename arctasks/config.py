@@ -114,10 +114,6 @@ def configure(ctx, env, file_name=None, config=None):
     elif isinstance(config, Mapping):
         all_config.update(config)
 
-    if not os.path.exists(all_config['local_settings_file']):
-        all_config['local_settings_file'] = 'local.cfg'
-    all_config['local_settings_file'] = abs_path(all_config.local_settings_file)
-
     def interpolate(config):
         for k in config:
             v = config[k]
@@ -127,6 +123,11 @@ def configure(ctx, env, file_name=None, config=None):
                 interpolate(v)
 
     interpolate(all_config)
+
+    if not os.path.exists(all_config.local_settings_file):
+        all_config['local_settings_file'] = 'local.cfg'
+    all_config['local_settings_file'] = abs_path(all_config.local_settings_file)
+
     all_config.move_to_end('remote')
     all_config.move_to_end('arctasks')
     all_config.move_to_end('tasks')
