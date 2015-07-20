@@ -129,6 +129,7 @@ def configure(ctx, env, file_name=None, config=None):
     interpolate(all_config)
     all_config.move_to_end('remote')
     all_config.move_to_end('arctasks')
+    all_config.move_to_end('tasks')
     ctx.update(all_config)
     ctx['__configured__'] = True
     ctx['__config__'] = all_config
@@ -167,5 +168,5 @@ def show_config(ctx, tasks=True, initial_level=0):
                     .format(indent=indent, k=k, longest=longest, display_value=display_value))
             if isinstance(v, Config):
                 show(v, level=level + 1)
-    skip = () if tasks else ('arctasks',)
     show(ctx['__config__'], skip=skip)
+    skip = () if tasks else ('arctasks', 'tasks')
