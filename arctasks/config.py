@@ -2,7 +2,7 @@ import configparser
 import getpass
 import json
 import os
-from collections import Mapping, OrderedDict
+from collections import Mapping, OrderedDict, Sequence
 
 from .arctask import arctask
 from .util import abort, abs_path, asset_path, as_list, get_git_hash, print_error
@@ -112,6 +112,8 @@ def configure(ctx, env, file_name=None, options=None):
                 d[k] = v.format(**config)
             elif isinstance(v, Config):
                 interpolate(v)
+            elif isinstance(v, Sequence):
+                d[k] = v.__class__(item.format(**config) for item in v if isinstance(item, str))
 
     interpolate(config)
 
