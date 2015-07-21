@@ -11,7 +11,7 @@ from .remote import manage as remote_manage, rsync, copy_file
 from .runners import local, remote
 from .static import build_static
 from .util import abort, abs_path, as_list, confirm
-from .util import print_header, print_info, print_warning, print_error
+from .util import print_header, print_info, print_success, print_warning, print_error
 
 
 @arctask(configured=True)
@@ -73,12 +73,12 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
 
         print_header(
             'Preparing to deploy {name} to {env} ({arctasks.runners.remote.host})'.format(**ctx))
-        print_info('New version: {version} ({remote.build.dir})'.format(**ctx))
         if active_path:
             active_version = posixpath.basename(active_path)
-            print_info('Active version: {} ({})'.format(active_version, active_path))
+            print_error('Active version: {} ({})'.format(active_version, active_path))
         else:
             print_warning('There is no active version')
+        print_success('New version: {version} ({remote.build.dir})'.format(**ctx))
         print_info('Configuration:')
         show_config(ctx, tasks=False, initial_level=1)
         print_warning('\nPlease review the configuration above.')
