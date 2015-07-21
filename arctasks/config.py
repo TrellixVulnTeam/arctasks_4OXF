@@ -121,7 +121,8 @@ def configure(ctx, env, file_name=None, config=None):
 
     all_config.move_to_end('remote')
     all_config.move_to_end('arctasks')
-    all_config.move_to_end('tasks')
+    if 'tasks' in all_config:
+        all_config.move_to_end('tasks')
     ctx.update(all_config)
     ctx['__configured__'] = True
     ctx['__config__'] = all_config
