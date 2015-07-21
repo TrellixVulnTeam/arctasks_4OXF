@@ -39,15 +39,6 @@ class Config(OrderedDict):
             obj = super(Config, obj).__getitem__(segment)
         return True
 
-    def __str__(self):
-        out = []
-        for k, v in self.items():
-            if isinstance(v, self.__class__):
-                pass
-            else:
-                pass
-        return '\n'.join(out)
-
 
 @arctask
 def configure(ctx, env, file_name=None, config=None):
