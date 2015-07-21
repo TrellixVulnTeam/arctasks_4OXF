@@ -104,3 +104,8 @@ def run_mod_wsgi(ctx, host=None, port=None, processes=2, threads=25):
 @arctask(configured='dev')
 def shell(ctx):
     call_command('shell')
+
+
+@arctask(configured='dev')
+def dbshell(ctx):
+    call_command('dbshell')
