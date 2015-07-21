@@ -158,20 +158,18 @@ def show_config(ctx, item=None, tasks=True, initial_level=0):
             print_error('Unknown config item: {}'.format(item))
         else:
             print(item, '=', value)
-        return
-
-    def show(config, skip=(), level=initial_level):
-        indent = ' ' * (level * 4)
-        longest = len(max(config, key=len))
-        for k, v in config.items():
-            if k.startswith('_') or k in skip:
-                continue
-            display_value = ' = {}'.format(v) if not isinstance(v, Config) else ''
-            print(
-                '{indent}{k:<{longest}}{display_value}'
-                    .format(indent=indent, k=k, longest=longest, display_value=display_value))
-            if isinstance(v, Config):
-                show(v, level=level + 1)
-
-    skip = () if tasks else ('arctasks', 'tasks')
-    show(config, skip=skip)
+    else:
+        def as_string(c, skip, level):
+            out = []
+            indent = ' ' * (level * 4)
+            max_key_len = len(max(list(c.keys()), key=len))
+            for k, v in c.items():
+                if k.startswith('_') or k in skip:
+                    continue
+                if isinstance(v, Config):
+                    out.append('{indent}{k} =>'.format(**locals()))
+                    out.append(as_string(v, skip, level + 1))
+                else:
+                    out.append('{indent}{k} = {v}'.format(**locals()))
+            return '\n'.join(out)
+        print(as_string(config, () if tasks else ('arctasks', 'tasks'), initial_level))
