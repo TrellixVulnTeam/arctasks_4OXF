@@ -41,7 +41,7 @@ class Config(OrderedDict):
 
 
 @arctask
-def configure(ctx, env, file_name=None, config=None):
+def configure(ctx, env, file_name=None, options=None):
     """Configure the environment tasks are run in.
 
     Configuration can come from several places, listed here in order of
@@ -52,15 +52,15 @@ def configure(ctx, env, file_name=None, config=None):
         - Defaults defined in arctasks:tasks.cfg.
         - The config file specified by --file-name or tasks.cfg in the
           directory containing this module if --file-name isn't given.
-        - Command line options specified as ``--config pants=cool,x=1``.
+        - Command line options passed as ``--options pants=cool,x=1``.
           These values will be parsed as JSON if possible. It's usually
-          better to put options in a config file and only use --config
+          better to put options in a config file and only use --options
           for one-off runs.
 
     """
     cwd = os.getcwd()
 
-    all_config = Config((
+    config = Config((
         ('env', env),
         ('version', get_git_hash()),
         ('current_user', getpass.getuser()),
@@ -86,42 +86,43 @@ def configure(ctx, env, file_name=None, config=None):
     section = env if parser.has_section(env) else 'DEFAULT'
     for k, v in parser[section].items():
         v = json.loads(v)
-        all_config[k] = v
+        config[k] = v
 
     # Extend/override from command line.
     # XXX: I don't particularly care for this bit of custom parsing, but
     # I also don't want to add a billion args to this task, and Invoke
     # doesn't currently parse dict-style options (although it may in the
     # future).
-    if isinstance(config, str):
-        config = as_list(config)
-        for item in config:
+    if isinstance(options, str):
+        options = as_list(options)
+        for item in options:
             k, v = as_list(item, sep='=')
             try:
                 v = json.loads(v)
             except ValueError:
                 pass  # Assume value is str
-            all_config[k] = v
-    elif isinstance(config, Mapping):
-        all_config.update(config)
+            config[k] = v
+    elif isinstance(options, Mapping):
+        config.update(options)
 
-    def interpolate(config):
-        for k in config:
-            v = config[k]
+    def interpolate(d):
+        for k in d:
+            v = d[k]
             if isinstance(v, str):
-                config[k] = v.format(**all_config)
+                d[k] = v.format(**config)
             elif isinstance(v, Config):
                 interpolate(v)
 
-    interpolate(all_config)
+    interpolate(config)
 
-    all_config.move_to_end('remote')
-    all_config.move_to_end('arctasks')
-    if 'tasks' in all_config:
-        all_config.move_to_end('tasks')
-    ctx.update(all_config)
+    config.move_to_end('remote')
+    config.move_to_end('arctasks')
+    if 'tasks' in config:
+        config.move_to_end('tasks')
+
+    ctx.update(config)
     ctx['__configured__'] = True
-    ctx['__config__'] = all_config
+    ctx['__config__'] = config
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', ctx.django_settings_module)
     os.environ.setdefault('LOCAL_SETTINGS_FILE', ctx.local_settings_file)
