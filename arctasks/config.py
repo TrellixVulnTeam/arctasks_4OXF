@@ -115,10 +115,6 @@ def configure(ctx, env, file_name=None, config=None):
 
     interpolate(all_config)
 
-    if not os.path.exists(all_config.local_settings_file):
-        all_config['local_settings_file'] = 'local.cfg'
-    all_config['local_settings_file'] = abs_path(all_config.local_settings_file)
-
     all_config.move_to_end('remote')
     all_config.move_to_end('arctasks')
     if 'tasks' in all_config:
