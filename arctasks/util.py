@@ -94,9 +94,11 @@ def as_tuple(items, sep=','):
     return tuple(as_list(items, sep))
 
 
-def confirm(ctx, prompt='Really?', color='warning'):
+def confirm(ctx, prompt='Really?', color='warning', yes_values=('y', 'yes')):
     prompt = prompt.format(**ctx)
     prompt = '{prompt} [y/N] '.format(prompt=prompt)
+    if isinstance(yes_values, str):
+        yes_values = (yes_values,)
     if color is not None:
         prompt = colorize(prompt, color=color)
     try:
@@ -105,7 +107,7 @@ def confirm(ctx, prompt='Really?', color='warning'):
         print()
         return False
     answer = answer.strip().lower()
-    return answer in ('y', 'yes')
+    return answer in yes_values
 
 
 def get_git_hash(short=True):
