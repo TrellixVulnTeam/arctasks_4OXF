@@ -42,7 +42,7 @@ def call_command(*args, hide=False, **kwargs):
 
 
 @arctask(configured='dev')
-def manage(ctx, args, cd=None, sudo=False, run_as=None, echo=True, hide=False,
+def manage(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
            abort_on_failure=True):
     local(
         ctx, ('{python}', 'manage.py', args),

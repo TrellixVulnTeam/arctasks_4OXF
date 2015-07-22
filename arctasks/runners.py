@@ -5,7 +5,7 @@ from .util import abort, args_to_str
 
 
 @arctask(configured='dev')
-def local(ctx, args, cd=None, sudo=False, run_as=None, echo=True, hide=False,
+def local(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
           abort_on_failure=True):
     """Run a command locally using ``ctx.run()``.
 
@@ -27,6 +27,8 @@ def local(ctx, args, cd=None, sudo=False, run_as=None, echo=True, hide=False,
     if cd:
         args = (('cd', cd, '&&'), args)
     cmd = args_to_str(args, format_kwargs=ctx)
+    if echo is None:
+        echo = ctx['run'].echo
     try:
         return ctx.run(cmd, echo=echo, hide=hide)
     except Failure as f:
@@ -38,8 +40,8 @@ def local(ctx, args, cd=None, sudo=False, run_as=None, echo=True, hide=False,
 
 
 @arctask(configured='dev')
-def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_as=None, echo=True,
-           hide=False, abort_on_failure=True, many=False):
+def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_as=None, echo=None,
+           hide=None, abort_on_failure=True, many=False):
     """Run a command on the remote host using ssh.
 
     ``args`` can be a string or a list of strings that will be joined
