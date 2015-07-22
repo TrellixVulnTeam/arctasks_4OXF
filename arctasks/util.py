@@ -99,7 +99,11 @@ def confirm(ctx, prompt='Really?', color='warning'):
     prompt = '{prompt} [y/N] '.format(prompt=prompt)
     if color is not None:
         prompt = colorize(prompt, color=color)
-    answer = input(prompt)
+    try:
+        answer = input(prompt)
+    except KeyboardInterrupt:
+        print()
+        return False
     answer = answer.strip().lower()
     return answer in ('y', 'yes')
 
