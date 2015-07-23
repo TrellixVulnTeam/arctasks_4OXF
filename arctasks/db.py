@@ -3,7 +3,7 @@ from .runners import local
 
 
 @arctask(configured='dev')
-def createdb(ctx, type=None, name='{db.name}', drop=False, with_postgis=False):
+def createdb(ctx, type=None, name='{db.name}', drop=False, with_postgis=None):
     if type is None:
         type = ctx.db.type
     if type == 'mysql':
