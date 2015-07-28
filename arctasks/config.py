@@ -105,15 +105,15 @@ def configure(ctx, env, file_name=None, options=None):
     elif isinstance(options, Mapping):
         config.update(options)
 
-    def interpolate(d):
-        for k in d:
-            v = d[k]
-            if isinstance(v, str):
-                d[k] = v.format(**config)
-            elif isinstance(v, Config):
-                interpolate(v)
-            elif isinstance(v, Sequence):
-                d[k] = v.__class__(item.format(**config) for item in v if isinstance(item, str))
+    def interpolate(v):
+        if isinstance(v, str):
+            v = v.format(**config)
+        elif isinstance(v, Mapping):
+            for k in v:
+                v[k] = interpolate(v[k])
+        elif isinstance(v, Sequence):
+            v = v.__class__(interpolate(item) for item in v)
+        return v
 
     interpolate(config)
 
