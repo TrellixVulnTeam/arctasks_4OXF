@@ -1,3 +1,5 @@
+import glob
+import itertools
 import os
 
 from .arctask import arctask
@@ -29,7 +31,8 @@ def lessc(ctx, sources=None, optimize=True, autoprefix_browsers=None):
     if which.failed:
         abort(1, 'less must be installed (via npm) and on $PATH')
     sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
-    for source in sources:
+    sources = [glob.glob(s) for s in sources]
+    for source in itertools.chain(*sources):
         root, ext = os.path.splitext(source)
         if ext != '.less':
             abort(1, 'Expected a .less file; got "{source}"'.format(source=source))
@@ -56,13 +59,14 @@ def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, coll
 @arctask(configured='dev')
 def build_js(ctx, sources=None, main_config_file=None, base_url=None, optimize=True, paths=None):
     sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
+    sources = [glob.glob(s) for s in sources]
     main_config_file = abs_path(main_config_file, format_kwargs=ctx)
     base_url = abs_path(base_url, format_kwargs=ctx)
     optimize = 'uglify' if optimize else 'none'
     paths = as_list(paths)
     if paths:
         paths = ' '.join('paths.{k}={v}'.format(k=k, v=v) for k, v in paths.items())
-    for source in sources:
+    for source in itertools.chain(*sources):
         name = os.path.relpath(source, base_url)
         if name.endswith('.js'):
             name = name[:-3]
