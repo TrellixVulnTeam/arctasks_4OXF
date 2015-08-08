@@ -83,6 +83,9 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
         show_config(ctx, tasks=False, initial_level=1)
         print_warning('\nPlease review the configuration above.')
 
+        if not migrate:
+            print_warning('\nNOTE: Migrations are not run by default; pass --migrate to run them\n')
+
         if confirm(ctx, 'Continue with deployment to {env}?'):
             # For access to tasks that are shadowed by args.
             tasks = globals()
