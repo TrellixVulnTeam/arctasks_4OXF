@@ -11,7 +11,7 @@ from .remote import manage as remote_manage, rsync, copy_file
 from .runners import local, remote
 from .static import build_static
 from .util import abort, abs_path, as_list, confirm
-from .util import print_header, print_info, print_success, print_warning, print_error
+from .util import print_header, print_info, print_success, print_warning, print_error, print_danger
 
 
 @arctask(configured=True)
@@ -188,6 +188,44 @@ def builds(ctx, active=False, rm=None, yes=False):
     else:
         print_header('Builds ({env}):'.format(**ctx))
         remote(ctx, ('stat -c "%n %y" *', 'sort -k2,3'), cd=build_root, echo=False, many='|')
+
+
+@arctask(configured=True)
+def clean_builds(ctx, keep=3):
+    if keep < 1:
+        abort(1, 'You have to keep at least the latest version')
+
+    result = remote(ctx, 'readlink {remote.path.env}', hide='stdout')
+    active_path = result.stdout.strip()
+    active_version = posixpath.basename(active_path)
+
+    print_info('All {env} builds; newest first:'.format(**ctx))
+    remote(ctx, 'ls -clt {remote.build.root}')
+
+    result = remote(ctx, 'ls -c {remote.build.root}', hide='stdout')
+    versions = result.stdout.strip().splitlines()
+    versions_to_keep = versions[:keep]
+    versions_to_remove = versions[keep:]
+    if active_version in versions_to_remove:
+        versions_to_remove.remove(active_version)
+    if versions_to_keep:
+        print_success('Versions that will be kept:')
+        print(', '.join(versions_to_keep))
+    if versions_to_remove:
+        versions_to_remove_str = ', '.join(versions_to_remove)
+        print_danger('Versions that will be removed:')
+        print(versions_to_remove_str)
+        if confirm(ctx, 'Really remove these versions?', yes_values=('really',)):
+            print_danger('Removing {0}...'.format(versions_to_remove_str))
+            remote(ctx, (
+                'rm -r',
+                '%s/{%s}' % (ctx.remote.build.root, ','.join(versions_to_remove)),
+            ), echo=True, inject_context=False)
+    else:
+        print_warning('No versions to remove')
+
+    print_info('Remaining {env} builds; newest first:'.format(**ctx))
+    remote(ctx, 'ls -clt {remote.build.root}')
 
 
 @arctask(configured=True)
