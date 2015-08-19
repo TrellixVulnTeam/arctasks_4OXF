@@ -6,7 +6,7 @@ from .util import abort, args_to_str
 
 @arctask(configured='dev')
 def local(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
-          abort_on_failure=True):
+          abort_on_failure=True, inject_context=True):
     """Run a command locally using ``ctx.run()``.
 
     If ``args`` contains format strings like "{xyz}", those will be
@@ -26,7 +26,7 @@ def local(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
         args = ('sudo', '-u', run_as, args)
     if cd:
         args = (('cd', cd, '&&'), args)
-    cmd = args_to_str(args, format_kwargs=ctx)
+    cmd = args_to_str(args, format_kwargs=(ctx if inject_context else None))
     if echo is None:
         echo = ctx['run'].echo
     try:
@@ -41,7 +41,7 @@ def local(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
 
 @arctask(configured='dev')
 def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_as=None, echo=None,
-           hide=None, abort_on_failure=True, many=False):
+           hide=None, abort_on_failure=True, inject_context=True, many=False):
     """Run a command on the remote host using ssh.
 
     ``args`` can be a string or a list of strings that will be joined
@@ -117,8 +117,10 @@ def remote(ctx, args, user=None, host=None, path=None, cd=None, sudo=False, run_
         cmd.extend((run_as, path, a, many))
     cmd.extend((run_as, path, args[-1]))
 
-    cmd = args_to_str(cmd, format_kwargs=ctx)
+    cmd = args_to_str(cmd, format_kwargs=(ctx if inject_context else None))
     cmd = "'{cmd}'".format(cmd=cmd)
-    cmd = args_to_str(('ssh', '{user}@{host}', cmd), format_kwargs=locals())
+    cmd = ('ssh', '{user}@{host}'.format(**locals()), cmd)
 
-    return local(ctx, cmd, echo=echo, hide=hide, abort_on_failure=abort_on_failure)
+    return local(
+        ctx, cmd, echo=echo, hide=hide, abort_on_failure=abort_on_failure,
+        inject_context=inject_context)
