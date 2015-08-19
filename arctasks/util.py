@@ -96,7 +96,7 @@ def as_tuple(items, sep=','):
 
 def confirm(ctx, prompt='Really?', color='warning', yes_values=('y', 'yes')):
     prompt = prompt.format(**ctx)
-    prompt = '{prompt} [y/N] '.format(prompt=prompt)
+    prompt = '{prompt} [{yes_value}/N] '.format(prompt=prompt, yes_value=yes_values[0])
     if isinstance(yes_values, str):
         yes_values = (yes_values,)
     if color is not None:
