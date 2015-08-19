@@ -110,12 +110,20 @@ def confirm(ctx, prompt='Really?', color='warning', yes_values=('y', 'yes')):
     return answer in yes_values
 
 
-def get_git_hash(short=True):
-    args = ['git', 'rev-parse']
-    if short:
-        args.append('--short')
-    args.append('HEAD')
-    return subprocess.check_output(args).decode().strip()
+def get_git_version(short=True):
+    """Get tag associated with HEAD; fall back to SHA1."""
+    args = ['git', 'rev-parse', 'HEAD']
+    version = subprocess.check_output(args).decode().strip()
+    args = ['git', 'describe', '--tags', version]
+    try:
+        tag = subprocess.check_output(args, stderr=subprocess.DEVNULL).decode().strip()
+    except subprocess.CalledProcessError:
+        print_warning('Could not find tag for HEAD; falling back to SHA1')
+        if short:
+            version = version[:7]
+    else:
+        version = tag
+    return version
 
 
 class Color(enum.Enum):

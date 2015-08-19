@@ -5,7 +5,7 @@ import os
 from collections import Mapping, OrderedDict, Sequence
 
 from .arctask import arctask
-from .util import abort, abs_path, asset_path, as_list, get_git_hash, print_error
+from .util import abort, abs_path, asset_path, as_list, get_git_version, print_error
 
 
 class Config(OrderedDict):
@@ -62,7 +62,7 @@ def configure(ctx, env, file_name=None, options=None):
 
     config = Config((
         ('env', env),
-        ('version', get_git_hash()),
+        ('version', get_git_version()),
         ('current_user', getpass.getuser()),
         ('cwd', cwd),
     ))
