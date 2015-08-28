@@ -51,7 +51,7 @@ def configure(ctx, env, file_name=None, options=None):
           and user.
         - Defaults defined in arctasks:tasks.cfg.
         - The config file specified by --file-name or tasks.cfg in the
-          directory containing this module if --file-name isn't given.
+          current directory if --file-name isn't specified.
         - Command line options passed as ``--options pants=cool,x=1``.
           These values will be parsed as JSON if possible. It's usually
           better to put options in a config file and only use --options
