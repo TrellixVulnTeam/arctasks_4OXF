@@ -84,7 +84,9 @@ def args_to_str(args, joiner=' ', format_kwargs={}):
 
 
 def as_list(items, sep=','):
-    if isinstance(items, str):
+    if items is None:
+        items = []
+    elif isinstance(items, str):
         items = items.strip().split(sep)
         items = [item.strip() for item in items]
     return items
