@@ -41,8 +41,9 @@ def provision(ctx, overwrite=False):
 
 
 @arctask(configured='stage', timed=True)
-def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True, wheels=True,
-           install=True, copy_settings=True, copy_wsgi_module=True, migrate=False, link=True):
+def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
+           remove_distributions=None, wheels=True, install=True, copy_settings=True,
+           copy_wsgi_module=True, migrate=False, link=True):
     """Deploy a new version.
 
     The default directory structure on the server looks like this::
@@ -110,14 +111,17 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
             if static:
                 push_static(ctx)
 
+            remove_distributions = [ctx.distribution] + as_list(remove_distributions)
+
             # Build & cache packages
             if wheels:
-                remote(ctx, 'rm -f {remote.pip.wheel_dir}/{distribution}*')
+                for dist in remove_distributions:
+                    remote(ctx, 'rm -f {remote.pip.wheel_dir}/%s*' % dist)
                 wheel(ctx, '{remote.build.dist}/{distribution}*')
 
             if install:
-                remote(
-                    ctx, '{remote.build.pip} uninstall -y {distribution}', abort_on_failure=False)
+                for dist in remove_distributions:
+                    remote(ctx, ('{remote.build.pip} uninstall -y', dist), abort_on_failure=False)
                 remote(ctx, (
                     '{remote.build.pip} install',
                     '--no-index',
