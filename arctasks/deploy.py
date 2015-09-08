@@ -180,15 +180,20 @@ def builds(ctx, active=False, rm=None, yes=False):
         if result.failed:
             print_error('Could not read link for active version')
     elif rm:
-        version = rm
-        build_dir = '{build_root}/{version}'.format(**locals())
-        result = remote(ctx, ('test -d', build_dir), echo=False, abort_on_failure=False)
+        versions = as_list(rm)
+        build_dirs = ['{build_root}/{v}'.format(build_root=build_root, v=v) for v in versions]
+        cmd = [('test -d', d) for d in build_dirs]
+        result = remote(ctx, cmd, many='&&', echo=False, abort_on_failure=False)
         if result.failed:
-            print_error('Build directory', build_dir, 'does not exist')
+            print_error('Build directory not found')
         else:
-            prompt = 'Really delete build {version} at {build_dir}?'.format(**locals())
-            if yes or confirm(ctx, prompt):
-                remote(ctx, ('rm -r', build_dir))
+            cmd = 'rm -r {dirs}'.format(dirs=' '.join(build_dirs))
+            print_header('The following builds will be removed:')
+            for d in build_dirs:
+                print(d)
+            prompt = 'Remove builds?'.format(cmd=cmd)
+            if yes or confirm(ctx, prompt, color='error', yes_values=('yes',)):
+                remote(ctx, cmd)
     else:
         print_header('Builds ({env}):'.format(**ctx))
         remote(ctx, ('stat -c "%n %y" *', 'sort -k2,3'), cd=build_root, echo=False, many='|')
