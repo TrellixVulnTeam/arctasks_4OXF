@@ -17,7 +17,6 @@ def createdb(ctx, type=None, name='{db.name}', drop=False, with_postgis=None):
         raise ValueError('Unknown database type: {db.type}'.format(**ctx))
 
 
-@arctask
 def create_postgresql_db(ctx, name='{db.name}', drop=False, with_postgis=False):
     """Create a PostgreSQL database with the specified ``name``.
 
