@@ -40,9 +40,11 @@ def create_postgresql_db(ctx, name='{db.name}', drop=False, with_postgis=False):
         local(ctx, ('psql -d', name, '-c "CREATE EXTENSION postgis;"'))
 
 
-@arctask
 def create_mysql_db(ctx, name='{db.name}', drop=False):
-    raise NotImplementedError
+    """Create a MySQL database with the specified ``name``."""
+    if drop:
+        local(ctx, ('mysql -u root -e "DROP DATABASE', name, '"'), abort_on_failure=False)
+    local(ctx, ('mysql -u root -e "CREATE DATABASE', name, '"'), abort_on_failure=False)
 
 
 @arctask(configured=True)
