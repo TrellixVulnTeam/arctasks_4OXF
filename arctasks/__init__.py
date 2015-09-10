@@ -1,5 +1,5 @@
 from .arctask import arctask
-from .base import clean, install, lint, npm_install, virtualenv
+from .base import clean, install, lint, npm_install, retrieve, virtualenv
 from .config import configure, show_config, dev, stage, prod
 from .db import createdb
 from .deploy import builds, clean_builds, deploy, link, restart

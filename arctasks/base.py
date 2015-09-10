@@ -1,9 +1,11 @@
 import os
 import shutil
+import urllib.request
 
 from .arctask import arctask
 from .runners import local
-from .util import abort, as_list, print_header, print_error, print_success, print_warning
+from .util import abort, as_list
+from .util import print_header, print_error, print_info, print_success, print_warning
 
 
 @arctask
@@ -77,3 +79,61 @@ def npm_install(ctx, modules=None, force=False):
             print_warning('All specified modules already installed; maybe pass --force?')
     if modules:
         local(ctx, ('npm install', modules), hide='stdout')
+
+
+@arctask(configured='dev')
+def retrieve(ctx, source, destination, overwrite=False):
+    """Similar to ``wget``, retrieves and saves a resource.
+
+    If ``destination`` exists, the resource won't be retrieved unless
+    ``--overwrite`` is specified.
+
+    If ``destination`` looks like a directory (i.e., it ends with a path
+    separator), it will be created if it does not exist. If necessary,
+    parent directories will also be created.
+
+    If ``destination`` looks like a file (but isn't an existing
+    directory), the directory containing the file will be created
+    (in shell terms: ``mkdir -p $(dirname destination)``).
+
+    If ``destination`` is (or looks like) a directory, the base name of
+    ``source`` will be joined to it. E.g., for the ``source``
+    'http://example.com/pants' and the ``destination`` '/tmp', the
+    resource will be saved to '/tmp/pants'.
+
+    """
+    source = source.format(**ctx)
+    destination = destination.format(**ctx)
+    make_dir = None
+
+    if os.path.isdir(destination):
+        destination = os.path.join(destination, os.path.basename(source))
+    elif destination[-1] in (os.sep, '/'):
+        # Assume destination is a directory
+        make_dir = destination
+        destination = os.path.join(destination, os.path.basename(source))
+    else:
+        # Assume destination is a file path
+        make_dir = os.path.dirname(destination)
+
+    f_args = locals()
+
+    if os.path.exists(destination):
+        if not overwrite:
+            print_warning('{destination} exists; pass --overwrite to re-fetch it'.format(**f_args))
+            return
+        else:
+            print_warning('Overwriting {destination}...'.format(**f_args))
+    else:
+        print_info('Retrieving {source}...'.format(**f_args))
+
+    if make_dir:
+        os.makedirs(make_dir, exist_ok=True)
+
+    urllib.request.urlretrieve(source, destination, _retrieve_report_hook)
+    print('\r{source} saved to {destination}'.format(**f_args))
+
+
+def _retrieve_report_hook(num_blocks, block_size, total_size):
+    ratio = num_blocks * block_size / total_size
+    print('\r{ratio:.0%}'.format(ratio=ratio), end='')
