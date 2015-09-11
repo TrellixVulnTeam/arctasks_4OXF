@@ -68,8 +68,7 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
     """
     try:
         result = remote(
-            ctx, 'readlink {remote.path.env}', cd=None, echo=False, hide=True,
-            abort_on_failure=False)
+            ctx, 'readlink {remote.path.env}', echo=False, hide=True, abort_on_failure=False)
         active_path = result.stdout.strip()
 
         print_header(
@@ -288,6 +287,6 @@ def wheel(ctx, distribution):
 @arctask(configured=True)
 def restart(ctx):
     settings = django.get_settings()
-    remote(ctx, 'touch {remote.path.wsgi_dir}/wsgi.py', cd=None)
+    remote(ctx, 'touch {remote.path.wsgi_dir}/wsgi.py')
     print_info('Getting {0.DOMAIN_NAME}...'.format(settings))
     urlretrieve('http://{0.DOMAIN_NAME}/'.format(settings), os.devnull)
