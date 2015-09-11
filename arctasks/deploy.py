@@ -142,7 +142,7 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
 
             if copy_settings:
                 copy_file(ctx, 'local.base.cfg', '{remote.build.dir}')
-                copy_file(ctx, '{local_settings_file}', '{remote.build.dir}/local.cfg')
+                copy_file(ctx, '{local_settings_file}', '{remote.build.local_settings_file}')
 
             if copy_wsgi_module:
                 copy_file(ctx, '{package}/wsgi.py', '{remote.build.wsgi_dir}')
