@@ -12,7 +12,12 @@ DEFAULT_MODE = 'ug=rwX,o-rwx'
 @arctask(configured=True)
 def manage(ctx, args):
     """Run a Django management command on the remote host."""
-    remote(ctx, ('{remote.build.python}', '{remote.build.manage}', args), cd='{remote.build.dir}')
+    remote(ctx, (
+        'LOCAL_SETTINGS_FILE="{remote.build.local_settings_file}"',
+        '{remote.build.python}',
+        '{remote.build.manage}',
+        args,
+    ))
 
 
 @arctask(configured=True)
