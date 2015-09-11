@@ -37,7 +37,7 @@ def provision(ctx, overwrite=False):
         (pip, 'install -U setuptools'),
         (pip, 'install --find-links', find_links, '"pip=={arctasks.deploy.provision.pip.version}"'),
         (pip, 'install --find-links', find_links, '--cache-dir {remote.pip.download_cache} wheel'),
-    ), cd=build_dir, many=True)
+    ), many=True)
 
 
 @arctask(configured='stage', timed=True)
@@ -116,7 +116,14 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
             if wheels:
                 for dist in remove_distributions:
                     remote(ctx, 'rm -f {remote.pip.wheel_dir}/%s*' % dist)
-                wheel(ctx, '{remote.build.dist}/{distribution}*')
+                result = remote(ctx, 'ls {remote.build.dist}')
+                dists = result.stdout.strip().splitlines()
+                for dist in dists:
+                    if dist.startswith(ctx.distribution):
+                        break
+                else:
+                    abort(1, 'Could not find source distribution for {distribution}'.format(**ctx))
+                wheel(ctx, '{{remote.build.dist}}/{dist}'.format(dist=dist))
 
             if install:
                 for dist in remove_distributions:
@@ -127,7 +134,7 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
                     '--find-links file://{remote.pip.wheel_dir}',
                     '--cache-dir {remote.pip.download_cache}',
                     '{distribution}',
-                ), cd='{remote.build.dir}')
+                ))
 
             copy_file(
                 ctx, abs_path(ctx.remote.build.manage_template, format_kwargs=ctx),
@@ -239,16 +246,18 @@ def clean_builds(ctx, keep=3):
 @arctask(configured=True)
 def link(ctx, version, old_style=None):
     build_dir = '{remote.build.root}/{v}'.format(v=version, **ctx)
-    remote(ctx, ('ln', '-sfn', build_dir, '{env}'), cd='{remote.path.root}')
+    remote(ctx, ('ln', '-sfn', build_dir, '{remote.path.root}/{env}'))
 
     # Link the specified version's static manifest
-    remote(ctx, 'ln -sf {remote.build.dir}/staticfiles.json', cd='{remote.path.static}')
+    remote(ctx, 'ln -sf {remote.build.dir}/staticfiles.json {remote.path.static}/staticfiles.json')
 
     # XXX: This supports old-style deployments where the media and
     #      static directories are in the source directory.
     if old_style:
-        remote(ctx, 'ln -sfn /vol/www/{package}/media/{env} media', cd=build_dir)
-        remote(ctx, 'ln -sfn /vol/www/{package}/static/{env} static', cd=build_dir)
+        media_dir = '{build_dir}/media'.format(build_dir=build_dir)
+        static_dir = '{build_dir}/static'.format(build_dir=build_dir)
+        remote(ctx, ('ln -sfn /vol/www/{package}/media/{env}', media_dir))
+        remote(ctx, ('ln -sfn /vol/www/{package}/static/{env}', static_dir))
 
 
 @arctask(configured=True)
@@ -281,7 +290,7 @@ def wheel(ctx, distribution):
         '--find-links file://{remote.pip.wheel_dir}',
         '--find-links {remote.pip.find_links}',
         distribution,
-    ), cd='{remote.build.dir}')
+    ))
 
 
 @arctask(configured=True)
