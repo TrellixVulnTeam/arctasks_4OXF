@@ -267,11 +267,10 @@ def clean_builds(ctx, keep=3):
                 'rm -r',
                 '%s/{%s}' % (ctx.remote.build.root, ','.join(versions_to_remove)),
             ), echo=True, inject_context=False)
+            print_info('Remaining {env} builds; newest first:'.format(**ctx))
+            remote(ctx, 'ls -clt {remote.build.root}')
     else:
         print_warning('No versions to remove')
-
-    print_info('Remaining {env} builds; newest first:'.format(**ctx))
-    remote(ctx, 'ls -clt {remote.build.root}')
 
 
 @arctask(configured=True)
