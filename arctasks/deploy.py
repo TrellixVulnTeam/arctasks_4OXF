@@ -239,7 +239,7 @@ def builds(ctx, active=False, rm=None, yes=False):
 @arctask(configured=True)
 def clean_builds(ctx, keep=3):
     if keep < 1:
-        abort(1, 'You have to keep at least the latest version')
+        abort(1, 'You have to keep at least the active version')
 
     result = remote(ctx, 'readlink {remote.path.env}', hide='stdout')
     active_path = result.stdout.strip()
@@ -249,10 +249,11 @@ def clean_builds(ctx, keep=3):
 
     result = remote(ctx, 'ls -c {remote.build.root}', hide='stdout')
     versions = result.stdout.strip().splitlines()
+    if active_version in versions:
+        versions.remove(active_version)
+        versions.insert(0, active_version)
     versions_to_keep = versions[:keep]
     versions_to_remove = versions[keep:]
-    if active_version in versions_to_remove:
-        versions_to_remove.remove(active_version)
     if versions_to_keep:
         print_success('Versions that will be kept:')
         print(', '.join(versions_to_keep))
