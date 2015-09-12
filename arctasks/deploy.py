@@ -245,8 +245,7 @@ def clean_builds(ctx, keep=3):
     active_path = result.stdout.strip()
     active_version = posixpath.basename(active_path)
 
-    print_info('All {env} builds; newest first:'.format(**ctx))
-    remote(ctx, 'ls -clt {remote.build.root}')
+    builds(ctx)
 
     result = remote(ctx, 'ls -c {remote.build.root}', hide='stdout')
     versions = result.stdout.strip().splitlines()
