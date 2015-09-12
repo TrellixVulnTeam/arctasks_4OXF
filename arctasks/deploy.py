@@ -2,6 +2,7 @@ import os
 import posixpath
 import shutil
 import sys
+from datetime import datetime
 from urllib.request import urlretrieve
 
 from . import django
@@ -201,8 +202,38 @@ def builds(ctx, active=False, rm=None, yes=False):
             if yes or confirm(ctx, prompt, color='error', yes_values=('yes',)):
                 remote(ctx, cmd)
     else:
-        print_header('Builds ({env}):'.format(**ctx))
-        remote(ctx, ('stat -c "%n %y" *', 'sort -k2,3'), cd=build_root, echo=False, many='|')
+        active = remote(ctx, 'readlink {remote.path.env}', abort_on_failure=False)
+        active = active.stdout.strip() if active.ok else ''
+        print_header('Builds for {env} (in {remote.build.root}; newest first):'.format(**ctx))
+        dirs = remote(ctx, (
+            'find', build_root, '-mindepth 1 -maxdepth 1 -type d'
+        ), cd='/', echo=False, hide='stdout')
+        result = dirs.stdout.strip().splitlines()
+        if result:
+            dirs = ' '.join(result)
+            result = remote(
+                ctx, 'stat -c "%n %Y" {dirs}'.format(dirs=dirs), echo=False, hide=True)
+            data = result.stdout.strip().splitlines()
+            data = [d.split(' ', 1) for d in data]
+            data = [
+                (d[0], posixpath.basename(d[0]), datetime.fromtimestamp(int(d[1])))
+                for d in data
+            ]
+            data = sorted(data, key=lambda item: item[1], reverse=True)
+            longest = max(len(d[1]) for d in data) + 1
+            for d in data:
+                path, version, timestamp = d
+                is_active = path == active
+                out = ['{0:<{longest}} {1}'.format(version, timestamp, longest=longest)]
+                if is_active:
+                    out.append('[active]')
+                out = ' '.join(out)
+                if is_active:
+                    print_success(out)
+                else:
+                    print(out)
+        else:
+            print_warning('No {env} builds found in {remote.build.root}'.format(**ctx))
 
 
 @arctask(configured=True)
