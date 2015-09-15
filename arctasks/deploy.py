@@ -265,8 +265,7 @@ def clean_builds(ctx, keep=3):
             print_danger('Removing {0}...'.format(versions_to_remove_str))
             rm_paths = [posixpath.join(ctx.remote.build.root, v) for v in versions_to_remove]
             remote(ctx, ('rm -r', rm_paths), echo=True)
-            print_info('Remaining {env} builds; newest first:'.format(**ctx))
-            remote(ctx, 'ls -clt {remote.build.root}')
+            builds(ctx)
     else:
         print_warning('No versions to remove')
 
