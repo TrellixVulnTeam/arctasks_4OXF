@@ -240,13 +240,10 @@ def builds(ctx, active=False, rm=None, yes=False):
 def clean_builds(ctx, keep=3):
     if keep < 1:
         abort(1, 'You have to keep at least the active version')
-
     result = remote(ctx, 'readlink {remote.path.env}', hide='stdout')
     active_path = result.stdout.strip()
     active_version = posixpath.basename(active_path)
-
     builds(ctx)
-
     result = remote(ctx, 'ls -c {remote.build.root}', hide='stdout')
     versions = result.stdout.strip().splitlines()
     if active_version in versions:
