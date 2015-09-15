@@ -259,14 +259,12 @@ def clean_builds(ctx, keep=3):
         print(', '.join(versions_to_keep))
     if versions_to_remove:
         versions_to_remove_str = ', '.join(versions_to_remove)
-        print_danger('Versions that will be removed:')
+        print_danger('Versions that will be removed from {remote.build.root}:'.format(**ctx))
         print(versions_to_remove_str)
         if confirm(ctx, 'Really remove these versions?', yes_values=('really',)):
             print_danger('Removing {0}...'.format(versions_to_remove_str))
-            remote(ctx, (
-                'rm -r',
-                '%s/{%s}' % (ctx.remote.build.root, ','.join(versions_to_remove)),
-            ), echo=True, inject_context=False)
+            rm_paths = [posixpath.join(ctx.remote.build.root, v) for v in versions_to_remove]
+            remote(ctx, ('rm -r', rm_paths), echo=True)
             print_info('Remaining {env} builds; newest first:'.format(**ctx))
             remote(ctx, 'ls -clt {remote.build.root}')
     else:
