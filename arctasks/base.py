@@ -101,6 +101,9 @@ def retrieve(ctx, source, destination, overwrite=False):
     'http://example.com/pants' and the ``destination`` '/tmp', the
     resource will be saved to '/tmp/pants'.
 
+    Returns the absolute path to the saved resource (i.e., the computed
+    destination).
+
     """
     source = source.format(**ctx)
     destination = destination.format(**ctx)
@@ -121,7 +124,7 @@ def retrieve(ctx, source, destination, overwrite=False):
     if os.path.exists(destination):
         if not overwrite:
             print_warning('{destination} exists; pass --overwrite to re-fetch it'.format(**f_args))
-            return
+            return destination
         else:
             print_warning('Overwriting {destination}...'.format(**f_args))
     else:
@@ -132,6 +135,7 @@ def retrieve(ctx, source, destination, overwrite=False):
 
     urllib.request.urlretrieve(source, destination, _retrieve_report_hook)
     print('\r{source} saved to {destination}'.format(**f_args))
+    return destination
 
 
 def _retrieve_report_hook(num_blocks, block_size, total_size):
