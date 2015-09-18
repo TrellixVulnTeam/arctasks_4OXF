@@ -82,7 +82,7 @@ def npm_install(ctx, modules=None, force=False):
 
 
 @arctask(configured='dev')
-def retrieve(ctx, source, destination, overwrite=False):
+def retrieve(ctx, source, destination, overwrite=False, chmod=None):
     """Similar to ``wget``, retrieves and saves a resource.
 
     If ``destination`` exists, the resource won't be retrieved unless
@@ -101,12 +101,19 @@ def retrieve(ctx, source, destination, overwrite=False):
     'http://example.com/pants' and the ``destination`` '/tmp', the
     resource will be saved to '/tmp/pants'.
 
+    If ``chmod`` is specified, the resource will have its mode changed
+    after it is saved. The value should be something that's acceptable
+    to ``os.chmod`` (e.g., ``0o755``). If ``--chmod`` is passed as a
+    string (e.g., from the command line), it must represent an octal
+    value (e.g., ``'755'``).
+
     Returns the absolute path to the saved resource (i.e., the computed
     destination).
 
     """
     source = source.format(**ctx)
     destination = destination.format(**ctx)
+    chmod = int(chmod, 8) if isinstance(chmod, str) else chmod
     make_dir = None
 
     if os.path.isdir(destination):
@@ -134,7 +141,14 @@ def retrieve(ctx, source, destination, overwrite=False):
         os.makedirs(make_dir, exist_ok=True)
 
     urllib.request.urlretrieve(source, destination, _retrieve_report_hook)
-    print('\r{source} saved to {destination}'.format(**f_args))
+    print('\r{source} saved to {destination}'.format(**f_args), end='')
+
+    if chmod is not None:
+        os.chmod(destination, chmod)
+        print(' with mode {chmod:o}'.format(**f_args))
+    else:
+        print()
+
     return destination
 
 
