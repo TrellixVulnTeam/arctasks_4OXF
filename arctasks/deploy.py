@@ -296,10 +296,11 @@ def push_app(ctx, deps=None):
 
 @arctask(build_static, configured=True)
 def push_static(ctx, delete=False):
-    settings = django.get_settings()
-    static_root = '{0.STATIC_ROOT}{1}'.format(settings, os.sep)
+    static_root = ctx.arctasks.static.build_static.static_root
+    if not static_root.endswith(os.sep):
+        static_root += os.sep
     rsync(ctx, static_root, ctx.remote.path.static, delete=delete)
-    manifest = os.path.join(settings.STATIC_ROOT, 'staticfiles.json')
+    manifest = os.path.join(static_root, 'staticfiles.json')
     if os.path.isfile(manifest):
         copy_file(ctx, manifest, ctx.remote.build.dir)
 

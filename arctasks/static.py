@@ -3,7 +3,7 @@ import itertools
 import os
 
 from .arctask import arctask
-from .django import call_command
+from .django import call_command, get_settings
 from .runners import local
 from .util import abort, abs_path, args_to_str, as_list
 
@@ -47,13 +47,18 @@ def lessc(ctx, sources=None, optimize=True, autoprefix_browsers=None):
 
 @arctask(configured='dev')
 def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, collect=True,
-                 optimize=True):
+                 optimize=True, static_root=None):
     if js:
         build_js(ctx, sources=js_sources, optimize=optimize)
     if css:
         lessc(ctx, sources=css_sources, optimize=optimize)
     if collect:
+        settings = get_settings()
+        original_static_root = settings.STATIC_ROOT
+        settings.STATIC_ROOT = static_root
+        print('Collecting static files into {0.STATIC_ROOT}...'.format(settings))
         call_command('collectstatic', '--noinput', '--clear', hide=True)
+        settings.STATIC_ROOT = original_static_root
 
 
 @arctask(configured='dev')

@@ -2,6 +2,7 @@ import configparser
 import getpass
 import json
 import os
+import tempfile
 from collections import Mapping, OrderedDict, Sequence
 
 from .arctask import arctask
@@ -65,6 +66,7 @@ def configure(ctx, env, file_name=None, options=None):
         ('version', get_git_version()),
         ('current_user', getpass.getuser()),
         ('cwd', cwd),
+        ('arctasks.static.build_static.static_root', tempfile.mkdtemp()),
     ))
 
     def update_from_parser(parser):
