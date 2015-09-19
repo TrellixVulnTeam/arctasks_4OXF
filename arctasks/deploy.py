@@ -299,7 +299,7 @@ def push_static(ctx, delete=False):
     static_root = ctx.arctasks.static.build_static.static_root
     if not static_root.endswith(os.sep):
         static_root += os.sep
-    rsync(ctx, static_root, ctx.remote.path.static, delete=delete)
+    rsync(ctx, static_root, ctx.remote.path.static, delete=delete, excludes=('staticfiles.json',))
     manifest = os.path.join(static_root, 'staticfiles.json')
     if os.path.isfile(manifest):
         copy_file(ctx, manifest, ctx.remote.build.dir)
