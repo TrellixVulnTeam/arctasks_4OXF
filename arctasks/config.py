@@ -41,6 +41,17 @@ class Config(OrderedDict):
         return True
 
 
+class LazyConfigValue:
+
+    def __init__(self, callable_, args=(), kwargs={}):
+        self.callable = callable_
+        self.args = args
+        self.kwargs = kwargs
+
+    def __call__(self):
+        return self.callable(*self.args, **self.kwargs)
+
+
 @arctask
 def configure(ctx, env, file_name=None, options=None):
     """Configure the environment tasks are run in.
@@ -63,10 +74,10 @@ def configure(ctx, env, file_name=None, options=None):
 
     config = Config((
         ('env', env),
-        ('version', get_git_version()),
-        ('current_user', getpass.getuser()),
+        ('version', LazyConfigValue(get_git_version)),
+        ('current_user', LazyConfigValue(getpass.getuser)),
         ('cwd', cwd),
-        ('arctasks.static.build_static.static_root', tempfile.mkdtemp()),
+        ('arctasks.static.build_static.static_root', LazyConfigValue(tempfile.mkdtemp)),
     ))
 
     def update_from_parser(parser):
@@ -116,6 +127,8 @@ def configure(ctx, env, file_name=None, options=None):
         config.update(options)
 
     def interpolate(v):
+        if isinstance(v, LazyConfigValue):
+            v = v()
         if isinstance(v, str):
             v = v.format(**config)
         elif isinstance(v, Mapping):
