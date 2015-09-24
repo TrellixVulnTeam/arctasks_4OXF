@@ -115,7 +115,12 @@ def confirm(ctx, prompt='Really?', color='warning', yes_values=('y', 'yes')):
 def get_git_version(short=True):
     """Get tag associated with HEAD; fall back to SHA1."""
     args = ['git', 'rev-parse', 'HEAD']
-    version = subprocess.check_output(args).decode().strip()
+    try:
+        version = subprocess.check_output(args).decode().strip()
+    except subprocess.CalledProcessError:
+        print_error('`git rev-parse` failed, probably because this is not a git repo.')
+        print_error('You can work around this by adding `version` to your task config.')
+        abort(1)
     args = ['git', 'describe', '--tags', version]
     try:
         tag = subprocess.check_output(args, stderr=subprocess.DEVNULL).decode().strip()
