@@ -13,7 +13,7 @@ cleaned up, generalized, and made more configurable. The lineage is `rethink`
 
   - Add it to `install_requires` in `setup.py`, if the project has a `setup.py`
 
-  - Add `-e git+https://github.com/PSU-OIT-ARC/arctasks#egg=psu.oit.arc.tasks`
+  - Add `git+https://github.com/PSU-OIT-ARC/arctasks#egg=psu.oit.arc.tasks`
     to the project's pip requirements file
 
 - Add a `tasks.py` module to the project's top level directory
