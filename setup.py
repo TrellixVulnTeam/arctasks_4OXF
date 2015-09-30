@@ -16,6 +16,9 @@ setup(
     description='Tasks',
     license='MIT',
     packages=['arctasks'],
+    package_data={
+        'arctasks': ['tasks.cfg'],
+    },
     url='https://github.com/PSU-OIT-ARC/arctasks',
     install_requires=install_requires,
     classifiers=[
