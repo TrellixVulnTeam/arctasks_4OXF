@@ -323,5 +323,13 @@ def restart(ctx, get=None, scheme=None):
     settings = django.get_settings()
     remote(ctx, 'touch {remote.build.wsgi_dir}/wsgi.py')
     if get:
-        print_info('Getting {0.DOMAIN_NAME}...'.format(settings))
-        urlretrieve('{scheme}://{0.DOMAIN_NAME}/'.format(settings, scheme=scheme), os.devnull)
+        host = getattr(settings, 'DOMAIN_NAME', None)
+        if host is None:
+            host = settings.ALLOWED_HOSTS[0]
+            host = host.lstrip('.')
+        else:
+            print_warning(
+                'The DOMAIN_NAME setting is deprecated; '
+                'set the first entry in ALLOWED_HOSTS to the canonical host instead')
+        print_info('Getting {host}...'.format(host=host))
+        urlretrieve('{scheme}://{host}/'.format(scheme=scheme, host=host), os.devnull)
