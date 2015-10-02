@@ -268,12 +268,17 @@ def clean_builds(ctx, keep=3):
 
 
 @arctask(configured=True)
-def link(ctx, version, old_style=None):
+def link(ctx, version, staticfiles_manifest=None, old_style=None):
     build_dir = '{remote.build.root}/{v}'.format(v=version, **ctx)
     remote(ctx, ('ln', '-sfn', build_dir, '{remote.path.root}/{env}'))
 
     # Link the specified version's static manifest
-    remote(ctx, 'ln -sf {remote.build.dir}/staticfiles.json {remote.path.static}/staticfiles.json')
+    if staticfiles_manifest:
+        remote(ctx, (
+            'ln -sf',
+            '{remote.build.dir}/staticfiles.json',
+            '{remote.path.static}/staticfiles.json'
+        ))
 
     # XXX: This supports old-style deployments where the media and
     #      static directories are in the source directory.
