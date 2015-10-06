@@ -60,8 +60,18 @@ def lint(ctx):
         print_success('Python is clean')
 
 
+_npm_install_modules = (
+    'bower',
+    'less',
+    'less-plugin-autoprefix',
+    'less-plugin-clean-css',
+    'requirejs',
+    'uglify-js',
+)
+
+
 @arctask(configured='dev')
-def npm_install(ctx, modules=None, force=False):
+def npm_install(ctx, modules=_npm_install_modules, force=False):
     """Install node modules via npm into ./node_modules.
 
     By default, any modules that are already installed will be skipped.

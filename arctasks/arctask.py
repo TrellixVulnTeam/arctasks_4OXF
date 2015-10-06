@@ -10,10 +10,8 @@ Its main features are:
       used to specify a task must be explicitly configured (by passing
       ``True``)
     - Tasks can be timed using the ``timed`` arg
-    - Tasks can have default option values specified via config. To do
-      this, set the option's value to ``None`` in the task def and then
-      add a config item named ``package.module.task_name.option_name``
-      with the default value.
+    - Default task options can be overridden by adding config items with
+      names like ``package.module.task_name.option_name``.
 
 Note: The name of this module is "arctask" instead of just "task"
 because the latter causes Invoke to choke for some reason.
@@ -32,6 +30,7 @@ class Task(BaseTask):
     default_env = 'dev'
 
     def __init__(self, *args, configured=False, timed=False, **kwargs):
+        self._arguments = None
         self.configured = configured
         self.timed = timed
         kwargs.setdefault('contextualized', True)
@@ -49,12 +48,12 @@ class Task(BaseTask):
                 configure(ctx, env)
 
             # Fill in options from config. For each option that is not
-            # present or is None, this looks for a default value for the
-            # option in the config. This skips positional args
+            # passed on the command line, this looks for a default value
+            # for the option in the config. Positional args are skipped.
             config = ctx['__config__']
             for argument in self.get_arguments():
-                name = argument.name
-                if not argument.positional and options.get(name) is None:
+                if argument._value is None and not argument.positional:
+                    name = argument.name
                     path = '.'.join((self.body.__module__, self.body.__qualname__, name))
                     if path in config:
                         options[name] = config[path]
@@ -68,6 +67,14 @@ class Task(BaseTask):
             self.print_elapsed_time(time.monotonic() - start_time)
 
         return result
+
+    def get_arguments(self):
+        # Ensure the same Argument list is always returned. This is so
+        # the arguments that are loaded by Invoke are the same ones we
+        # access in __call__.
+        if self._arguments is None:
+            self._arguments = super().get_arguments()
+        return self._arguments
 
     def print_elapsed_time(self, elapsed_time):
         m, s = divmod(elapsed_time, 60)

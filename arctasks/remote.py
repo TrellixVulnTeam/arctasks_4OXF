@@ -6,7 +6,6 @@ from .runners import local, remote
 from .util import as_tuple
 
 
-DEFAULT_MODE = 'ug=rwX,o-rwx'
 
 
 @arctask(configured=True)
@@ -20,11 +19,15 @@ def manage(ctx, args):
     ))
 
 
-@arctask(configured=True)
-def rsync(ctx, local_path, remote_path, user=None, host=None, run_as=None, dry_run=False,
-          delete=False, excludes=(), echo=True, hide=True, mode=DEFAULT_MODE):
+_rsync_default_mode = 'ug=rwX,o-rwx'
+_rsync_default_excludes = ('__pycache__/', '.DS_Store', '*.pyc', '*.swp')
+
+
+@arctask(configured=True, optional=('default_excludes',))
+def rsync(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host}',
+          run_as='{remote.run_as}', dry_run=False, delete=False, excludes=(),
+          default_excludes=_rsync_default_excludes, echo=True, hide=True, mode=_rsync_default_mode):
     excludes = as_tuple(excludes)
-    default_excludes = ctx.arctasks.remote.rsync.get('default_excludes')
     if default_excludes:
         excludes += as_tuple(default_excludes)
     local(ctx, (
@@ -41,8 +44,9 @@ def rsync(ctx, local_path, remote_path, user=None, host=None, run_as=None, dry_r
 
 
 @arctask(configured=True)
-def copy_file(ctx, local_path, remote_path, user=None, host=None, run_as=None, template=False,
-              mode=DEFAULT_MODE):
+def copy_file(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host}',
+              run_as='{remote.run_as}', template=False,
+              mode=_rsync_default_mode):
     if template:
         local_path = local_path.format(**ctx)
         with open(local_path) as in_fp:

@@ -82,13 +82,18 @@ def coverage(ctx, keepdb=True):
     cov.report()
 
 
+_runserver_host = '0.0.0.0'
+_runserver_port = 8000
+
+
 @arctask(configured='dev')
-def runserver(ctx, host=None, port=None):
+def runserver(ctx, host=_runserver_host, port=_runserver_port):
     call_command('runserver', '{host}:{port}'.format(**locals()))
 
 
 @arctask(configured='dev')
-def run_mod_wsgi(ctx, host=None, port=None, processes=2, threads=25, aliases=None, proxies=None):
+def run_mod_wsgi(ctx, host=_runserver_host, port=_runserver_port, processes=2, threads=25,
+                 aliases=None, proxies=None):
     local(ctx, (
         '{bin}/mod_wsgi-express start-server {package}/wsgi.py',
         '--processes', str(processes),

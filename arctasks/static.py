@@ -9,7 +9,7 @@ from .util import abort, abs_path, args_to_str, as_list
 
 
 @arctask(configured='dev')
-def bower(ctx, where=None, update=False):
+def bower(ctx, where='{package}:static', update=False):
     which = local(ctx, 'which bower', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
         abort(1, 'bower must be installed (via npm) and on $PATH')
@@ -17,8 +17,21 @@ def bower(ctx, where=None, update=False):
     local(ctx, ('bower', 'update' if update else 'install'), cd=where)
 
 
+# Copied from Bootstrap (from grunt/configBridge.json in the source)
+_lessc_autoprefix_browsers = ','.join((
+    'Android 2.3',
+    'Android >= 4',
+    'Chrome >= 20',
+    'Firefox >= 24',
+    'Explorer >= 8',
+    'iOS >= 6',
+    'Opera >= 12',
+    'Safari >= 6',
+))
+
+
 @arctask(configured='dev')
-def lessc(ctx, sources=None, optimize=True, autoprefix_browsers=None):
+def lessc(ctx, sources=None, optimize=True, autoprefix_browsers=_lessc_autoprefix_browsers):
     """Compile the LESS files specified by ``sources``.
 
     Each LESS file will be compiled into a CSS file with the same root
@@ -62,7 +75,8 @@ def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, coll
 
 
 @arctask(configured='dev')
-def build_js(ctx, sources=None, main_config_file=None, base_url=None, optimize=True, paths=None):
+def build_js(ctx, sources=None, main_config_file='{package}:static/requireConfig.js',
+             base_url='{package}:static', optimize=True, paths=None):
     sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
     sources = [glob.glob(s) for s in sources]
     main_config_file = abs_path(main_config_file, format_kwargs=ctx)

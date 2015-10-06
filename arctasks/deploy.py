@@ -36,7 +36,7 @@ def provision(ctx, overwrite=False):
     find_links = ctx.remote.pip.find_links
     remote(ctx, (
         (pip, 'install -U setuptools'),
-        (pip, 'install --find-links', find_links, '"pip=={arctasks.deploy.provision.pip.version}"'),
+        (pip, 'install --find-links', find_links, '"pip==7.1.2"'),
         (pip, 'install --find-links', find_links, '--cache-dir {remote.pip.download_cache} wheel'),
     ), many=True)
 
@@ -73,7 +73,7 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
         active_path = result.stdout.strip()
 
         print_header(
-            'Preparing to deploy {name} to {env} ({arctasks.runners.remote.host})'.format(**ctx))
+            'Preparing to deploy {name} to {env} ({remote.host})'.format(**ctx))
         if active_path:
             active_version = posixpath.basename(active_path)
             print_error('Active version: {} ({})'.format(active_version, active_path))
@@ -268,7 +268,7 @@ def clean_builds(ctx, keep=3):
 
 
 @arctask(configured=True)
-def link(ctx, version, staticfiles_manifest=None, old_style=None):
+def link(ctx, version, staticfiles_manifest=True, old_style=None):
     build_dir = '{remote.build.root}/{v}'.format(v=version, **ctx)
     remote(ctx, ('ln', '-sfn', build_dir, '{remote.path.root}/{env}'))
 
@@ -324,7 +324,7 @@ def wheel(ctx, distribution):
 
 
 @arctask(configured=True)
-def restart(ctx, get=None, scheme=None):
+def restart(ctx, get=True, scheme='http'):
     settings = django.get_settings()
     remote(ctx, 'touch {remote.build.wsgi_dir}/wsgi.py')
     if get:
