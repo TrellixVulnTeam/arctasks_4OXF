@@ -45,7 +45,7 @@ def call_command(*args, hide=False, **kwargs):
 def manage(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
            abort_on_failure=True):
     local(
-        ctx, ('{python}', 'manage.py', args),
+        ctx, ('{bin.python}', 'manage.py', args),
         cd=cd, sudo=sudo, run_as=run_as, echo=echo, hide=hide, abort_on_failure=abort_on_failure)
 
 
@@ -95,7 +95,7 @@ def runserver(ctx, host=_runserver_host, port=_runserver_port):
 def run_mod_wsgi(ctx, host=_runserver_host, port=_runserver_port, processes=2, threads=25,
                  aliases=None, proxies=None):
     local(ctx, (
-        '{bin}/mod_wsgi-express start-server {package}/wsgi.py',
+        '{bin.dir}/mod_wsgi-express start-server {package}/wsgi.py',
         '--processes', str(processes),
         '--threads', str(threads),
         '--host', host,

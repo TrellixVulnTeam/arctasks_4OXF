@@ -16,7 +16,7 @@ def local(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
     error code.
 
     """
-    path = 'PATH={cwd}/{bin}:{cwd}/node_modules/.bin:$PATH'.format(**ctx)
+    path = 'PATH={bin.dir}:{cwd}/node_modules/.bin:$PATH'.format(**ctx)
     args = (path, args)
     if sudo and run_as:
         abort(1, 'Only one of --sudo or --run-as may be passed')

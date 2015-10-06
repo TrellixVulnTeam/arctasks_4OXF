@@ -18,7 +18,7 @@ def clean(ctx):
 
 @arctask(configured='dev')
 def install(ctx, requirements='{requirements}', upgrade=False):
-    local(ctx, ('{pip}', 'install', '--upgrade' if upgrade else '', '-r', requirements))
+    local(ctx, ('{bin.pip}', 'install', '--upgrade' if upgrade else '', '-r', requirements))
 
 
 @arctask(configured='dev')
@@ -33,10 +33,10 @@ def virtualenv(ctx, executable='python3', overwrite=False):
             print('virtualenv {venv} exists'.format(**ctx))
     if create:
         local(ctx, ('virtualenv', '-p', executable, '{venv}'))
-        local(ctx, '{pip} install -U setuptools')
-        local(ctx, '{pip} install -U pip')
+        local(ctx, '{bin.pip} install -U setuptools')
+        local(ctx, '{bin.pip} install -U pip')
         # The following is necessary for bootstrapping purposes
-        local(ctx, '{pip} install invoke=={_invoke.version}')
+        local(ctx, '{bin.pip} install invoke=={_invoke.version}')
 
 
 @arctask(configured='dev')
