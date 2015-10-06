@@ -36,7 +36,7 @@ def provision(ctx, overwrite=False):
     find_links = ctx.remote.pip.find_links
     remote(ctx, (
         (pip, 'install -U setuptools'),
-        (pip, 'install --find-links', find_links, '"pip==7.1.2"'),
+        (pip, 'install --find-links', find_links, '"pip=={pip.version}"'),
         (pip, 'install --find-links', find_links, '--cache-dir {remote.pip.download_cache} wheel'),
     ), many=True)
 

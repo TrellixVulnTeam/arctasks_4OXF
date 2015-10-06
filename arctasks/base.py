@@ -17,7 +17,7 @@ def clean(ctx):
 
 
 @arctask(configured='dev')
-def install(ctx, requirements='{requirements}', upgrade=False):
+def install(ctx, requirements='{pip.requirements}', upgrade=False):
     local(ctx, ('{bin.pip}', 'install', '--upgrade' if upgrade else '', '-r', requirements))
 
 
