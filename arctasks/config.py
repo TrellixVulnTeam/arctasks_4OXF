@@ -80,34 +80,29 @@ def configure(ctx, env, file_name=None, options=None):
         ('arctasks.static.build_static.static_root', LazyConfigValue(tempfile.mkdtemp)),
     ))
 
-    def update_from_parser(parser):
-        section = env if parser.has_section(env) else 'DEFAULT'
-        for k, v in parser[section].items():
-            v = json.loads(v)
-            config[k] = v
-
     # Mix in static defaults
-    defaults_parser = configparser.ConfigParser()
+    parser = configparser.ConfigParser()
     with open(asset_path('arctasks:tasks.cfg')) as config_fp:
-        defaults_parser.read_file(config_fp)
-    update_from_parser(defaults_parser)
+        parser.read_file(config_fp)
 
     # Extend from project config file, if there is one
-    project_parser = configparser.ConfigParser()
-    default_config_file = os.path.join(cwd, 'tasks.cfg')
     if file_name is None:
-        if os.path.exists(default_config_file):
-            with open(default_config_file) as config_fp:
-                project_parser.read_file(config_fp)
+        file_name = os.path.join(cwd, 'tasks.cfg')
+        if os.path.exists(file_name):
+            with open(file_name) as config_fp:
+                parser.read_file(config_fp)
     else:
         original_file_name = file_name
         file_name = abs_path(file_name)
         if not os.path.exists(file_name):
             abort(1, 'Config file "{}" not found'.format(original_file_name))
         with open(file_name) as config_fp:
-            project_parser.read_file(config_fp)
+            parser.read_file(config_fp)
 
-    update_from_parser(project_parser)
+    section = env if parser.has_section(env) else 'DEFAULT'
+    for k, v in parser[section].items():
+        v = json.loads(v)
+        config[k] = v
 
     # Extend/override from command line.
     # XXX: I don't particularly care for this bit of custom parsing, but
