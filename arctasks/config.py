@@ -151,9 +151,9 @@ def configure(ctx, env, file_name=None, options=None):
     ctx['__config__'] = config
     ctx['__config_file_name__'] = file_name
 
-    os.environ.setdefault('DJANGO_SETTINGS_MODULE', ctx.django_settings_module)
-    os.environ.setdefault('LOCAL_SETTINGS_FILE', ctx.local_settings_file)
-    os.environ.setdefault('LOCAL_SETTINGS_CONFIG_QUIET', 'true')
+    os.environ['DJANGO_SETTINGS_MODULE'] = ctx.django_settings_module
+    os.environ['LOCAL_SETTINGS_FILE'] = ctx.local_settings_file
+    os.environ['LOCAL_SETTINGS_CONFIG_QUIET'] = 'true'
 
 
 def make_env_task(env_name):
