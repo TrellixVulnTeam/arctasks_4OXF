@@ -69,7 +69,13 @@ def configure(ctx, env, file_name=None, options=None):
           better to put options in a config file and only use --options
           for one-off runs.
 
+    .. note:: If this task is called multiple times, the ``file_name``
+       passed to the first call will be used for subsequent calls if
+       ``file_name`` isn't passed to those subsequent calls.
+
     """
+    file_name = file_name or ctx.get('__config_file_name__')
+
     cwd = os.getcwd()
 
     config = Config((
@@ -143,6 +149,7 @@ def configure(ctx, env, file_name=None, options=None):
     ctx.update(config)
     ctx['__configured__'] = True
     ctx['__config__'] = config
+    ctx['__config_file_name__'] = file_name
 
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', ctx.django_settings_module)
     os.environ.setdefault('LOCAL_SETTINGS_FILE', ctx.local_settings_file)
