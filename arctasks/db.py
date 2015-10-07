@@ -36,7 +36,7 @@ def create_postgresql_db(ctx, name='{db.name}', drop=False, with_postgis=False):
         local(ctx, ('dropdb', name), **args)
     local(ctx, ('createdb', name), **args)
     if with_postgis:
-        local(ctx, ('psql -d', name, '-c "CREATE EXTENSION postgis;"'))
+        local(ctx, ('psql -d', name, '-c "CREATE EXTENSION postgis;"'), **args)
 
 
 def create_mysql_db(ctx, name='{db.name}', drop=False):
