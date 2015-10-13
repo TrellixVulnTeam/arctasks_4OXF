@@ -285,8 +285,8 @@ def link(ctx, version, staticfiles_manifest=True, old_style=None):
     if old_style:
         media_dir = '{build_dir}/media'.format(build_dir=build_dir)
         static_dir = '{build_dir}/static'.format(build_dir=build_dir)
-        remote(ctx, ('ln -sfn /vol/www/{package}/media/{env}', media_dir))
-        remote(ctx, ('ln -sfn /vol/www/{package}/static/{env}', static_dir))
+        remote(ctx, ('ln -sfn {remote.path.root}/media/{env}', media_dir))
+        remote(ctx, ('ln -sfn {remote.path.root}/static/{env}', static_dir))
 
 
 @arctask(configured=True)
