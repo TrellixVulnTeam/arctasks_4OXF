@@ -115,9 +115,13 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
 
             # Build & cache packages
             if wheels:
+                wheel_dir = ctx.remote.pip.wheel_dir
+                paths_to_remove = []
                 for dist in remove_distributions:
-                    remote(ctx, 'rm -f {remote.pip.wheel_dir}/%s*' % dist)
-                result = remote(ctx, 'ls {remote.build.dist}')
+                    path = '/'.join((wheel_dir, '{dist}*.whl'.format(dist=dist.replace('-', '_'))))
+                    paths_to_remove.append(path)
+                remote(ctx, ('rm -f', paths_to_remove))
+                result = remote(ctx, 'ls {remote.build.dist}', echo=False, hide='stdout')
                 dists = result.stdout.strip().splitlines()
                 for dist in dists:
                     if dist.startswith(ctx.distribution):
