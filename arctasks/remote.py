@@ -24,7 +24,22 @@ _rsync_default_excludes = ('__pycache__/', '.DS_Store', '*.pyc', '*.swp')
 @arctask(configured=True, optional=('default_excludes',))
 def rsync(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host}',
           run_as='{remote.run_as}', dry_run=False, delete=False, excludes=(),
-          default_excludes=_rsync_default_excludes, echo=True, hide=True, mode=_rsync_default_mode):
+          default_excludes=_rsync_default_excludes, echo=True, hide=True, mode=_rsync_default_mode,
+          source='local'):
+    """Copy files using rsync.
+
+    By default, this pushes from ``local_path`` to ``remote_path``. To
+    invert this--to pull from the remote to the local path--, pass
+    ``source='remote'``.
+
+    """
+    remote_path = '{user}@{host}:{remote_path}'.format(**locals())
+    if source == 'local':
+        source_path, destination_path = local_path, remote_path
+    elif source == 'remote':
+        source_path, destination_path = remote_path, local_path
+    else:
+        raise ValueError('source must be either "local" or "remote"')
     excludes = as_tuple(excludes)
     if default_excludes:
         excludes += as_tuple(default_excludes)
@@ -36,8 +51,7 @@ def rsync(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host
         '--rsync-path "sudo -u {run_as} rsync"'.format(run_as=run_as) if run_as else '',
         '--no-perms', '--no-group', '--chmod=%s' % mode,
         tuple("--exclude '{p}'".format(p=p) for p in excludes),
-        local_path,
-        '{user}@{host}:{remote_path}'.format(**locals()),
+        source_path, destination_path,
     ), echo=echo, hide=hide)
 
 
