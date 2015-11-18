@@ -5,4 +5,4 @@ from .db import createdb, load_prod_data, reset_db
 from .deploy import builds, clean_builds, deploy, link, restart
 from .django import coverage, dbshell, makemigrations, migrate, runserver, run_mod_wsgi, shell, test
 from .runners import local, remote
-from .static import build_static, bower, lessc
+from .static import build_static, bower, lessc, pull_media

@@ -4,6 +4,7 @@ import os
 
 from .arctask import arctask
 from .django import call_command, get_settings
+from .remote import rsync
 from .runners import local
 from .util import abort, abs_path, args_to_str, as_list
 
@@ -101,3 +102,12 @@ def build_js(ctx, sources=None, main_config_file='{package}:static/requireConfig
             'out={out}',
         ), format_kwargs=locals())
         local(ctx, cmd, hide='stdout')
+
+
+@arctask(configured='prod')
+def pull_media(ctx, user='{remote.user}', host='{remote.host}', run_as='{remote.run_as}'):
+    """Pull media from specified env [prod] to ./media."""
+    local(ctx, 'mkdir -p media')
+    rsync(
+        ctx, local_path='media', remote_path='{remote.path.media}/', source='remote',
+        default_excludes=None)
