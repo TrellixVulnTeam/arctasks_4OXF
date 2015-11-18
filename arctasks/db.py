@@ -105,7 +105,7 @@ def load_prod_data(ctx, schema='public'):
 
 
 @arctask(configured=True)
-def reset_db(ctx, truncate=False, password=None):
+def reset_db(ctx, truncate=False):
     """DROP CASCADE tables in database.
 
     This drops all tables owned by the app user in the public schema
@@ -122,12 +122,6 @@ def reset_db(ctx, truncate=False, password=None):
     This can also be run in dev, and other non-prod environments. It
     cannot be run in prod.
 
-    Passing ``--password`` will set the ``PGPASSWORD`` environment
-    variable so you don't have to enter it multiple times. Standard
-    caveats about passing passwords via shell commands apply (i.e.,
-    don't use ``--password`` where someone might be able to access your
-    shell history).
-
     """
     if ctx.env == 'prod':
         abort(1, 'reset_db cannot be run on the prod database')
@@ -137,7 +131,8 @@ def reset_db(ctx, truncate=False, password=None):
         'This will %s CASCADE all tables (excluding PostGIS tables).' % op)
     if not confirm(ctx, msg):
         abort(0)
-    if password is not None:
+    password = getpass('{env} database password: '.format(**ctx))
+    if password:
         os.environ['PGPASSWORD'] = password
     psql = 'psql -h {db.host} -U {db.user} {db.name}'
     result = local(ctx, (
