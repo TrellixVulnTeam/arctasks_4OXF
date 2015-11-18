@@ -6,8 +6,6 @@ from .runners import local, remote
 from .util import as_tuple
 
 
-
-
 @arctask(configured=True)
 def manage(ctx, args):
     """Run a Django management command on the remote host."""
