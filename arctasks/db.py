@@ -1,6 +1,11 @@
 import os
+from getpass import getpass
+from tempfile import mkstemp
+
+from invoke import Context
 
 from .arctask import arctask
+from .config import configure
 from .runners import local
 from .util import abort, confirm
 
@@ -44,6 +49,59 @@ def create_mysql_db(ctx, name='{db.name}', drop=False):
     if drop:
         local(ctx, ('mysql -u root -e "DROP DATABASE', name, '"'), abort_on_failure=False)
     local(ctx, ('mysql -u root -e "CREATE DATABASE', name, '"'), abort_on_failure=False)
+
+
+@arctask(configured='dev')
+def load_prod_data(ctx, schema='public'):
+    """Load data from prod database directly into env database.
+
+    This is generally intended for fetching a fresh copy of production
+    data into the dev database. As such, this will typically be run like
+    so::
+
+        inv createdb -d load_prod_data
+
+    To refresh the stage database, you'd run this instead::
+
+        inv stage reset_db load_prod_data
+
+    """
+    if ctx.env == 'prod':
+        abort(1, 'Cannot load prod data into prod database')
+    prod_ctx = Context()
+    configure(prod_ctx, 'prod')
+    prod_pw = getpass('prod database password: ')
+    env_pw = getpass('{env} database password: '.format(**ctx))
+    temp_fd, temp_path = mkstemp()
+    if ctx.db.type == 'postgresql':
+        if prod_pw:
+            os.environ['PGPASSWORD'] = prod_pw
+        local(ctx, (
+            'pg_dump',
+            '-U', prod_ctx.db.user,
+            '-h', prod_ctx.db.host,
+            '-d', prod_ctx.db.name,
+            '--schema', schema,
+            '--no-acl',
+            '--no-owner',
+            '--no-privileges',
+            '--file', temp_path,
+        ))
+        if env_pw:
+            os.environ['PGPASSWORD'] = env_pw
+        local(ctx, (
+            'psql',
+            '-U {db.user}',
+            '-h {db.host}',
+            '-d {db.name}',
+            '--file', temp_path,
+        ))
+        os.close(temp_fd)
+        os.remove(temp_path)
+    elif ctx.db.type == 'mysql':
+        raise NotImplementedError('load_prod_data not yet implemented for MySQL')
+    else:
+        raise ValueError('Unknown database type: {db.type}'.format(**ctx))
 
 
 @arctask(configured=True)
