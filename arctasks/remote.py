@@ -57,8 +57,7 @@ def rsync(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host
 
 @arctask(configured=True)
 def copy_file(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host}',
-              run_as='{remote.run_as}', template=False,
-              mode=_rsync_default_mode):
+              run_as='{remote.run_as}', template=False, mode=_rsync_default_mode):
     if template:
         local_path = local_path.format(**ctx)
         with open(local_path) as in_fp:
