@@ -3,7 +3,7 @@ import tempfile
 
 from .arctask import arctask
 from .runners import local, remote
-from .util import as_tuple
+from .util import abs_path, as_tuple
 
 
 @arctask(configured=True)
@@ -58,8 +58,8 @@ def rsync(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host
 @arctask(configured=True)
 def copy_file(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host}',
               run_as='{remote.run_as}', template=False, mode=_rsync_default_mode):
+    local_path = abs_path(local_path, format_kwargs=ctx)
     if template:
-        local_path = local_path.format(**ctx)
         with open(local_path) as in_fp:
             contents = in_fp.read().format(**ctx)
         temp_fd, local_path = tempfile.mkstemp(

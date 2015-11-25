@@ -14,7 +14,7 @@ from .config import show_config
 from .remote import manage as remote_manage, rsync, copy_file
 from .runners import local, remote
 from .static import build_static
-from .util import abort, abs_path, as_list, confirm
+from .util import abort, as_list, confirm
 from .util import print_header, print_info, print_success, print_warning, print_error, print_danger
 
 
@@ -169,8 +169,8 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
                 copy_file(ctx, 'tasks.py', '{remote.build.dir}')
 
             copy_file(
-                ctx, abs_path(ctx.remote.build.manage_template, format_kwargs=ctx),
-                ctx.remote.build.manage, template=True, mode='ug+rwx,o-rwx')
+                ctx, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
+                mode='ug+rwx,o-rwx')
 
             if copy_settings:
                 copy_file(ctx, 'local.base.cfg', '{remote.build.dir}')
