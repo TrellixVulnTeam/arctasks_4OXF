@@ -172,6 +172,10 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
                 ctx, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
                 mode='ug+rwx,o-rwx')
 
+            copy_file(
+                ctx, '{remote.build.restart_template}', '{remote.build.restart}', template=True,
+                mode='ug+rwx,o-rwx')
+
             if copy_settings:
                 copy_file(ctx, 'local.base.cfg', '{remote.build.dir}')
                 copy_file(ctx, '{local_settings_file}', '{remote.build.local_settings_file}')

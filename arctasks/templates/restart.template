@@ -1,0 +1,2 @@
+#!/bin/bash
+touch {remote.build.wsgi_file}
