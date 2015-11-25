@@ -1,7 +1,10 @@
+import json
 import os
 import posixpath
 import shutil
 import sys
+import tempfile
+from configparser import ConfigParser
 from datetime import datetime
 from urllib.request import urlretrieve
 
@@ -67,6 +70,7 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
         ``--old-style`` flag is passed to the :func:`.link` task.
 
     """
+    now = datetime.now()
     try:
         result = remote(
             ctx, 'readlink {remote.path.env}', echo=False, hide=True, abort_on_failure=False)
@@ -140,6 +144,29 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
                     '--cache-dir {remote.pip.download_cache}',
                     '{distribution}',
                 ))
+                remote(ctx, (
+                    '{remote.build.pip} install --upgrade',
+                    '--cache-dir {remote.pip.download_cache}',
+                    'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
+                ))
+
+            if os.path.exists('tasks.cfg'):
+                task_config = ConfigParser()
+                with open('tasks.cfg') as tasks_file:
+                    task_config.read_file(tasks_file)
+                extra_config = {
+                    'version': ctx.version,
+                    'local_settings_file': ctx.remote.build.local_settings_file,
+                    'deployed_at': now.isoformat(),
+                }
+                extra_config = {k: json.dumps(v) for (k, v) in extra_config.items()}
+                task_config['DEFAULT'].update(extra_config)
+                temp_fd, temp_file = tempfile.mkstemp(text=True)
+                with os.fdopen(temp_fd, 'w') as t:
+                    task_config.write(t)
+                copy_file(ctx, temp_file, '{remote.build.dir}/tasks.cfg')
+            if os.path.exists('tasks.py'):
+                copy_file(ctx, 'tasks.py', '{remote.build.dir}')
 
             copy_file(
                 ctx, abs_path(ctx.remote.build.manage_template, format_kwargs=ctx),
