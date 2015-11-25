@@ -177,7 +177,7 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
                 copy_file(ctx, '{local_settings_file}', '{remote.build.local_settings_file}')
 
             if copy_wsgi_module:
-                copy_file(ctx, '{package}/wsgi.py', '{remote.build.wsgi_dir}')
+                copy_file(ctx, '{wsgi_file}', '{remote.build.wsgi_file}')
 
             if migrate:
                 remote_manage(ctx, 'migrate')
@@ -357,7 +357,7 @@ def wheel(ctx, distribution):
 @arctask(configured=True)
 def restart(ctx, get=True, scheme='http'):
     settings = django.get_settings()
-    remote(ctx, 'touch {remote.build.wsgi_dir}/wsgi.py')
+    remote(ctx, 'touch {remote.build.wsgi_file}')
     if get:
         host = getattr(settings, 'DOMAIN_NAME', None)
         if host is None:

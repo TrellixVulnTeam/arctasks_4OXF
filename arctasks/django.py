@@ -90,7 +90,7 @@ def runserver(ctx, host=_runserver_host, port=_runserver_port):
 def run_mod_wsgi(ctx, host=_runserver_host, port=_runserver_port, processes=2, threads=25,
                  aliases=None, proxies=None):
     local(ctx, (
-        '{bin.dir}/mod_wsgi-express start-server {package}/wsgi.py',
+        '{bin.dir}/mod_wsgi-express start-server {wsgi_file}',
         '--processes', str(processes),
         '--threads', str(threads),
         '--host', host,
