@@ -71,7 +71,7 @@ def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, coll
         original_static_root = settings.STATIC_ROOT
         settings.STATIC_ROOT = static_root
         print('Collecting static files into {0.STATIC_ROOT}...'.format(settings))
-        call_command('collectstatic', '--noinput', '--clear', hide=True)
+        call_command('collectstatic', interactive=False, clear=True, hide=True)
         settings.STATIC_ROOT = original_static_root
 
 
