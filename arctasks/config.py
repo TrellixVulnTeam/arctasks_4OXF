@@ -1,9 +1,9 @@
-import configparser
 import getpass
 import json
 import os
 import tempfile
 from collections import Mapping, OrderedDict, Sequence
+from configparser import ConfigParser, ExtendedInterpolation
 
 from .arctask import arctask
 from .util import abort, abs_path, asset_path, as_list, get_git_version, print_error
@@ -87,7 +87,7 @@ def configure(ctx, env, file_name=None, options=None):
     ))
 
     # Mix in static defaults
-    parser = configparser.ConfigParser()
+    parser = ConfigParser(interpolation=ExtendedInterpolation())
     with open(asset_path('arctasks:tasks.cfg')) as config_fp:
         parser.read_file(config_fp)
 

@@ -4,7 +4,7 @@ import posixpath
 import shutil
 import sys
 import tempfile
-from configparser import ConfigParser
+from configparser import ConfigParser, ExtendedInterpolation
 from datetime import datetime
 from urllib.request import urlretrieve
 
@@ -151,7 +151,7 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
                 ))
 
             if os.path.exists('tasks.cfg'):
-                task_config = ConfigParser()
+                task_config = ConfigParser(interpolation=ExtendedInterpolation())
                 with open('tasks.cfg') as tasks_file:
                     task_config.read_file(tasks_file)
                 extra_config = {
