@@ -1,4 +1,4 @@
-from .arctask import arctask
+from .arctask import DEFAULT_ENV, arctask
 from .base import clean, install, lint, npm_install, retrieve, virtualenv
 from .config import configure, show_config, dev, stage, prod
 from .db import createdb, load_prod_data, reset_db
