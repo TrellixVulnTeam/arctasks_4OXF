@@ -61,10 +61,10 @@ def migrate(ctx, app=None, migration=None):
 
 
 @arctask(configured='test')
-def test(ctx, test=None, keepdb=True):
+def test(ctx, test=None, failfast=False, keepdb=True):
     args = [test]
     args = [a for a in args if a]
-    call_command('test', *args, keepdb=keepdb)
+    call_command('test', *args, failfast=failfast, keepdb=keepdb)
 
 
 @arctask(configured='test')
