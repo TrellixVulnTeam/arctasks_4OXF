@@ -44,13 +44,14 @@ def provision(ctx, overwrite=False):
     ), many=True)
 
 
-@arctask(configured='stage', timed=True)
-def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
-           remove_distributions=None, wheels=True, install=True, copy_settings=True,
-           copy_wsgi_module=True, migrate=False, link=True):
-    """Deploy a new version.
+class Deployer:
 
-    The default directory structure on the server looks like this::
+    """Default deployment strategy.
+
+    This strategy deploys a mod_wsgi/Django project.
+
+    It's assumed that the directory structure on the deployment host
+    looks like this::
 
         /vol/www/{package}/
             {env}                 # Symlink pointing at active build in builds/{env}/
@@ -70,137 +71,253 @@ def deploy(ctx, provision=True, overwrite=False, static=True, build_static=True,
         ``--old-style`` flag is passed to the :func:`.link` task.
 
     """
-    now = datetime.now()
-    try:
+
+    def __init__(self, ctx, **options):
+        self.started = datetime.now()
+        self.ctx = ctx
+        self.options = self.init_options(options)
+
+    def init_options(self, options):
+        ctx = self.ctx
+        remove_distributions = as_list(options.get('remove_distributions'))
+        options['remove_distributions'] = [ctx.distribution] + remove_distributions
+        return options
+
+    def run(self):
+        """Deploy."""
+        self.show_info()
+        self.confirm()
+        self.do_local_preprocessing()
+        self.do_remote_tasks()
+
+    def show_info(self):
+        """Show some info about what's being deployed."""
+        ctx = self.ctx
+        opts = self.options
+
         result = remote(
             ctx, 'readlink {remote.path.env}', echo=False, hide=True, abort_on_failure=False)
         active_path = result.stdout.strip()
 
-        print_header(
-            'Preparing to deploy {name} to {env} ({remote.host})'.format(**ctx))
+        print_header('Preparing to deploy {name} to {env} ({remote.host})'.format(**ctx))
         if active_path:
             active_version = posixpath.basename(active_path)
             print_error('Active version: {} ({})'.format(active_version, active_path))
         else:
             print_warning('There is no active version')
         print_success('New version: {version} ({remote.build.dir})'.format(**ctx))
+
         print_info('Configuration:')
         show_config(ctx, tasks=False, initial_level=1)
         print_warning('\nPlease review the configuration above.')
 
-        if not migrate:
+        if not opts['migrate']:
             print_warning('\nNOTE: Migrations are not run by default; pass --migrate to run them\n')
 
-        if confirm(ctx, 'Continue with deployment of version {version} to {env}?'):
-            # For access to tasks that are shadowed by args.
-            tasks = globals()
-
-            # Do all local pre-processing stuff up here
-
-            build_dir = ctx.path.build.root
-            if os.path.isdir(build_dir):
-                shutil.rmtree(build_dir)
-            os.makedirs(build_dir)
-
-            if static and build_static:
-                tasks['build_static'](ctx)
-
-            # Do remote stuff down here
-
-            if provision:
-                tasks['provision'](ctx, overwrite)
-
-            # Push stuff
-            push_app(ctx)
-            if static:
-                push_static(ctx)
-
-            remove_distributions = [ctx.distribution] + as_list(remove_distributions)
-
-            # Build & cache packages
-            if wheels:
-                wheel_dir = ctx.remote.pip.wheel_dir
-                paths_to_remove = []
-                for dist in remove_distributions:
-                    path = '/'.join((wheel_dir, '{dist}*.whl'.format(dist=dist.replace('-', '_'))))
-                    paths_to_remove.append(path)
-                remote(ctx, ('rm -f', paths_to_remove))
-                result = remote(ctx, 'ls {remote.build.dist}', echo=False, hide='stdout')
-                dists = result.stdout.strip().splitlines()
-                for dist in dists:
-                    if dist.startswith(ctx.distribution):
-                        break
-                else:
-                    abort(1, 'Could not find source distribution for {distribution}'.format(**ctx))
-                wheel(ctx, '{{remote.build.dist}}/{dist}'.format(dist=dist))
-
-            if install:
-                for dist in remove_distributions:
-                    remote(ctx, ('{remote.build.pip} uninstall -y', dist), abort_on_failure=False)
-                remote(ctx, (
-                    '{remote.build.pip} install',
-                    '--no-index',
-                    '--find-links file://{remote.pip.wheel_dir}',
-                    '--cache-dir {remote.pip.download_cache}',
-                    '{distribution}',
-                ))
-                remote(ctx, (
-                    '{remote.build.pip} install --upgrade',
-                    '--cache-dir {remote.pip.download_cache}',
-                    'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
-                ))
-
-            if os.path.exists('tasks.cfg'):
-                task_config = ConfigParser(interpolation=ExtendedInterpolation())
-                with open('tasks.cfg') as tasks_file:
-                    task_config.read_file(tasks_file)
-                extra_config = {
-                    'version': ctx.version,
-                    'local_settings_file': ctx.remote.build.local_settings_file,
-                    'deployed_at': now.isoformat(),
-                }
-                extra_config = {k: json.dumps(v) for (k, v) in extra_config.items()}
-                task_config['DEFAULT'].update(extra_config)
-                temp_fd, temp_file = tempfile.mkstemp(text=True)
-                with os.fdopen(temp_fd, 'w') as t:
-                    task_config.write(t)
-                copy_file(ctx, temp_file, '{remote.build.dir}/tasks.cfg')
-            if os.path.exists('tasks.py'):
-                copy_file(ctx, 'tasks.py', '{remote.build.dir}')
-
-            copy_file(
-                ctx, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
-                mode='ug+rwx,o-rwx')
-
-            copy_file(
-                ctx, '{remote.build.restart_template}', '{remote.build.restart}', template=True,
-                mode='ug+rwx,o-rwx')
-
-            if copy_settings:
-                copy_file(ctx, 'local.base.cfg', '{remote.build.dir}')
-                copy_file(ctx, '{local_settings_file}', '{remote.build.local_settings_file}')
-
-            if copy_wsgi_module:
-                copy_file(ctx, '{wsgi_file}', '{remote.build.wsgi_file}')
-
-            if migrate:
-                remote_manage(ctx, 'migrate')
-
-            if link:
-                tasks['link'](ctx, ctx.version)
-                restart(ctx)
-
-            # Permissions are updated after restarting because this
-            # could take a while. A screen session is used to run the
-            # chmod command because we don't want to sit around waiting,
-            # and we assume the chmod will succeed.
-            remote(ctx, (
-                'screen -d -m',
-                'chmod -R ug=rwX,o-rwx {remote.build.dir} {remote.path.static}'
-            ))
-        else:
+    def confirm(self):
+        """Give ourselves a chance to change our minds."""
+        if not confirm(self.ctx, 'Continue with deployment of version {version} to {env}?'):
             abort(message='Deployment aborted')
 
+    # Local
+
+    def do_local_preprocessing(self):
+        """Prepare for deployment."""
+        opts = self.options
+        self.make_build_dir()
+        if opts['static'] and opts['build_static']:
+            self.build_static()
+
+    def make_build_dir(self):
+        """Make the local build directory."""
+        build_dir = self.ctx.path.build.root
+        if os.path.isdir(build_dir):
+            shutil.rmtree(build_dir)
+        os.makedirs(build_dir)
+
+    def build_static(self):
+        """Process static files and collect them.
+
+        This runs things like the LESS preprocessor, RequireJS, etc, and
+        then collects all static assets into a single directory.
+
+        """
+        build_static(self.ctx)
+
+    # Remote
+
+    def do_remote_tasks(self):
+        """Build the new deployment environment."""
+        opts = self.options
+
+        if opts['provision']:
+            self.provision()
+
+        if opts['push']:
+            self.push()
+
+        if opts['wheels']:
+            self.wheels()
+
+        if opts['install']:
+            self.install()
+
+        if opts['push_config']:
+            self.push_config()
+
+        if opts['migrate']:
+            self.migrate()
+
+        if opts['make_active']:
+            self.make_active()
+
+        if opts['set_permissions']:
+            self.set_permissions()
+
+    def provision(self):
+        provision(self.ctx)
+
+    def push(self):
+        push_app(self.ctx)
+        if self.options['static']:
+            push_static(self.ctx)
+
+    def wheels(self):
+        """Build and cache packages (as wheels)."""
+        ctx, opts = self.ctx, self.options
+        wheel_dir = ctx.remote.pip.wheel_dir
+        paths_to_remove = []
+        for dist in opts['remove_distributions']:
+            path = '/'.join((wheel_dir, '{dist}*.whl'.format(dist=dist.replace('-', '_'))))
+            paths_to_remove.append(path)
+        remote(ctx, ('rm -f', paths_to_remove))
+        result = remote(ctx, 'ls {remote.build.dist}', echo=False, hide='stdout')
+        dists = result.stdout.strip().splitlines()
+        for dist in dists:
+            if dist.startswith(ctx.distribution):
+                break
+        else:
+            abort(1, 'Could not find source distribution for {distribution}'.format(**ctx))
+        wheel(ctx, '{{remote.build.dist}}/{dist}'.format(dist=dist))
+
+    def install(self):
+        """Install new version in deployment environment."""
+        ctx, opts = self.ctx, self.options
+        for dist in opts['remove_distributions']:
+            remote(ctx, ('{remote.build.pip} uninstall -y', dist), abort_on_failure=False)
+        remote(ctx, (
+            '{remote.build.pip} install',
+            '--no-index',
+            '--find-links file://{remote.pip.wheel_dir}',
+            '--cache-dir {remote.pip.download_cache}',
+            '{distribution}',
+        ))
+        remote(ctx, (
+            '{remote.build.pip} install --upgrade',
+            '--cache-dir {remote.pip.download_cache}',
+            'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
+        ))
+
+    def push_config(self):
+        """Copy task config, settings, scripts, etc."""
+        ctx, opts = self.ctx, self.options
+        self._push_task_config()
+        exe_mode = 'ug+rwx,o-rwx'
+        copy_file(
+            ctx, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
+            mode=exe_mode)
+        copy_file(
+            ctx, '{remote.build.restart_template}', '{remote.build.restart}', template=True,
+            mode=exe_mode)
+        copy_file(ctx, 'local.base.cfg', '{remote.build.dir}')
+        copy_file(ctx, '{local_settings_file}', '{remote.build.local_settings_file}')
+        copy_file(ctx, '{wsgi_file}', '{remote.build.wsgi_file}')
+
+    def _push_task_config(self):
+        # This is split out of push_config because it's somewhat complex
+        ctx = self.ctx
+        if os.path.exists('tasks.cfg'):
+            task_config = ConfigParser(interpolation=ExtendedInterpolation())
+            with open('tasks.cfg') as tasks_file:
+                task_config.read_file(tasks_file)
+            extra_config = {
+                'version': ctx.version,
+                'local_settings_file': ctx.remote.build.local_settings_file,
+                'deployed_at': self.started.isoformat(),
+            }
+            extra_config = {k: json.dumps(v) for (k, v) in extra_config.items()}
+            task_config['DEFAULT'].update(extra_config)
+            temp_fd, temp_file = tempfile.mkstemp(text=True)
+            with os.fdopen(temp_fd, 'w') as t:
+                task_config.write(t)
+            copy_file(ctx, temp_file, '{remote.build.dir}/tasks.cfg')
+        if os.path.exists('tasks.py'):
+            copy_file(ctx, 'tasks.py', '{remote.build.dir}')
+
+    def migrate(self):
+        """Run database migrations."""
+        remote_manage(self.ctx, 'migrate')
+
+    def make_active(self):
+        """Make the new version the active version.
+
+        The default version updates the ``env`` symlink to point at the
+        build directory created by :func:`provision`.
+
+        Note that this will cause mod_wsgi to restart automatically due
+        to its restart-on-touch functionality. The call to `restart` is
+        redundant, but it's left in for clarity.
+
+        """
+        ctx = self.ctx
+        link(ctx, ctx.version)
+        restart(ctx)
+
+    def set_permissions(self):
+        """Explicitly, recursively chmod remote build directory.
+
+        Permissions are updated after restarting because this could take
+        a while. A screen session is used to run the chmod command
+        because we don't want to sit around waiting, and we assume the
+        chmod will succeed.
+
+        """
+        remote(self.ctx, (
+            'screen -d -m',
+            'chmod -R ug=rwX,o-rwx {remote.build.dir} {remote.path.static}'
+        ))
+
+
+@arctask(configured='stage', timed=True)
+def deploy(ctx, deployer_class=Deployer, provision=True, overwrite=False, push=True, static=True,
+           build_static=True, remove_distributions=None, wheels=True, install=True,
+           push_config=True, migrate=False, make_active=True, set_permissions=True):
+    """Deploy a new version.
+
+    All of the task options are used to construct a :class:`Deployer`,
+    then the deployer's `run` method is called. To implement a different
+    deployment strategy, pass an alternate ``deployer_class``. Such a
+    class must accept a ``ctx`` arg plus arbitrary keyword args (which
+    it is free to ignore).
+
+    """
+    try:
+        deployer = deployer_class(
+            ctx,
+            provision=provision,
+            overwrite=overwrite,
+            push=push,
+            static=static,
+            build_static=build_static,
+            remove_distributions=remove_distributions,
+            wheels=wheels,
+            install=install,
+            push_config=push_config,
+            migrate=migrate,
+            make_active=make_active,
+            set_permissions=set_permissions,
+        )
+        deployer.run()
     except KeyboardInterrupt:
         abort(message='\nDeployment aborted')
 
