@@ -221,8 +221,8 @@ class Deployer:
     def push_config(self):
         """Copy task config, settings, scripts, etc."""
         ctx, opts = self.ctx, self.options
-        self._push_task_config()
         exe_mode = 'ug+rwx,o-rwx'
+        self._push_task_config(exe_mode)
         copy_file(
             ctx, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
             mode=exe_mode)
@@ -233,9 +233,20 @@ class Deployer:
         copy_file(ctx, '{local_settings_file}', '{remote.build.local_settings_file}')
         copy_file(ctx, '{wsgi_file}', '{remote.build.wsgi_file}')
 
-    def _push_task_config(self):
+    def _push_task_config(self, exe_mode):
         # This is split out of push_config because it's somewhat complex
         ctx = self.ctx
+
+        # Wrapper for inv script that sets the default env to the env of
+        # the deployment.
+        temp_fd, temp_file = tempfile.mkstemp(text=True)
+        content = (
+            'export ARCTASKS_DEFAULT_ENV="{env}"\n'
+            '{remote.build.bin}/inv "$@"\n'
+        ).format(**ctx).encode('utf-8')
+        os.write(temp_fd, content)
+        copy_file(ctx, temp_file, '{remote.build.dir}/inv', mode=exe_mode)
+
         if os.path.exists('tasks.cfg'):
             task_config = ConfigParser(interpolation=ExtendedInterpolation())
             with open('tasks.cfg') as tasks_file:
@@ -251,6 +262,7 @@ class Deployer:
             with os.fdopen(temp_fd, 'w') as t:
                 task_config.write(t)
             copy_file(ctx, temp_file, '{remote.build.dir}/tasks.cfg')
+
         if os.path.exists('tasks.py'):
             copy_file(ctx, 'tasks.py', '{remote.build.dir}')
 

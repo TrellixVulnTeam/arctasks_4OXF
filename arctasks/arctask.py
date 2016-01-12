@@ -17,6 +17,7 @@ Note: The name of this module is "arctask" instead of just "task"
 because the latter causes Invoke to choke for some reason.
 
 """
+import os
 import time
 
 from invoke.context import Context
@@ -25,9 +26,10 @@ from invoke.tasks import Task as BaseTask
 from .util import abort, print_info
 
 
-class Task(BaseTask):
+DEFAULT_ENV = object()
 
-    default_env = 'dev'
+
+class Task(BaseTask):
 
     def __init__(self, *args, configured=False, timed=False, **kwargs):
         self._arguments = None
@@ -43,7 +45,9 @@ class Task(BaseTask):
             if not ctx.get('__configured__'):
                 if self.configured is True:
                     abort(1, 'You must explicitly configure the {0.__name__} task'.format(self))
-                elif isinstance(self.configured, str):
+                elif self.configured is DEFAULT_ENV:
+                    env = os.environ.get('ARCTASKS_DEFAULT_ENV', 'dev')
+                else:
                     env = self.configured
                 configure(ctx, env)
 

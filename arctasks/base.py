@@ -2,7 +2,7 @@ import os
 import shutil
 import urllib.request
 
-from .arctask import arctask
+from .arctask import DEFAULT_ENV, arctask
 from .runners import local
 from .util import abort, as_list
 from .util import print_header, print_error, print_info, print_success, print_warning
@@ -91,7 +91,7 @@ def npm_install(ctx, modules=_npm_install_modules, force=False):
         local(ctx, ('npm install', modules), hide='stdout')
 
 
-@arctask(configured='dev')
+@arctask(configured=DEFAULT_ENV)
 def retrieve(ctx, source, destination, overwrite=False, chmod=None):
     """Similar to ``wget``, retrieves and saves a resource.
 
