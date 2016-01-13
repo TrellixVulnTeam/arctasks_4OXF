@@ -490,7 +490,7 @@ def wheel(ctx, distribution):
 @arctask(configured=True)
 def restart(ctx, get=True, scheme='http'):
     settings = django.get_settings()
-    remote(ctx, 'touch {remote.build.wsgi_file}')
+    remote(ctx, 'touch {remote.path.wsgi_file}')
     if get:
         host = getattr(settings, 'DOMAIN_NAME', None)
         if host is None:
