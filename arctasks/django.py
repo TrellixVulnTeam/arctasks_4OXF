@@ -29,11 +29,14 @@ def get_settings():
 def call_command(*args, hide=False, **kwargs):
     setup()
     import django.core.management
-    if hide:
-        with open(os.devnull, 'w') as devnull:
-            django.core.management.call_command(*args, stdout=devnull, **kwargs)
-    else:
-        django.core.management.call_command(*args, **kwargs)
+    try:
+        if hide:
+            with open(os.devnull, 'w') as devnull:
+                django.core.management.call_command(*args, stdout=devnull, **kwargs)
+        else:
+            django.core.management.call_command(*args, **kwargs)
+    except KeyboardInterrupt:
+        abort(message='\nAborted Django management command')
 
 
 @arctask(configured='dev')
