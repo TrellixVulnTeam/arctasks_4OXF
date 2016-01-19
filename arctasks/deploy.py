@@ -238,14 +238,11 @@ class Deployer:
         ctx = self.ctx
 
         # Wrapper for inv script that sets the default env to the env of
-        # the deployment.
-        temp_fd, temp_file = tempfile.mkstemp(text=True)
-        content = (
-            'export ARCTASKS_DEFAULT_ENV="{env}"\n'
-            '{remote.build.bin}/inv "$@"\n'
-        ).format(**ctx).encode('utf-8')
-        os.write(temp_fd, content)
-        copy_file(ctx, temp_file, '{remote.build.dir}/inv', mode=exe_mode)
+        # the deployment and adds the virtualenv's bin directory to the
+        # front of $PATH.
+        copy_file(
+            ctx, 'arctasks:templates/inv.template', '{remote.build.dir}/inv', template=True,
+            mode=exe_mode)
 
         if os.path.exists('tasks.cfg'):
             task_config = ConfigParser(interpolation=ExtendedInterpolation())
