@@ -2,7 +2,7 @@ import sys
 from distutils.core import setup
 
 install_requires = [
-    'invoke>=0.11.1',
+    'invoke==0.11.1',
 ]
 
 if sys.version_info[:2] < (3, 4):
