@@ -40,7 +40,7 @@ def provision(ctx, overwrite=False):
     remote(ctx, (
         (pip, 'install -U setuptools'),
         (pip, 'install --find-links', find_links, '"pip=={pip.version}"'),
-        (pip, 'install --find-links', find_links, '--cache-dir {remote.pip.download_cache} wheel'),
+        (pip, 'install --find-links', find_links, '--cache-dir {remote.pip.cache_dir} wheel'),
     ), many=True)
 
 
@@ -209,12 +209,12 @@ class Deployer:
             '{remote.build.pip} install',
             '--no-index',
             '--find-links file://{remote.pip.wheel_dir}',
-            '--cache-dir {remote.pip.download_cache}',
+            '--cache-dir {remote.pip.cache_dir}',
             '{distribution}',
         ))
         remote(ctx, (
             '{remote.build.pip} install --upgrade',
-            '--cache-dir {remote.pip.download_cache}',
+            '--cache-dir {remote.pip.cache_dir}',
             'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
         ))
 
@@ -476,7 +476,7 @@ def wheel(ctx, distribution):
     remote(ctx, (
         '{remote.build.pip} wheel',
         '--wheel-dir {remote.pip.wheel_dir}',
-        '--cache-dir {remote.pip.download_cache}',
+        '--cache-dir {remote.pip.cache_dir}',
         '--find-links file://{remote.build.dir}/dist',
         '--find-links file://{remote.pip.wheel_dir}',
         '--find-links {remote.pip.find_links}',
