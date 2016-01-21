@@ -146,33 +146,22 @@ class Deployer:
 
     # Remote
 
+    remote_tasks = (
+        'provision',
+        'push',
+        'wheels',
+        'install',
+        'push_config',
+        'migrate',
+        'make_active',
+        'set_permissions',
+    )
+
     def do_remote_tasks(self):
         """Build the new deployment environment."""
-        opts = self.options
-
-        if opts['provision']:
-            self.provision()
-
-        if opts['push']:
-            self.push()
-
-        if opts['wheels']:
-            self.wheels()
-
-        if opts['install']:
-            self.install()
-
-        if opts['push_config']:
-            self.push_config()
-
-        if opts['migrate']:
-            self.migrate()
-
-        if opts['make_active']:
-            self.make_active()
-
-        if opts['set_permissions']:
-            self.set_permissions()
+        for task in self.remote_tasks:
+            if self.options[task]:
+                getattr(self, task)()
 
     def provision(self):
         provision(self.ctx)
