@@ -355,22 +355,30 @@ def builds(ctx, active=False, rm=None, yes=False):
         active = remote(ctx, 'readlink {remote.path.env}', abort_on_failure=False)
         active = active.stdout.strip() if active.ok else ''
         print_header('Builds for {env} (in {remote.build.root}; newest first):'.format(**ctx))
+        # Get a list of all the build directories.
         dirs = remote(ctx, (
             'find', build_root, '-mindepth 1 -maxdepth 1 -type d'
         ), cd='/', echo=False, hide='stdout')
         result = dirs.stdout.strip().splitlines()
         if result:
             dirs = ' '.join(result)
+            # Get path and timestamp of last modification for each build
+            # directory.
+            # Example stat entry:
+            #    "/vol/www/project_x/builds/stage/1.0.0 1453426316"
             result = remote(
                 ctx, 'stat -c "%n %Y" {dirs}'.format(dirs=dirs), echo=False, hide=True)
             data = result.stdout.strip().splitlines()
+            # Parse each stat entry into (path, timestamp).
             data = [d.split(' ', 1) for d in data]
+            # Parse further into (full path, base name, datetime object).
             data = [
                 (d[0], posixpath.basename(d[0]), datetime.fromtimestamp(int(d[1])))
                 for d in data
             ]
-            data = sorted(data, key=lambda item: item[1], reverse=True)
-            longest = max(len(d[1]) for d in data) + 1
+            # Sort entries by timestamp.
+            data = sorted(data, key=lambda item: item[2], reverse=True)
+            longest = max(len(d[1]) for d in data)
             for d in data:
                 path, version, timestamp = d
                 is_active = path == active
