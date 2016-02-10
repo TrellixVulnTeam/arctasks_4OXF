@@ -35,8 +35,6 @@ def virtualenv(ctx, executable='python3', overwrite=False):
         local(ctx, ('virtualenv', '-p', executable, '{venv}'))
         local(ctx, '{bin.pip} install -U setuptools')
         local(ctx, '{bin.pip} install -U pip')
-        # The following is necessary for bootstrapping purposes
-        local(ctx, '{bin.pip} install invoke=={_invoke.version}')
 
 
 @arctask(configured='dev')
