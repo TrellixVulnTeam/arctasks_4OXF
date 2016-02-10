@@ -52,7 +52,7 @@ def create_mysql_db(ctx, name='{db.name}', drop=False):
 
 
 @arctask(configured='dev')
-def load_prod_data(ctx, schema='public'):
+def load_prod_data(ctx, schema='public', source='prod'):
     """Load data from prod database directly into env database.
 
     This is generally intended for fetching a fresh copy of production
@@ -61,26 +61,32 @@ def load_prod_data(ctx, schema='public'):
 
         inv createdb -d load_prod_data
 
+    You can also choose another data source, such as 'stage'::
+
+        inv createdb -d load_prod_data --source stage
+
     To refresh the stage database, you'd run this instead::
 
         inv stage reset_db load_prod_data
 
     """
     if ctx.env == 'prod':
-        abort(1, 'Cannot load prod data into prod database')
-    prod_ctx = Context()
-    configure(prod_ctx, 'prod')
-    prod_pw = getpass('prod database password: ')
+        abort(1, 'Cannot load data into prod database')
+    if ctx.env == source:
+        abort(1, 'Cannot load data into source database')
+    source_ctx = Context()
+    configure(source_ctx, source)
+    source_pw = getpass('{source} database password: '.format(**locals()))
     env_pw = getpass('{env} database password: '.format(**ctx))
     temp_fd, temp_path = mkstemp()
     if ctx.db.type == 'postgresql':
-        if prod_pw:
-            os.environ['PGPASSWORD'] = prod_pw
+        if source_pw:
+            os.environ['PGPASSWORD'] = source_pw
         local(ctx, (
             'pg_dump',
-            '-U', prod_ctx.db.user,
-            '-h', prod_ctx.db.host,
-            '-d', prod_ctx.db.name,
+            '-U', source_ctx.db.user,
+            '-h', source_ctx.db.host,
+            '-d', source_ctx.db.name,
             '--schema', schema,
             '--no-acl',
             '--no-owner',
