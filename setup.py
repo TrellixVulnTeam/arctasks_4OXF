@@ -12,7 +12,7 @@ setup(
     name='psu.oit.arc.tasks',
     version='0.0.0.dev0',
     author='Wyatt Baldwin',
-    author_email='wyatt.baldwin@pdx.edu',
+    author_email='wbaldwin@pdx.edu',
     description='Tasks',
     license='MIT',
     packages=['arctasks'],
