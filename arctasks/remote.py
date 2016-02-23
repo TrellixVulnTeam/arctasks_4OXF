@@ -3,7 +3,7 @@ import tempfile
 
 from .arctask import arctask
 from .runners import local, remote
-from .util import abs_path, as_tuple
+from .util import abs_path, args_to_str, as_tuple
 
 
 @arctask(configured=True)
@@ -43,6 +43,7 @@ def rsync(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host
     excludes = as_tuple(excludes)
     if default_excludes:
         excludes += as_tuple(default_excludes)
+    run_as = args_to_str(run_as, format_kwargs=ctx)
     local(ctx, (
         'rsync',
         '-rltvz',
