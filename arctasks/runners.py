@@ -97,6 +97,8 @@ def remote(ctx, args, user='{remote.user}', host='{remote.host}', path='{remote.
     if cd:
         cmd.extend(('cd', cd, '&&'))
 
+    run_as = args_to_str(run_as, format_kwargs=ctx)
+
     if sudo:
         run_as = 'sudo'
     elif run_as:
