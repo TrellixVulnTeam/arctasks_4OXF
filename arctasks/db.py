@@ -84,10 +84,12 @@ def load_prod_data(ctx, schema='public', source='prod'):
             os.environ['PGPASSWORD'] = source_pw
         local(ctx, (
             'pg_dump',
+            '--format', 'custom',
             '-U', source_ctx.db.user,
             '-h', source_ctx.db.host,
             '-d', source_ctx.db.name,
             '--schema', schema,
+            '--blobs',
             '--no-acl',
             '--no-owner',
             '--no-privileges',
@@ -96,11 +98,12 @@ def load_prod_data(ctx, schema='public', source='prod'):
         if env_pw:
             os.environ['PGPASSWORD'] = env_pw
         local(ctx, (
-            'psql',
+            'pg_restore',
             '-U {db.user}',
             '-h {db.host}',
             '-d {db.name}',
-            '--file', temp_path,
+            '--no-owner',
+            temp_path,
         ))
         os.close(temp_fd)
         os.remove(temp_path)
