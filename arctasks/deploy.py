@@ -14,7 +14,7 @@ from .config import show_config
 from .remote import manage as remote_manage, rsync, copy_file
 from .runners import local, remote
 from .static import build_static
-from .util import abort, as_list, confirm
+from .util import abort, as_list, confirm, load_object
 from .util import print_header, print_info, print_success, print_warning, print_error, print_danger
 
 
@@ -299,22 +299,23 @@ def deploy(ctx, deployer_class=Deployer, provision=True, overwrite=False, push=T
     it is free to ignore).
 
     """
+    deployer_class = load_object(deployer_class)
+    deployer = deployer_class(
+        ctx,
+        provision=provision,
+        overwrite=overwrite,
+        push=push,
+        static=static,
+        build_static=build_static,
+        remove_distributions=remove_distributions,
+        wheels=wheels,
+        install=install,
+        push_config=push_config,
+        migrate=migrate,
+        make_active=make_active,
+        set_permissions=set_permissions,
+    )
     try:
-        deployer = deployer_class(
-            ctx,
-            provision=provision,
-            overwrite=overwrite,
-            push=push,
-            static=static,
-            build_static=build_static,
-            remove_distributions=remove_distributions,
-            wheels=wheels,
-            install=install,
-            push_config=push_config,
-            migrate=migrate,
-            make_active=make_active,
-            set_permissions=set_permissions,
-        )
         deployer.run()
     except KeyboardInterrupt:
         abort(message='\nDeployment aborted')
