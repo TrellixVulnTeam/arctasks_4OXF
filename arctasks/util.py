@@ -133,6 +133,36 @@ def get_git_version(short=True):
     return version
 
 
+def load_object(obj) -> object:
+    """Load an object.
+
+    Args:
+        obj (str|object): Load the indicated object if this is a string;
+            otherwise, return the object as is.
+
+            To load a module, pass a dotted path like 'package.module';
+            to load an an object from a module pass a path like
+            'package.module:name'.
+
+    Returns:
+        object
+
+    """
+    if isinstance(obj, str):
+        if ':' in obj:
+            module_name, obj_name = obj.split(':')
+            if not module_name:
+                module_name = '.'
+        else:
+            module_name = obj
+        obj = importlib.import_module(module_name)
+        if obj_name:
+            attrs = obj_name.split('.')
+            for attr in attrs:
+                obj = getattr(obj, attr)
+    return obj
+
+
 class Color(enum.Enum):
 
     none = ''
