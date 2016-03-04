@@ -287,7 +287,7 @@ class Deployer:
 
 
 @arctask(configured='stage', timed=True)
-def deploy(ctx, deployer_class=Deployer, provision=True, overwrite=False, push=True, static=True,
+def deploy(ctx, deployer_class=None, provision=True, overwrite=False, push=True, static=True,
            build_static=True, remove_distributions=None, wheels=True, install=True,
            push_config=True, migrate=False, make_active=True, set_permissions=True):
     """Deploy a new version.
@@ -299,6 +299,8 @@ def deploy(ctx, deployer_class=Deployer, provision=True, overwrite=False, push=T
     it is free to ignore).
 
     """
+    if deployer_class is None:
+        deployer_class = deploy.deployer_class
     deployer_class = load_object(deployer_class)
     deployer = deployer_class(
         ctx,
@@ -319,6 +321,10 @@ def deploy(ctx, deployer_class=Deployer, provision=True, overwrite=False, push=T
         deployer.run()
     except KeyboardInterrupt:
         abort(message='\nDeployment aborted')
+
+
+deploy.deployer_class = Deployer
+deploy.set_deployer_class = lambda deployer_class: setattr(deploy, 'deployer_class', deployer_class)
 
 
 @arctask(configured=True, help={'rm': 'Remove the specified build', 'yes': 'Skip confirmations'})
