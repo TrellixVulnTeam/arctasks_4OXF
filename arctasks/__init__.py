@@ -6,3 +6,4 @@ from .deploy import builds, clean_builds, deploy, link, restart
 from .django import coverage, dbshell, makemigrations, migrate, runserver, run_mod_wsgi, shell, test
 from .runners import local, remote
 from .static import build_static, bower, lessc, pull_media
+from .timetracking import total_time_spent
