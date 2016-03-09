@@ -33,7 +33,7 @@ def provision(ctx, overwrite=False):
     # Create virtualenv for build
     result = remote(ctx, ('test -d', venv), abort_on_failure=False)
     if result.failed:
-        remote(ctx, ('virtualenv -p python3', venv))
+        remote(ctx, ('{remote.build.make_venv}', venv))
     # Provision virtualenv with basics
     pip = ctx.remote.build.pip
     find_links = ctx.remote.pip.find_links
