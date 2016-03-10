@@ -208,11 +208,6 @@ class Deployer:
             '--no-index',
             '--find-links file://{remote.pip.wheel_dir}',
             '--cache-dir {remote.pip.cache_dir}',
-        ))
-        remote(ctx, (
-            '{remote.build.pip} install --upgrade',
-            '--cache-dir {remote.pip.cache_dir}',
-            'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
             '-r {remote.build.dir}/requirements.txt',
         ))
 
@@ -469,6 +464,12 @@ def push_app(ctx, deps=None):
     local(ctx, (sys.executable, sdist), hide='stdout')
     for path in as_list(deps):
         local(ctx, (sys.executable, sdist), hide='stdout', cd=path)
+    local(ctx, (
+        '{bin.pip}',
+        'wheel',
+        '--wheel-dir {path.build.dist}',
+        'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
+    ))
     remote(ctx, 'rm -f {remote.build.dist}/*')
     rsync(ctx, '{path.build.dist}/*', '{remote.build.dist}')
     copy_file(ctx, 'requirements-frozen.txt', '{remote.build.dir}/requirements.txt')
