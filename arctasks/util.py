@@ -217,7 +217,9 @@ def print_color(*args, color=Color.none, file=sys.stdout, **kwargs):
         except AttributeError:
             is_a_tty = False
         if is_a_tty:
-            string = colorize(*args, color=color, **kwargs)
+            colorize_kwargs = kwargs.copy()
+            colorize_kwargs.pop('end', None)
+            string = colorize(*args, color=color, **colorize_kwargs)
             print(string, **kwargs)
         else:
             args = [a for a in args if not isinstance(a, Color)]
