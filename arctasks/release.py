@@ -2,7 +2,8 @@
 
 The main tasks are:
 
-    - release; this runs the tasks below in order and is the
+    - release; this runs the tasks below in order and will typically be
+      the only task from this module that you need to run
     - prepare_release
     - merge_release
     - tag_release
