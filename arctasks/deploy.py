@@ -187,7 +187,15 @@ class Deployer:
                 break
         else:
             abort(1, 'Could not find source distribution for {distribution}'.format(**ctx))
-        wheel(ctx, '{{remote.build.dist}}/{dist}'.format(dist=dist))
+        remote(ctx, (
+            '{remote.build.pip} wheel',
+            '--wheel-dir {remote.pip.wheel_dir}',
+            '--cache-dir {remote.pip.cache_dir}',
+            '--find-links file://{remote.build.dir}/dist',
+            '--find-links file://{remote.pip.wheel_dir}',
+            '--find-links {remote.pip.find_links}',
+            '-r {remote.build.dir}/requirements.txt',
+        ))
 
     def install(self):
         """Install new version in deployment environment."""
@@ -199,12 +207,12 @@ class Deployer:
             '--no-index',
             '--find-links file://{remote.pip.wheel_dir}',
             '--cache-dir {remote.pip.cache_dir}',
-            '{distribution}',
         ))
         remote(ctx, (
             '{remote.build.pip} install --upgrade',
             '--cache-dir {remote.pip.cache_dir}',
             'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
+            '-r {remote.build.dir}/requirements.txt',
         ))
 
     def push_config(self):
@@ -462,6 +470,7 @@ def push_app(ctx, deps=None):
         local(ctx, (sys.executable, sdist), hide='stdout', cd=path)
     remote(ctx, 'rm -f {remote.build.dist}/*')
     rsync(ctx, '{path.build.dist}/*', '{remote.build.dist}')
+    copy_file(ctx, 'requirements-frozen.txt', '{remote.build.dir}/requirements.txt')
 
 
 @arctask(build_static, configured=True)
@@ -473,19 +482,6 @@ def push_static(ctx, delete=False):
     manifest = os.path.join(static_root, 'staticfiles.json')
     if os.path.isfile(manifest):
         copy_file(ctx, manifest, ctx.remote.build.dir)
-
-
-@arctask(configured=True)
-def wheel(ctx, distribution):
-    remote(ctx, (
-        '{remote.build.pip} wheel',
-        '--wheel-dir {remote.pip.wheel_dir}',
-        '--cache-dir {remote.pip.cache_dir}',
-        '--find-links file://{remote.build.dir}/dist',
-        '--find-links file://{remote.pip.wheel_dir}',
-        '--find-links {remote.pip.find_links}',
-        distribution,
-    ))
 
 
 @arctask(configured=True)
