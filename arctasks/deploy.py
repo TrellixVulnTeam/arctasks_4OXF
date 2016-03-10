@@ -204,6 +204,7 @@ class Deployer:
             remote(ctx, ('{remote.build.pip} uninstall -y', dist), abort_on_failure=False)
         remote(ctx, (
             '{remote.build.pip} install',
+            '--ignore-installed',
             '--no-index',
             '--find-links file://{remote.pip.wheel_dir}',
             '--cache-dir {remote.pip.cache_dir}',
