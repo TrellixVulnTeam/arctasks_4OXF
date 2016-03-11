@@ -294,7 +294,8 @@ def commit_files(ctx, files, commit_message):
 
     """
     f = locals()
-    output = subprocess.check_output(['git', 'diff', '--color=always'] + files)
+    subprocess.check_output(['git', 'add'] + files)
+    output = subprocess.check_output(['git', 'diff', '--cached', '--color=always'] + files)
     output = output.strip()
     if not output:
         abort(1, 'Nothing to commit')
