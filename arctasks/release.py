@@ -271,12 +271,18 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
 
     dev_version = '{version}.dev0'.format(version=version)
     find_and_update_version(dev_version, dry_run=dry_run, debug=debug)
+
+    files_to_commit = [changelog, 'setup.py']
+
+    # Unfreeze requirements
     if os.path.isfile('requirements-frozen.txt'):
-        git.git(['rm', 'requirements-frozen.txt'])
-        git.commit_files(['requirements-frozen.txt'], 'Remove?', add=False)
+        files_to_commit.append('requirements-frozen.txt')
+        with open('requirements-frozen.txt', 'w') as fp:
+            fp.write(ctx.distribution)
+            fp.write('\n')
 
     commit_message = 'Resume development at {version}'.format_map(f)
-    git.commit_files([changelog, 'setup.py'], commit_message)
+    git.commit_files(files_to_commit, commit_message)
 
 
 def find_and_update_line(file_name, pattern, line_updater, flags=0, abort_when_not_found=True,
