@@ -274,7 +274,7 @@ def resume_development(ctx, version, changelog=DEFAULT_CHANGELOG, dry_run=False,
     find_and_update_version(dev_version, dry_run=dry_run, debug=debug)
     if os.path.isfile('requirements-frozen.txt'):
         subprocess.check_call(['git', 'rm', 'requirements-frozen.txt'])
-        commit_files(ctx, 'requirements-frozen.txt', 'Remove?')
+        commit_files(ctx, ['requirements-frozen.txt'], 'Remove?')
 
     commit_message = 'Resume development at {version}'.format_map(f)
     commit_files(ctx, [changelog, 'setup.py'], commit_message)
