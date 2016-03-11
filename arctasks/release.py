@@ -239,6 +239,14 @@ def tag_release(ctx, tag_name, to_branch='master', dry_run=False, debug=False):
 def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=False, debug=False):
     """Resume development.
 
+    Resuming development consists of:
+
+        - Adding a section for the next ``version`` to the change log
+        - Updating the distribution version
+        - Unfreezing frozen requirements (because frozen requirements
+          aren't helpful in development, especially when staging in-
+          development versions)
+
     Args:
         version: Version to continue working at
         changelog: The change log to update; defaults to ./CHANGELOG.md
@@ -255,9 +263,9 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
 
     f = locals()
 
+    # Add section for next version to change log
     with open(changelog) as fp:
         lines = fp.readlines()
-
     with open(changelog, 'w') as fp:
         new_lines = [
             '\n',
@@ -269,6 +277,7 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
         lines[1:1] = new_lines
         fp.writelines(lines)
 
+    # Update package version
     dev_version = '{version}.dev0'.format(version=version)
     find_and_update_version(dev_version, dry_run=dry_run, debug=debug)
 
