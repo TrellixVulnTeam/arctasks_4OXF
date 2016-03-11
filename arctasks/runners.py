@@ -41,7 +41,7 @@ def local(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
 
 @arctask(configured='dev')
 def remote(ctx, args, user='{remote.user}', host='{remote.host}', path='{remote.extra_path}',
-           cd=None, sudo=False, run_as='{remote.run_as}', echo=None, hide=None,
+           cd='/tmp', sudo=False, run_as='{remote.run_as}', echo=None, hide=None,
            abort_on_failure=True, inject_context=True, many=False):
     """Run a command on the remote host using ssh.
 
