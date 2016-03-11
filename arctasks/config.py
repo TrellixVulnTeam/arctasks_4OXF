@@ -54,7 +54,7 @@ class LazyConfigValue:
 
 
 @arctask
-def configure(ctx, env, file_name=None, options=None):
+def configure(ctx, env, version=None, file_name=None, options=None):
     """Configure the environment tasks are run in.
 
     Configuration can come from several places, listed here in order of
@@ -81,7 +81,7 @@ def configure(ctx, env, file_name=None, options=None):
 
     config = Config((
         ('env', env),
-        ('version', LazyConfigValue(git.version)),
+        ('version', version if version is not None else LazyConfigValue(git.version)),
         ('current_user', LazyConfigValue(getpass.getuser)),
         ('cwd', cwd),
         ('arctasks.static.build_static.static_root', LazyConfigValue(tempfile.mkdtemp)),
@@ -158,8 +158,8 @@ def configure(ctx, env, file_name=None, options=None):
 
 
 def make_env_task(env_name):
-    def func(ctx, file_name=None, config=None):
-        configure(ctx, env_name, file_name, config)
+    def func(ctx, version=None, file_name=None, config=None):
+        configure(ctx, env_name, version, file_name, config)
     func.__name__ = env_name
     func.__doc__ = 'Configure for {env_name} environment'.format(**locals())
     return arctask(func)
