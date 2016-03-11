@@ -9,8 +9,10 @@ from datetime import datetime
 from urllib.request import urlretrieve
 
 from . import django
+from . import git
 from .arctask import arctask
-from .config import show_config
+from .base import clean, install
+from .config import configure, show_config
 from .remote import manage as remote_manage, rsync, copy_file
 from .runners import local, remote
 from .static import build_static
@@ -76,6 +78,10 @@ class Deployer:
         self.started = datetime.now()
         self.ctx = ctx
         self.options = self.init_options(options)
+        self.current_branch = git.current_branch()
+        version = self.options['version']
+        if version is not None:
+            configure(ctx, ctx.env, version)
 
     def init_options(self, options):
         ctx = self.ctx
@@ -89,6 +95,8 @@ class Deployer:
         self.confirm()
         self.do_local_preprocessing()
         self.do_remote_tasks()
+        if git.current_branch() != self.current_branch:
+            git.git(['checkout', self.current_branch])
 
     def show_info(self):
         """Show some info about what's being deployed."""
@@ -125,6 +133,10 @@ class Deployer:
         """Prepare for deployment."""
         opts = self.options
         self.make_build_dir()
+        if opts['version']:
+            git.git(['checkout', opts['version']])
+            clean(self.ctx)
+            install(self.ctx)
         if opts['static'] and opts['build_static']:
             self.build_static()
 
@@ -301,8 +313,8 @@ class Deployer:
 
 
 @arctask(configured='stage', timed=True)
-def deploy(ctx, deployer_class=None, provision=True, overwrite=False, push=True, static=True,
-           build_static=True, remove_distributions=None, wheels=True, install=True,
+def deploy(ctx, version=None, deployer_class=None, provision=True, overwrite=False, push=True,
+           static=True, build_static=True, remove_distributions=None, wheels=True, install=True,
            push_config=True, migrate=False, make_active=True, set_permissions=True):
     """Deploy a new version.
 
@@ -318,6 +330,7 @@ def deploy(ctx, deployer_class=None, provision=True, overwrite=False, push=True,
     deployer_class = load_object(deployer_class)
     deployer = deployer_class(
         ctx,
+        version=version,
         provision=provision,
         overwrite=overwrite,
         push=push,
