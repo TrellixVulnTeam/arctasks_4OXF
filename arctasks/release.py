@@ -237,7 +237,7 @@ def tag_release(ctx, tag_name, to_branch='master', dry_run=False, debug=False):
 
 
 @arctask(configured='dev')
-def resume_development(ctx, version, changelog=DEFAULT_CHANGELOG, dry_run=False, debug=False):
+def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=False, debug=False):
     """Resume development.
 
     Args:
