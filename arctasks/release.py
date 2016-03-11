@@ -111,16 +111,16 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
         debug: Show extra info that might be helpful for debugging
 
     """
-    if dry_run:
-        print_header('[DRY RUN]', end=' ')
-    print_header('Preparing release: updating version and release date')
+    distribution = ctx.distribution
 
     if release_date is None:
         release_date = datetime.date.today().strftime('%Y-%m-%d')
 
-    distribution = ctx.distribution
-
     f = locals()
+
+    if dry_run:
+        print_header('[DRY RUN]', end=' ')
+    print_header('Preparing release {version} - {release_date}'.format_map(f))
 
     # Args passed to all find_and_update_line() calls
     find_and_update_line_args = {
@@ -196,6 +196,7 @@ def merge_release(ctx, version, to_branch='master', dry_run=False, debug=False):
     """
     current_branch = git.current_branch()
     f = locals()
+    print_header('Merging {current_branch} into {to_branch} for release {version}'.format_map(f))
     git.git(['log', '--oneline', '--reverse', '{to_branch}..'.format_map(f)])
     if not confirm(ctx, 'Merge these changes into {to_branch}?'.format_map(f), yes_values=('yes',)):
         abort(message='Aborted merge from {current_branch} to {to_branch}'.format_map(f))
@@ -227,6 +228,7 @@ def tag_release(ctx, tag_name, to_branch='master', dry_run=False, debug=False):
 
     """
     f = locals()
+    print_header('Tagging release {tag_name} on {to_branch}'.format_map(f))
     commit = git.git(['log', '--oneline', '-1', to_branch], return_output=True)
     print_info('Commit that will be tagged on {to_branch}:\n    '.format_map(f), commit)
     if not confirm(ctx, 'Tag this commit as {tag_name}?'.format_map(f)):
@@ -262,6 +264,8 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
         version = input('Version for new release (.dev0 will be appended): ')
 
     f = locals()
+
+    print_header('Resuming development at {version}'.format_map(f))
 
     # Add section for next version to change log
     with open(changelog) as fp:
