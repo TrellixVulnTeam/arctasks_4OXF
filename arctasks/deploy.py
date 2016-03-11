@@ -151,7 +151,6 @@ class Deployer:
         'push',
         'wheels',
         'install',
-        'push_config',
         'migrate',
         'make_active',
         'set_permissions',
@@ -168,6 +167,8 @@ class Deployer:
 
     def push(self):
         push_app(self.ctx)
+        if self.options['push_config']:
+            self.push_config()
         if self.options['static']:
             push_static(self.ctx)
 
@@ -212,7 +213,7 @@ class Deployer:
         ))
 
     def push_config(self):
-        """Copy task config, settings, scripts, etc."""
+        """Copy task config, requirements, settings, scripts, etc."""
         ctx, opts = self.ctx, self.options
         exe_mode = 'ug+rwx,o-rwx'
         self._push_task_config(exe_mode)
@@ -225,6 +226,15 @@ class Deployer:
         copy_file(ctx, 'local.base.cfg', '{remote.build.dir}')
         copy_file(ctx, '{local_settings_file}', '{remote.build.local_settings_file}')
         copy_file(ctx, '{wsgi_file}', '{remote.build.wsgi_file}')
+
+        # Copy requirements file. If a frozen requirements files exists,
+        # copy that; if it doesn't, copy a default requirements file.
+        remote_path = '{remote.build.dir}/requirements.txt'
+        if os.path.isfile('requirements-frozen.txt'):
+            copy_file(ctx, 'requirements-frozen.txt', remote_path)
+        else:
+            copy_file(
+                ctx, 'arctasks:templates/requirements.txt.template', remote_path, template=True)
 
     def _push_task_config(self, exe_mode):
         # This is split out of push_config because it's somewhat complex
@@ -472,7 +482,6 @@ def push_app(ctx, deps=None):
     ))
     remote(ctx, 'rm -f {remote.build.dist}/*')
     rsync(ctx, '{path.build.dist}/*', '{remote.build.dist}')
-    copy_file(ctx, 'requirements-frozen.txt', '{remote.build.dir}/requirements.txt')
 
 
 @arctask(build_static, configured=True)

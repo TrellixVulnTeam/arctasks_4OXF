@@ -249,6 +249,8 @@ def resume_development(ctx, version, changelog=DEFAULT_CHANGELOG, dry_run=False,
     TODO: Implement dry run functionality.
 
     """
+    distribution = ctx.distribution
+
     if version is None:
         version = input('Version for new release (.dev0 will be appended): ')
 
@@ -270,6 +272,7 @@ def resume_development(ctx, version, changelog=DEFAULT_CHANGELOG, dry_run=False,
 
     dev_version = '{version}.dev0'.format(version=version)
     find_and_update_version(dev_version, dry_run=dry_run, debug=debug)
+    os.remove('requirements-frozen.txt')
 
     commit_message = 'Resume development at {version}'.format_map(f)
     commit_files(ctx, [changelog, 'setup.py'], commit_message)
