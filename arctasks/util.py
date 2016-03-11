@@ -1,9 +1,9 @@
-import enum
 import importlib
 import os
-import subprocess
 import sys
 from functools import partial
+
+import enum
 
 
 def abort(code=0, message='Aborted', color=True):
@@ -110,27 +110,6 @@ def confirm(ctx, prompt='Really?', color='warning', yes_values=('y', 'yes')):
         return False
     answer = answer.strip().lower()
     return answer in yes_values
-
-
-def get_git_version(short=True):
-    """Get tag associated with HEAD; fall back to SHA1."""
-    args = ['git', 'rev-parse', 'HEAD']
-    try:
-        version = subprocess.check_output(args).decode().strip()
-    except subprocess.CalledProcessError:
-        print_error('`git rev-parse` failed, probably because this is not a git repo.')
-        print_error('You can work around this by adding `version` to your task config.')
-        abort(1)
-    args = ['git', 'describe', '--tags', version]
-    try:
-        tag = subprocess.check_output(args, stderr=subprocess.DEVNULL).decode().strip()
-    except subprocess.CalledProcessError:
-        print_warning('Could not find tag for HEAD; falling back to SHA1')
-        if short:
-            version = version[:7]
-    else:
-        version = tag
-    return version
 
 
 def load_object(obj) -> object:

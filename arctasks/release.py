@@ -15,6 +15,7 @@ import os
 import re
 import subprocess
 
+from . import git
 from .arctask import arctask
 from .util import abort, confirm
 from .util import print_error, print_header, print_info, print_success, print_warning
@@ -173,7 +174,7 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
 
     if not dry_run:
         commit_message = 'Prepare release {version}'.format_map(f)
-        commit_files(ctx, [changelog, 'setup.py', 'requirements-frozen.txt'], commit_message)
+        git.commit_files([changelog, 'setup.py', 'requirements-frozen.txt'], commit_message)
 
 
 @arctask(configured='dev')
@@ -193,16 +194,15 @@ def merge_release(ctx, version, to_branch='master', dry_run=False, debug=False):
     TODO: Implement dry run functionality.
 
     """
-    current_branch = subprocess.check_output(['git', 'symbolic-ref', '--short', 'HEAD'])
-    current_branch = current_branch.decode('utf-8').strip()
+    current_branch = git.current_branch()
     f = locals()
-    subprocess.check_call(['git', 'log', '--oneline', '--reverse', '{to_branch}..'.format_map(f)])
+    git.git(['log', '--oneline', '--reverse', '{to_branch}..'.format_map(f)])
     if not confirm(ctx, 'Merge these changes into {to_branch}?'.format_map(f), yes_values=('yes',)):
         abort(message='Aborted merge from {current_branch} to {to_branch}'.format_map(f))
     commit_message = "Merge branch '{current_branch}' for release {version}".format_map(f)
-    subprocess.check_call(['git', 'checkout', to_branch])
-    subprocess.check_call(['git', 'merge', '--no-ff', current_branch, '-m', commit_message])
-    subprocess.check_call(['git', 'checkout', current_branch])
+    git.git(['checkout', to_branch])
+    git.git(['merge', '--no-ff', current_branch, '-m', commit_message])
+    git.git(['checkout', current_branch])
 
 
 @arctask(configured='dev')
@@ -227,13 +227,12 @@ def tag_release(ctx, tag_name, to_branch='master', dry_run=False, debug=False):
 
     """
     f = locals()
-    commit = subprocess.check_output(['git', 'log', '--oneline', '-1', to_branch])
-    commit = commit.decode('utf-8').strip()
+    commit = git.git(['log', '--oneline', '-1', to_branch], return_output=True)
     print_info('Commit that will be tagged on {to_branch}:\n    '.format_map(f), commit)
     if not confirm(ctx, 'Tag this commit as {tag_name}?'.format_map(f)):
         abort(message='Aborted tagging of release')
     commit_message = 'Release {tag_name}'.format_map(f)
-    subprocess.check_call(['git', 'tag', '-a', '-m', commit_message, tag_name, to_branch])
+    git.tag(tag_name, to_branch, message=commit_message)
 
 
 @arctask(configured='dev')
@@ -273,41 +272,11 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
     dev_version = '{version}.dev0'.format(version=version)
     find_and_update_version(dev_version, dry_run=dry_run, debug=debug)
     if os.path.isfile('requirements-frozen.txt'):
-        subprocess.check_call(['git', 'rm', 'requirements-frozen.txt'])
-        commit_files(ctx, ['requirements-frozen.txt'], 'Remove?')
+        git.git(['rm', 'requirements-frozen.txt'])
+        git.commit_files(['requirements-frozen.txt'], 'Remove?', add=False)
 
     commit_message = 'Resume development at {version}'.format_map(f)
-    commit_files(ctx, [changelog, 'setup.py'], commit_message)
-
-
-# Utilities
-
-
-def commit_files(ctx, files, commit_message):
-    """Commit files with message.
-
-    This will show a diff and ask for confirmation before committing. It
-    will also prompt the user for a commit message, using the passed
-    ``commit_message`` as the default.
-
-    Args:
-        files (list): The files to commit
-        commit_message: The default commit message
-
-    """
-    f = locals()
-    subprocess.check_output(['git', 'add'] + files)
-    output = subprocess.check_output(['git', 'diff', '--cached', '--color=always'] + files)
-    output = output.strip()
-    if not output:
-        abort(1, 'Nothing to commit')
-    print(output.decode('utf-8'))
-    if not confirm(ctx, 'Commit this?'):
-        abort(message='Aborted commit')
-    default_commit_message = commit_message
-    commit_message = input('Commit message ["{commit_message}"] '.format_map(f))
-    commit_message = commit_message.strip() or default_commit_message
-    subprocess.check_call(['git', 'commit', '-m', commit_message] + files)
+    git.commit_files([changelog, 'setup.py'], commit_message)
 
 
 def find_and_update_line(file_name, pattern, line_updater, flags=0, abort_when_not_found=True,

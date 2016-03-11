@@ -5,8 +5,9 @@ import tempfile
 from collections import Mapping, OrderedDict, Sequence
 from configparser import ConfigParser, ExtendedInterpolation
 
+from . import git
 from .arctask import arctask
-from .util import abort, abs_path, asset_path, as_list, get_git_version, print_error
+from .util import abort, abs_path, asset_path, as_list, print_error
 
 
 class Config(OrderedDict):
@@ -80,7 +81,7 @@ def configure(ctx, env, file_name=None, options=None):
 
     config = Config((
         ('env', env),
-        ('version', LazyConfigValue(get_git_version)),
+        ('version', LazyConfigValue(git.version)),
         ('current_user', LazyConfigValue(getpass.getuser)),
         ('cwd', cwd),
         ('arctasks.static.build_static.static_root', LazyConfigValue(tempfile.mkdtemp)),

@@ -1,7 +1,7 @@
 import re
 
+from . import git
 from .arctask import arctask
-from .runners import local
 
 
 @arctask
@@ -20,7 +20,7 @@ def total_time_spent(ctx, key, debug=False):
     seconds = []
 
     # Search in just the body of each commit
-    result = local(ctx, 'git log --pretty=format:%b', hide=True)
+    result = git.git('log --pretty=format:%b', return_output=True)
 
     pattern = (
         r'{key}-\d+'
@@ -30,7 +30,7 @@ def total_time_spent(ctx, key, debug=False):
     pattern = pattern.format(key=key)
     regex = re.compile(pattern)
 
-    for line in result.stdout.splitlines():
+    for line in result.splitlines():
         line = line.strip()
         match = regex.search(line)
         if match:
