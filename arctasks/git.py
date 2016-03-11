@@ -52,7 +52,7 @@ def commit_files(files, message=None, add=True):
 
 
 def current_branch():
-    return git(['symbolic-ref', '--short', 'HEAD'], return_output=True)
+    return git(['rev-parse', '--abbrev-ref', 'HEAD'], return_output=True)
 
 
 def tag(tag_name, commit, annotate=True, message=None):
