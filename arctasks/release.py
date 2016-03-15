@@ -85,7 +85,7 @@ def release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG, merge_
         tag_release(ctx, tag_name, **args)
     if resume:
         resume_development(ctx, next_version, changelog=changelog, **args)
-    print_warning('NOTE: Released-related changes are *not* pushed automatically')
+    print_warning('NOTE: Release-related changes are *not* pushed automatically')
     print_warning('NOTE: You still need to `git push` and `git push --tags`')
 
 
