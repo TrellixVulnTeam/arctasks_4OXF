@@ -24,7 +24,7 @@ from .util import print_error, print_header, print_info, print_success, print_wa
 DEFAULT_CHANGELOG = 'CHANGELOG.md'
 CHANGELOG_HEADER_RE = (
     r'(?P<hashes>#+ *)?'
-    r'(?P<version>{version})'
+    r'(?P<version>{version}|next)'
     r' +- +'
     r'(?P<release_date>\d{{4}}-\d{{2}}-\d{{2}}|unreleased)'
 )
