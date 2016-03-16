@@ -161,8 +161,8 @@ def configure(ctx, env, version=None, file_name=None, options=None):
 
 
 def make_env_task(env_name):
-    def func(ctx, version=None, file_name=None, config=None):
-        configure(ctx, env_name, version, file_name, config)
+    def func(ctx, version=None, file_name=None, options=None):
+        configure(ctx, env_name, version, file_name, options)
     func.__name__ = env_name
     func.__doc__ = 'Configure for {env_name} environment'.format(**locals())
     return arctask(func)
