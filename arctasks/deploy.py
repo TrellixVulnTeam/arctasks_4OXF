@@ -510,7 +510,7 @@ def push_static(ctx, delete=False):
 
 
 @arctask(configured=True)
-def restart(ctx, get=True, scheme='http'):
+def restart(ctx, get=True, scheme='http', path='/'):
     settings = django.get_settings()
     remote(ctx, 'touch {remote.path.wsgi_file}')
     if get:
@@ -522,7 +522,9 @@ def restart(ctx, get=True, scheme='http'):
             print_warning(
                 'The DOMAIN_NAME setting is deprecated; '
                 'set the first entry in ALLOWED_HOSTS to the canonical host instead')
-        url = '{scheme}://{host}/'.format_map(locals())
+        if not path.startswith('/'):
+            path = '/{path}'.format(path=path)
+        url = '{scheme}://{host}{path}'.format_map(locals())
         print_info('Getting {url}...'.format_map(locals()))
         try:
             urlretrieve(url, os.devnull)
