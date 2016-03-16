@@ -6,6 +6,7 @@ import sys
 import tempfile
 from configparser import ConfigParser, ExtendedInterpolation
 from datetime import datetime
+from urllib.error import HTTPError, URLError
 from urllib.request import urlretrieve
 
 from . import django
@@ -521,5 +522,9 @@ def restart(ctx, get=True, scheme='http'):
             print_warning(
                 'The DOMAIN_NAME setting is deprecated; '
                 'set the first entry in ALLOWED_HOSTS to the canonical host instead')
-        print_info('Getting {host}...'.format(host=host))
-        urlretrieve('{scheme}://{host}/'.format(scheme=scheme, host=host), os.devnull)
+        url = '{scheme}://{host}/'.format_map(locals())
+        print_info('Getting {url}...'.format_map(locals()))
+        try:
+            urlretrieve(url, os.devnull)
+        except (HTTPError, URLError) as exc:
+            abort(1, 'Failed to retrieve {url}: {exc}'.format_map(locals()))
