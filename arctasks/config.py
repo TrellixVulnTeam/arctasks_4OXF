@@ -87,60 +87,63 @@ def configure(ctx, env, version=None, file_name=None, options=None):
         ('arctasks.static.build_static.static_root', LazyConfigValue(tempfile.mkdtemp)),
     ))
 
-    # Mix in static defaults
     parser = ConfigParser(interpolation=ExtendedInterpolation())
-    with open(asset_path('arctasks:tasks.cfg')) as config_fp:
-        parser.read_file(config_fp)
+
+    def read_config_from_file(name, check_exists=True):
+        # Read config file and add items from section to config.
+        # Values are then interpolated.
+        if check_exists and not os.path.isfile(name):
+            abort(1, 'Config file "{name}" not found'.format(name=name))
+        with open(name) as config_fp:
+            parser.read_file(config_fp)
+        section = env if parser.has_section(env) else 'DEFAULT'
+        for k, v in parser[section].items():
+            v = json.loads(v)
+            config[k] = v
+        interpolate(config)
+
+    def interpolate(obj):
+        if isinstance(obj, LazyConfigValue):
+            obj = obj()
+        if isinstance(obj, str):
+            obj = obj.format(**config)
+        elif isinstance(obj, Mapping):
+            for key in obj:
+                obj[key] = interpolate(obj[key])
+        elif isinstance(obj, Sequence):
+            obj = obj.__class__(interpolate(thing) for thing in obj)
+        return obj
+
+    # Mix in static defaults
+    read_config_from_file(asset_path('arctasks:tasks.cfg'))
 
     # Extend from project config file, if there is one
     if file_name is None:
         file_name = os.path.join(cwd, 'tasks.cfg')
-        if os.path.exists(file_name):
-            with open(file_name) as config_fp:
-                parser.read_file(config_fp)
+        read_config_from_file(file_name, check_exists=False)
     else:
-        original_file_name = file_name
         file_name = abs_path(file_name)
-        if not os.path.exists(file_name):
-            abort(1, 'Config file "{}" not found'.format(original_file_name))
-        with open(file_name) as config_fp:
-            parser.read_file(config_fp)
+        read_config_from_file(file_name)
 
-    section = env if parser.has_section(env) else 'DEFAULT'
-    for k, v in parser[section].items():
-        v = json.loads(v)
-        config[k] = v
-
-    # Extend/override from command line.
-    # XXX: I don't particularly care for this bit of custom parsing, but
-    # I also don't want to add a billion args to this task, and Invoke
-    # doesn't currently parse dict-style options (although it may in the
-    # future).
-    if isinstance(options, str):
-        options = as_list(options)
-        for item in options:
-            k, v = as_list(item, sep='=')
-            try:
-                v = json.loads(v)
-            except ValueError:
-                pass  # Assume value is str
-            config[k] = v
-    elif isinstance(options, Mapping):
+    if options:
+        # Extend/override from command line.
+        # XXX: I don't particularly care for this bit of custom parsing, but
+        # I also don't want to add a billion args to this task, and Invoke
+        # doesn't currently parse dict-style options (although it may in the
+        # future).
+        if isinstance(options, str):
+            # First, convert 'a=1,b=2' to ['a=1', 'b=2'].
+            options = as_list(options)
+            # Then, convert ['a=1', 'b=2'] to {'a': 1, 'b': 2}.
+            options = dict(as_list(option, sep='=') for option in options)
+            # Finally, convert values from JSON.
+            for opt, val in options.items():
+                try:
+                    options[opt] = json.loads(val)
+                except ValueError:
+                    pass  # Assume value is str
         config.update(options)
-
-    def interpolate(v):
-        if isinstance(v, LazyConfigValue):
-            v = v()
-        if isinstance(v, str):
-            v = v.format(**config)
-        elif isinstance(v, Mapping):
-            for k in v:
-                v[k] = interpolate(v[k])
-        elif isinstance(v, Sequence):
-            v = v.__class__(interpolate(item) for item in v)
-        return v
-
-    interpolate(config)
+        interpolate(config)
 
     config.move_to_end('remote')
     config.move_to_end('arctasks')
