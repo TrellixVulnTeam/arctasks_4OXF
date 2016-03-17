@@ -28,8 +28,8 @@ CHANGELOG_HEADER_RE = (
     r' +- +'
     r'(?P<release_date>\d{{4}}-\d{{2}}-\d{{2}}|unreleased)'
 )
-SETUP_GLOBAL_VERSION_RE = r'VERSION += +(?P<quote>(\'|"))(?P<old_version>.+)(\'|")'
-SETUP_VERSION_RE = r'version=(?P<quote>(\'|"))(?P<old_version>.+)(\'|"),'
+SETUP_GLOBAL_VERSION_RE = r'VERSION += +(?P<quote>(\'|"))(?P<old_version>.+)(\1)'
+SETUP_VERSION_RE = r'version=(?P<quote>(\'|"))(?P<old_version>.+)(\1),'
 
 
 @arctask(configured='dev')
