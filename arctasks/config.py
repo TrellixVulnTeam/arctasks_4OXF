@@ -100,18 +100,27 @@ def configure(ctx, env, version=None, file_name=None, options=None):
         for k, v in parser[section].items():
             v = json.loads(v)
             config[k] = v
-        interpolate(config)
 
-    def interpolate(obj):
+    def start_interpolation():
+        interpolated = []
+        interpolate(config, interpolated)
+        while interpolated:
+            interpolated = []
+            interpolate(config, interpolated)
+
+    def interpolate(obj, interpolated):
         if isinstance(obj, LazyConfigValue):
             obj = obj()
         if isinstance(obj, str):
-            obj = obj.format(**config)
+            new_value = obj.format(**config)
+            if new_value != obj:
+                obj = new_value
+                interpolated.append(obj)
         elif isinstance(obj, Mapping):
             for key in obj:
-                obj[key] = interpolate(obj[key])
+                obj[key] = interpolate(obj[key], interpolated)
         elif isinstance(obj, Sequence):
-            obj = obj.__class__(interpolate(thing) for thing in obj)
+            obj = obj.__class__(interpolate(thing, interpolated) for thing in obj)
         return obj
 
     # Mix in static defaults
@@ -143,7 +152,8 @@ def configure(ctx, env, version=None, file_name=None, options=None):
                 except ValueError:
                     pass  # Assume value is str
         config.update(options)
-        interpolate(config)
+
+    start_interpolation()
 
     config.move_to_end('remote')
     config.move_to_end('arctasks')
