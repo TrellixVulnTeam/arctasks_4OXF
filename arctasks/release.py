@@ -157,7 +157,7 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
         **find_and_update_line_args
     )
 
-    find_and_update_version(version, **find_and_update_line_args)
+    version_file = find_and_update_version(version, **find_and_update_line_args)
 
     # Freeze requirements
     with open('requirements-frozen.txt', 'w') as requirements_fp:
@@ -183,7 +183,7 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
 
     if not dry_run:
         commit_message = 'Prepare release {version}'.format_map(f)
-        git.commit_files([changelog, 'setup.py', 'requirements-frozen.txt'], commit_message)
+        git.commit_files([changelog, version_file, 'requirements-frozen.txt'], commit_message)
 
 
 @arctask(configured='dev')
@@ -292,9 +292,9 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
 
     # Update package version
     dev_version = '{version}.dev0'.format(version=version)
-    find_and_update_version(dev_version, dry_run=dry_run, debug=debug)
+    version_file = find_and_update_version(dev_version, dry_run=dry_run, debug=debug)
 
-    files_to_commit = [changelog, 'setup.py']
+    files_to_commit = [changelog, version_file]
 
     # Unfreeze requirements
     if os.path.isfile('requirements-frozen.txt'):
@@ -404,23 +404,27 @@ def find_and_update_version(version, **kwargs):
     Args:
         version: The new version
         kwargs: Keyword args for :func:`find_and_update_line`
+    Returns:
+        The file where the version was found
 
     """
     f = locals()
     if os.path.isfile('VERSION'):
+        version_file = 'VERSION'
         def version_updater(match, line):
             return version
         not_found_message = 'No version found in VERSION file'
         find_and_update_line(
-            'VERSION', r'.+', version_updater,
+            version_file, r'.+', version_updater,
             not_found_message=not_found_message,
             **kwargs
         )
     else:
+        version_file = 'setup.py'
         def global_version_updater(match, line):
             return match.expand(r'VERSION = \g<quote>{version}\g<quote>'.format_map(f))
         found = find_and_update_line(
-            'setup.py', SETUP_GLOBAL_VERSION_RE, global_version_updater,
+            version_file, SETUP_GLOBAL_VERSION_RE, global_version_updater,
             abort_when_not_found=False,
             **kwargs
         )
@@ -430,7 +434,8 @@ def find_and_update_version(version, **kwargs):
             not_found_message = (
                 'Could not find VERSION global in setup.py or version keyword arg in setup()')
             find_and_update_line(
-                'setup.py', SETUP_VERSION_RE, version_updater,
+                version_file, SETUP_VERSION_RE, version_updater,
                 not_found_message=not_found_message,
                 **kwargs
             )
+    return version_file
