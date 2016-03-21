@@ -21,6 +21,15 @@ from .util import abort, confirm
 from .util import print_error, print_header, print_info, print_success, print_warning
 
 
+__all__ = [
+    'release',
+    'prepare_release',
+    'merge_release',
+    'tag_release',
+    'resume_development',
+]
+
+
 DEFAULT_CHANGELOG = 'CHANGELOG.md'
 CHANGELOG_HEADER_RE = (
     r'(?P<hashes>#+ *)?'
