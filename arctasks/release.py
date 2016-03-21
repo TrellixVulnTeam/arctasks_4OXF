@@ -99,8 +99,8 @@ def release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG, merge_
 
 
 @arctask(configured='dev')
-def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG, dry_run=False,
-                    debug=False):
+def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG,
+                    freeze_requirements=True, dry_run=False, debug=False):
     """Prepare a release.
 
     Preparation involves:
@@ -158,32 +158,33 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
     )
 
     version_file = find_and_update_version(version, **find_and_update_line_args)
+    files_to_commit = [changelog, version_file]
 
-    # Freeze requirements
-    with open('requirements-frozen.txt', 'w') as requirements_fp:
-        subprocess.check_call(
-            [ctx.bin.pip, 'freeze', '-f', ctx.remote.pip.find_links],
-            stdout=requirements_fp)
-
-    # Adjust frozen requirements:
-    #   - Ensure distribution spec is correct in frozen requirements
-    #   - Specify ARCTasks w/o a version
-    with open('requirements-frozen.txt') as requirements_fp:
-        requirements = requirements_fp.readlines()
-    skip_requirements = (distribution, 'psu.oit.arc.tasks')
-    skip_requirement = lambda r: any((d in r) for d in skip_requirements)
-    adjusted_requirements = [r for r in requirements if not skip_requirement(r)]
-    adjusted_requirements[1:1] = [
-        '{distribution}=={version}\n'.format_map(f),
-        'psu.oit.arc.tasks\n',
-    ]
-
-    with open('requirements-frozen.txt', 'w') as requirements_fp:
-        requirements_fp.writelines(adjusted_requirements)
+    if freeze_requirements:
+        # Freeze requirements
+        with open('requirements-frozen.txt', 'w') as requirements_fp:
+            subprocess.check_call(
+                [ctx.bin.pip, 'freeze', '-f', ctx.remote.pip.find_links],
+                stdout=requirements_fp)
+        # Adjust frozen requirements:
+        #   - Ensure distribution spec is correct in frozen requirements
+        #   - Specify ARCTasks w/o a version
+        with open('requirements-frozen.txt') as requirements_fp:
+            requirements = requirements_fp.readlines()
+        skip_requirements = (distribution, 'psu.oit.arc.tasks')
+        skip_requirement = lambda r: any((d in r) for d in skip_requirements)
+        adjusted_requirements = [r for r in requirements if not skip_requirement(r)]
+        adjusted_requirements[1:1] = [
+            '{distribution}=={version}\n'.format_map(f),
+            'psu.oit.arc.tasks\n',
+        ]
+        with open('requirements-frozen.txt', 'w') as requirements_fp:
+            requirements_fp.writelines(adjusted_requirements)
+        files_to_commit.append('requirements-frozen.txt')
 
     if not dry_run:
         commit_message = 'Prepare release {version}'.format_map(f)
-        git.commit_files([changelog, version_file, 'requirements-frozen.txt'], commit_message)
+        git.commit_files(files_to_commit, commit_message)
 
 
 @arctask(configured='dev')
