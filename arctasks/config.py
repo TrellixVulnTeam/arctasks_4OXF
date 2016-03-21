@@ -92,8 +92,10 @@ def configure(ctx, env, version=None, file_name=None, options=None):
     def read_config_from_file(name, check_exists=True):
         # Read config file and add items from section to config.
         # Values are then interpolated.
-        if check_exists and not os.path.isfile(name):
-            abort(1, 'Config file "{name}" not found'.format(name=name))
+        if not os.path.isfile(name):
+            if check_exists:
+                abort(1, 'Config file "{name}" not found'.format(name=name))
+            return
         with open(name) as config_fp:
             parser.read_file(config_fp)
         section = env if parser.has_section(env) else 'DEFAULT'
