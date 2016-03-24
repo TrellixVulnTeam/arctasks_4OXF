@@ -27,7 +27,7 @@ def provision(ctx, overwrite=False):
     venv = ctx.remote.build.venv
     if overwrite:
         # Remove existing build directory if present
-        remote(ctx, ('rm -rf', build_dir, venv))
+        remote(ctx, ('rm -rf', build_dir))
     # Make build dir
     remote(ctx, (
         'mkdir -p -m ug=rwx,o-rwx',
