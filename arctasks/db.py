@@ -156,7 +156,7 @@ def reset_db(ctx, truncate=False):
     tables = sorted(s.strip() for s in result.stdout.strip().splitlines())
     if not tables:
         abort(1, 'No tables found to drop')
-    statements = ['{op} TABLE {table} CASCADE;'.format(op=op, table=table) for table in tables]
+    statements = ['{op} TABLE "{table}" CASCADE;'.format(op=op, table=table) for table in tables]
     print('\nThe following statements will be run:\n')
     print('    {statements}\n'.format(statements='\n    '.join(statements)))
     msg = 'Are you sure you want to do this (you must type out "yes")?'
