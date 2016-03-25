@@ -176,7 +176,7 @@ class Deployer:
                 getattr(self, task)()
 
     def provision(self):
-        provision(self.ctx)
+        provision(self.ctx, self.options['overwrite'])
 
     def push(self):
         push_app(self.ctx)
