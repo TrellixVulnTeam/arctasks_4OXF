@@ -208,6 +208,7 @@ class Deployer:
             '--find-links file://{remote.build.dir}/dist',
             '--find-links file://{remote.pip.wheel_dir}',
             '--find-links {remote.pip.find_links}',
+            '--disable-pip-version-check',
             '-r {remote.build.dir}/requirements.txt',
         ))
 
@@ -221,7 +222,8 @@ class Deployer:
             '--ignore-installed',
             '--no-index',
             '--find-links file://{remote.pip.wheel_dir}',
-            '--cache-dir {remote.pip.cache_dir}',
+            '--disable-pip-version-check',
+            '--no-compile',
             '-r {remote.build.dir}/requirements.txt',
         ))
 
