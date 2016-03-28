@@ -11,7 +11,7 @@ from .util import abort, as_tuple, confirm
 
 
 @arctask(configured='dev')
-def createdb(ctx, type=None, name='{db.name}', drop=False, with_postgis=None, extensions=()):
+def createdb(ctx, type=None, name='{db.name}', drop=False, with_postgis=False, extensions=()):
     if type is None:
         type = ctx.db.type
     if type == 'mysql':
