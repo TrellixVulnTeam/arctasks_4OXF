@@ -214,7 +214,6 @@ class Deployer:
             '--wheel-dir {remote.pip.wheel_dir}',
             '--cache-dir {remote.pip.cache_dir}',
             '--find-links file://{remote.build.dir}/dist',
-            '--find-links file://{remote.pip.wheel_dir}',
             '--find-links {remote.pip.find_links}',
             '--disable-pip-version-check',
             '-r {remote.build.dir}/requirements.txt',
