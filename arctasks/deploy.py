@@ -136,6 +136,7 @@ class Deployer:
         self.make_build_dir()
         if opts['version']:
             git.git(['checkout', opts['version']])
+            print_header('Attempting create a clean local install for version...')
             clean(self.ctx)
             install(self.ctx)
         if opts['static'] and opts['build_static']:
@@ -145,7 +146,9 @@ class Deployer:
         """Make the local build directory."""
         build_dir = self.ctx.path.build.root
         if os.path.isdir(build_dir):
+            print_header('Removing existing build directory...')
             shutil.rmtree(build_dir)
+        print_header('Creating build dir...')
         os.makedirs(build_dir)
 
     def build_static(self):
@@ -155,6 +158,7 @@ class Deployer:
         then collects all static assets into a single directory.
 
         """
+        print_header('Building static files...')
         build_static(self.ctx)
 
     # Remote
@@ -176,17 +180,21 @@ class Deployer:
                 getattr(self, task)()
 
     def provision(self):
+        print_header('Provisioning...')
         provision(self.ctx, self.options['overwrite'])
 
     def push(self):
+        print_header('Pushing app...')
         push_app(self.ctx)
         if self.options['push_config']:
             self.push_config()
         if self.options['static']:
+            print_header('Pushing static files...')
             push_static(self.ctx)
 
     def wheels(self):
         """Build and cache packages (as wheels)."""
+        print_header('Building wheels...')
         ctx, opts = self.ctx, self.options
         wheel_dir = ctx.remote.pip.wheel_dir
         paths_to_remove = []
@@ -214,6 +222,7 @@ class Deployer:
 
     def install(self):
         """Install new version in deployment environment."""
+        print_header('Installing...')
         ctx, opts = self.ctx, self.options
         for dist in opts['remove_distributions']:
             remote(ctx, ('{remote.build.pip} uninstall -y', dist), abort_on_failure=False)
@@ -229,6 +238,7 @@ class Deployer:
 
     def push_config(self):
         """Copy task config, requirements, settings, scripts, etc."""
+        print_header('Pushing config...')
         ctx, opts = self.ctx, self.options
         exe_mode = 'ug+rwx,o-rwx'
         self._push_task_config(exe_mode)
@@ -283,6 +293,7 @@ class Deployer:
 
     def migrate(self):
         """Run database migrations."""
+        print_header('Running migrations...')
         remote_manage(self.ctx, 'migrate')
 
     def make_active(self):
@@ -296,6 +307,7 @@ class Deployer:
         redundant, but it's left in for clarity.
 
         """
+        print_header('Linking new version and restarting...')
         ctx = self.ctx
         link(ctx, ctx.version)
         restart(ctx)
@@ -309,6 +321,7 @@ class Deployer:
         chmod will succeed.
 
         """
+        print_header('Setting permissions in background...')
         remote(self.ctx, (
             'screen -d -m',
             'chmod -R ug=rwX,o-rwx {remote.build.dir} {remote.path.static}'
