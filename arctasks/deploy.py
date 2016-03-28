@@ -191,7 +191,7 @@ class Deployer:
         wheel_dir = ctx.remote.pip.wheel_dir
         paths_to_remove = []
         for dist in opts['remove_distributions']:
-            path = '/'.join((wheel_dir, '{dist}*.whl'.format(dist=dist.replace('-', '_'))))
+            path = '/'.join((wheel_dir, '{dist}*'.format(dist=dist.replace('-', '_'))))
             paths_to_remove.append(path)
         remote(ctx, ('rm -f', paths_to_remove))
         result = remote(ctx, 'ls {remote.build.dist}', echo=False, hide='stdout')
