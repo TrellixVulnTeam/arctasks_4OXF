@@ -37,6 +37,12 @@ CHANGELOG_HEADER_RE = (
     r' +- +'
     r'(?P<release_date>\d{{4}}-\d{{2}}-\d{{2}}|unreleased)'
 )
+FALLBACK_CHANGELOG_HEADER_RE = (
+    r'(?P<hashes>#+ *)?'
+    r'(?P<version>[^ ]+)'
+    r' +- +'
+    r'(?P<release_date>unreleased)'
+)
 SETUP_GLOBAL_VERSION_RE = r'VERSION += +(?P<quote>(\'|"))(?P<old_version>.+)(\1)'
 SETUP_VERSION_RE = r'version=(?P<quote>(\'|"))(?P<old_version>.+)(\1),'
 
@@ -137,26 +143,7 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
         'debug': debug,
     }
 
-    # Find section for version in change log and update release date.
-
-    def changelog_updater(match, line):
-        hashes = match.group('hashes')
-        if hashes:
-            hashes = '{hashes} '.format(hashes=hashes.strip())
-        else:
-            hashes = ''
-        return '{hashes}{version} - {release_date}'.format(hashes=hashes, **f)
-
-    header_re = CHANGELOG_HEADER_RE.format(version=re.escape(version))
-
-    not_found_message = '{changelog} appears to be missing a section for version {version}'
-    not_found_message = not_found_message.format_map(f)
-    find_and_update_line(
-        changelog, header_re, changelog_updater,
-        flags=re.I, not_found_message=not_found_message,
-        **find_and_update_line_args
-    )
-
+    find_and_update_changelog_header(changelog, version, release_date, **find_and_update_line_args)
     version_file = find_and_update_version(version, **find_and_update_line_args)
     files_to_commit = [changelog, version_file]
 
@@ -390,6 +377,61 @@ def find_and_update_line(file_name, pattern, line_updater, flags=0, abort_when_n
         print_info('Updated line {line_number} of {file_name}'.format_map(f))
 
     return True
+
+
+def find_and_update_changelog_header(changelog, version, release_date, **kwargs):
+    """Find section for version in change log and update release date.
+
+    This looks for the following patterns (leading hashes are
+    optional)::
+
+        ## <version> - <release_date>
+        ## <version> - unreleased
+        ## next - <release_date>
+        ## next - unreleased
+        ## <any version> - unreleased
+
+    The last pattern is used as a fallback where the current unreleased
+    section in the change log has a different version than the version
+    that's being released. A typical scenario is that the change log
+    looks like this::
+
+        ## 2.8.0 - unreleased
+
+        In progress...
+
+        ## 2.7.0 - 2016-03-30
+
+        Changes that comprise 2.7.0.
+
+    but you want to do a 2.7.1 patch release.
+
+    """
+    f = locals()
+
+    def changelog_updater(match, line):
+        hashes = match.group('hashes')
+        if hashes:
+            hashes = '{hashes} '.format(hashes=hashes.strip())
+        else:
+            hashes = ''
+        return '{hashes}{version} - {release_date}'.format(hashes=hashes, **f)
+
+    header_re = CHANGELOG_HEADER_RE.format(version=re.escape(version))
+    not_found_message = '{changelog} appears to be missing a section for version {version}'
+    not_found_message = not_found_message.format_map(f)
+    found_changelog_header = find_and_update_line(
+        changelog, header_re, changelog_updater,
+        flags=re.I, not_found_message=not_found_message, abort_when_not_found=False,
+        **kwargs
+    )
+
+    if not found_changelog_header:
+        find_and_update_line(
+            changelog, FALLBACK_CHANGELOG_HEADER_RE, changelog_updater,
+            flags=re.I, not_found_message=not_found_message,
+            **kwargs
+        )
 
 
 def find_and_update_version(version, **kwargs):
