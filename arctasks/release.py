@@ -17,7 +17,7 @@ import subprocess
 
 from . import git
 from .arctask import arctask
-from .util import abort, confirm
+from .util import abort, abs_path, confirm
 from .util import print_error, print_header, print_info, print_success, print_warning
 
 
@@ -287,9 +287,10 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
     # Unfreeze requirements
     if os.path.isfile('requirements-frozen.txt'):
         files_to_commit.append('requirements-frozen.txt')
+        with open(abs_path('arctasks:requirements.txt')) as fp:
+            contents = fp.read().format(**ctx)
         with open('requirements-frozen.txt', 'w') as fp:
-            fp.write(ctx.distribution)
-            fp.write('\n')
+            fp.write(contents)
 
     commit_message = 'Resume development at {version}'.format_map(f)
     git.commit_files(files_to_commit, commit_message)
