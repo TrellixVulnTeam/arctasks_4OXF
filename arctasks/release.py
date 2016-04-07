@@ -287,7 +287,7 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
     # Unfreeze requirements
     if os.path.isfile('requirements-frozen.txt'):
         files_to_commit.append('requirements-frozen.txt')
-        with open(abs_path('arctasks:requirements.txt')) as fp:
+        with open(abs_path('arctasks:templates/requirements.txt.template')) as fp:
             contents = fp.read().format(**ctx)
         with open('requirements-frozen.txt', 'w') as fp:
             fp.write(contents)
