@@ -324,7 +324,7 @@ class Deployer:
         remote(self.ctx, (
             'screen -d -m',
             'chmod -R ug=rwX,o-rwx {remote.build.dir} {remote.path.static}'
-        ))
+        ), host='hrimfaxi.oit.pdx.edu')
 
 
 @arctask(configured='stage', timed=True)
