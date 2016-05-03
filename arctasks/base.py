@@ -80,7 +80,7 @@ def npm_install(ctx, modules=_npm_install_modules, force=False):
     if result.failed:
         abort(1, 'node and npm must be installed first')
     modules = as_list(modules)
-    local(ctx, ('npm install', modules), hide='stdout')
+    local(ctx, ('npm install', ('--force' if force else ''), modules), hide='stdout')
 
 
 @arctask(configured=DEFAULT_ENV)
