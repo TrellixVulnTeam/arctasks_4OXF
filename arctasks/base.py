@@ -60,6 +60,7 @@ def lint(ctx, where='{package}'):
 
 _npm_install_modules = (
     'bower',
+    'jshint',
     'less',
     'less-plugin-autoprefix',
     'less-plugin-clean-css',
