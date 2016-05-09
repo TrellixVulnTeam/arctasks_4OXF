@@ -1,6 +1,7 @@
 import glob
 import itertools
 import os
+from subprocess import PIPE, Popen
 
 from .arctask import arctask
 from .django import call_command, get_settings
@@ -19,7 +20,7 @@ def bower(ctx, where='{package}:static', update=False):
 
 
 # Copied from Bootstrap (from grunt/configBridge.json in the source)
-_lessc_autoprefix_browsers = ','.join((
+_autoprefixer_browsers = ','.join((
     'Android 2.3',
     'Android >= 4',
     'Chrome >= 20',
@@ -32,7 +33,7 @@ _lessc_autoprefix_browsers = ','.join((
 
 
 @arctask(configured='dev')
-def lessc(ctx, sources=None, optimize=True, autoprefix_browsers=_lessc_autoprefix_browsers):
+def lessc(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers):
     """Compile the LESS files specified by ``sources``.
 
     Each LESS file will be compiled into a CSS file with the same root
@@ -53,10 +54,60 @@ def lessc(ctx, sources=None, optimize=True, autoprefix_browsers=_lessc_autoprefi
         destination = '{root}.css'.format(root=root)
         local(ctx, (
             'lessc',
-            '--autoprefix="%s"' % autoprefix_browsers,
+            '--autoprefix="%s"' % autoprefixer_browsers,
             '--clean-css' if optimize else '',
             source, destination
         ))
+
+
+@arctask(configured='dev', timed=True)
+def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers):
+    """Compile the SASS files specified by ``sources``.
+
+    Each SASS file will be compiled into a CSS file with the same root
+    name. E.g., "path/to/base.scss" will compiled to "path/to/base.css".
+
+    TODO: Make destination paths configurable?
+
+    """
+    which = local(ctx, 'which node-sass', echo=False, hide='stdout', abort_on_failure=False)
+    if which.failed:
+        abort(1, 'node-sass must be installed (via npm) and on $PATH')
+    sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
+    sources = [glob.glob(s) for s in sources]
+    for source in itertools.chain(*sources):
+        root, ext = os.path.splitext(source)
+
+        if ext != '.scss':
+            abort(1, 'Expected a .scss file; got "{source}"'.format(source=source))
+
+        destination = '{root}.css'.format(root=root)
+
+        sass_args = ['node-sass', source]
+        postcss_args = [
+            'postcss',
+            '--use', 'autoprefixer',
+            'autoprefixer.browsers', "'%s'" % autoprefixer_browsers
+        ]
+        cleancss_args = ['cleancss']
+        path = 'PATH={bin.dir}:{cwd}/node_modules/.bin'.format(**ctx)
+        env = os.environ.copy()
+        env['PATH'] = ':'.join((path, env['PATH']))
+        popen_kwargs = {'stdout': PIPE, 'stderr': PIPE, 'env': env}
+
+        cmd = Popen(sass_args, **popen_kwargs)
+        if autoprefixer_browsers:
+            cmd = Popen(postcss_args, stdin=cmd.stdout, **popen_kwargs)
+        if optimize:
+            cmd = Popen(cleancss_args, stdin=cmd.stdout, **popen_kwargs)
+
+        out, err = cmd.communicate()
+
+        if cmd.returncode:
+            abort(cmd.returncode, err)
+
+        with open(destination, 'w') as fp:
+            fp.write(out.decode('utf-8'))
 
 
 @arctask(configured='dev')
@@ -65,7 +116,12 @@ def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, coll
     if js:
         build_js(ctx, sources=js_sources, optimize=optimize)
     if css:
-        lessc(ctx, sources=css_sources, optimize=optimize)
+        less_sources = [s for s in css_sources if s.endswith('less')]
+        sass_sources = [s for s in css_sources if s.endswith('scss')]
+        if less_sources:
+            lessc(ctx, sources=less_sources, optimize=optimize)
+        if sass_sources:
+            sass(ctx, sources=sass_sources, optimize=optimize)
     if collect:
         settings = get_settings()
         original_static_root = settings.STATIC_ROOT
