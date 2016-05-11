@@ -116,6 +116,13 @@ def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, coll
     if js:
         build_js(ctx, sources=js_sources, optimize=optimize)
     if css:
+        if css_sources is None:
+            static_config = ctx.get('arctasks', {}).get('static', {})
+            css_sources = []
+            css_sources.extend(static_config.get('lessc', {}).get('sources', ()))
+            css_sources.extend(static_config.get('sass', {}).get('sources', ()))
+        else:
+            css_sources = as_list(css_sources)
         less_sources = [s for s in css_sources if s.endswith('less')]
         sass_sources = [s for s in css_sources if s.endswith('scss')]
         if less_sources:
