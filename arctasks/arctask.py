@@ -72,7 +72,7 @@ class Task(BaseTask):
                 #      problem.
                 if argument._value is None and not argument.positional:
                     name = argument.name
-                    path = '.'.join((self.body.__module__, self.body.__qualname__, name))
+                    path = self.get_option_path(name)
                     if path in config:
                         options[name] = config[path]
 
@@ -86,6 +86,26 @@ class Task(BaseTask):
 
         return result
 
+    def get_option_path(self, name):
+        """Get path to option in task config for this task.
+
+        Args:
+            name: Corresponds to a task option
+
+        Returns:
+            path: Path to option, constructed from module path, task
+                name, and option name
+
+        As an example, let's say this ``Task`` wraps the
+        ``build_static`` task. ``build_static`` is defined in the
+        ``arctasks.static`` module. Say we want the path to its
+        ``optimize`` option::
+
+            self.option_path('optimize')
+            # -> 'arctasks.static.build_static.optimize'
+
+        """
+        return '.'.join((self.body.__module__, self.body.__qualname__, name))
 
     def print_elapsed_time(self, elapsed_time):
         m, s = divmod(elapsed_time, 60)
