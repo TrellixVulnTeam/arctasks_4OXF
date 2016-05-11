@@ -32,7 +32,6 @@ DEFAULT_ENV = object()
 class Task(BaseTask):
 
     def __init__(self, *args, configured=False, timed=False, **kwargs):
-        self._arguments = None
         self.configured = configured
         self.timed = timed
         kwargs.setdefault('contextualized', True)
@@ -54,8 +53,23 @@ class Task(BaseTask):
             # Fill in options from config. For each option that is not
             # passed on the command line, this looks for a default value
             # for the option in the config. Positional args are skipped.
+            #
+            # NOTE: At this point, Invoke's machinery has already filled
+            #       in all the options based on defaults (i.e., task
+            #       keyword args) and command line args. In the super
+            #       __call__ method, the wrapped task is called directly
+            #       with the options.
             config = ctx['__config__']
             for argument in self.get_arguments():
+                # XXX: Checking the argument value here doesn't tell us
+                #      what we need to know: whether the argument was
+                #      set explicitly via the command line. The end
+                #      result is that if an option is set in the config,
+                #      that value will *always* be used. Currently, I'm
+                #      not sure of a good way to fix this. Generally, if
+                #      an option is set in the config, it won't need to
+                #      be set on the command line, so this isn't a HUGE
+                #      problem.
                 if argument._value is None and not argument.positional:
                     name = argument.name
                     path = '.'.join((self.body.__module__, self.body.__qualname__, name))
@@ -72,13 +86,6 @@ class Task(BaseTask):
 
         return result
 
-    def get_arguments(self):
-        # Ensure the same Argument list is always returned. This is so
-        # the arguments that are loaded by Invoke are the same ones we
-        # access in __call__.
-        if self._arguments is None:
-            self._arguments = super().get_arguments()
-        return self._arguments
 
     def print_elapsed_time(self, elapsed_time):
         m, s = divmod(elapsed_time, 60)
