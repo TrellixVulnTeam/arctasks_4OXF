@@ -37,7 +37,7 @@ def lessc(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_
     """Compile the LESS files specified by ``sources``.
 
     Each LESS file will be compiled into a CSS file with the same root
-    name. E.g., "path/to/base.less" will compiled to "path/to/base.css".
+    name. E.g., "path/to/base.less" will be compiled to "path/to/base.css".
 
     TODO: Make destination paths configurable?
 
@@ -65,7 +65,7 @@ def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_b
     """Compile the SASS files specified by ``sources``.
 
     Each SASS file will be compiled into a CSS file with the same root
-    name. E.g., "path/to/base.scss" will compiled to "path/to/base.css".
+    name. E.g., "path/to/base.scss" will be compiled to "path/to/base.css".
 
     TODO: Make destination paths configurable?
 
