@@ -41,10 +41,10 @@ def provision(ctx, overwrite=False):
     pip = ctx.remote.build.pip
     find_links = ctx.remote.pip.find_links
     remote(ctx, (
-        (pip, 'install -U setuptools'),
-        (pip, 'install --find-links', find_links, '"pip=={pip.version}"'),
+        (pip, 'install -U setuptools', '&&'),
+        (pip, 'install --find-links', find_links, '"pip=={pip.version}"', '&&'),
         (pip, 'install --find-links', find_links, '--cache-dir {remote.pip.cache_dir} wheel'),
-    ), many=True)
+    ))
 
 
 class Deployer:
@@ -388,8 +388,8 @@ def builds(ctx, active=False, rm=None, yes=False):
     elif rm:
         versions = as_list(rm)
         build_dirs = ['{build_root}/{v}'.format(build_root=build_root, v=v) for v in versions]
-        cmd = [('test -d', d) for d in build_dirs]
-        result = remote(ctx, cmd, many='&&', echo=False, abort_on_failure=False)
+        cmd = ' && '.join('test -d {d}'.format(d=d) for d in build_dirs)
+        result = remote(ctx, cmd, echo=False, abort_on_failure=False)
         if result.failed:
             print_error('Build directory not found')
         else:
