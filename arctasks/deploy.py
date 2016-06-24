@@ -64,8 +64,8 @@ class Deployer:
                     wsgi/wsgi.py  # WSGI entry point [1]
                     media         # Symlink to media/{env} [2]
                     static        # Symlink to static/{env} [2]
-            pip/cache/   # Cached package downloads
-            pip/wheel/       # Cached package builds
+            pip/cache/            # Cached package downloads
+            pip/wheel/            # Cached package builds
             media/{env}/          # Media files for env (shared across builds)
             static/{env}/         # Static files for env (shared across builds)
 
