@@ -136,7 +136,7 @@ class Deployer:
         self.make_build_dir()
         if opts['version']:
             git.git(['checkout', opts['version']])
-            print_header('Attempting create a clean local install for version...')
+            print_header('Attempting to create a clean local install for version...')
             clean(self.ctx)
             install(self.ctx)
         if opts['static'] and opts['build_static']:
