@@ -48,9 +48,9 @@ SETUP_VERSION_RE = r'version=(?P<quote>(\'|"))(?P<old_version>.+)(\1),'
 
 
 @arctask(configured='dev')
-def release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG, merge_to_branch='master',
-            tag_name=None, next_version=None, prepare=True, merge=True, tag=True, resume=True,
-            dry_run=False, debug=False):
+def release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG, freeze_requirements=True,
+            merge_to_branch='master', tag_name=None, next_version=None, prepare=True, merge=True,
+            tag=True, resume=True, dry_run=False, debug=False):
     """Cut a release.
 
     A typical run looks like this::
@@ -93,7 +93,9 @@ def release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG, merge_
     tag_name = tag_name or version
     args = dict(dry_run=dry_run, debug=debug)
     if prepare:
-        prepare_release(ctx, version, release_date=release_date, changelog=changelog, **args)
+        prepare_release(
+            ctx, version, release_date=release_date, changelog=changelog,
+            freeze_requirements=freeze_requirements, **args)
     if merge:
         merge_release(ctx, version, to_branch=merge_to_branch, **args)
     if tag:
