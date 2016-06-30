@@ -135,8 +135,7 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
 
     f = locals()
 
-    if dry_run:
-        print_header('[DRY RUN]', end=' ')
+    print_dry_run_header(dry_run)
     print_header('Preparing release {version} - {release_date}'.format_map(f))
 
     # Args passed to all find_and_update_line() calls
@@ -151,7 +150,8 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
 
     if freeze_requirements:
         # Freeze requirements
-        with open('requirements-frozen.txt', 'w') as requirements_fp:
+        requirements_file = os.devnull if dry_run else 'requirements-frozen.txt'
+        with open(requirements_file, 'w') as requirements_fp:
             subprocess.check_call(
                 [ctx.bin.pip, 'freeze', '-f', ctx.remote.pip.find_links],
                 stdout=requirements_fp)
@@ -167,12 +167,19 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
             '{distribution}=={version}\n'.format_map(f),
             'psu.oit.arc.tasks\n',
         ]
-        with open('requirements-frozen.txt', 'w') as requirements_fp:
-            requirements_fp.writelines(adjusted_requirements)
+        with open(requirements_file, 'w') as requirements_fp:
+            if dry_run:
+                print_info('[DRY RUN] New requirements-frozen.txt content would be:')
+                print(''.join(adjusted_requirements))
+            else:
+                requirements_fp.writelines(adjusted_requirements)
         files_to_commit.append('requirements-frozen.txt')
 
-    if not dry_run:
-        commit_message = 'Prepare release {version}'.format_map(f)
+    commit_message = 'Prepare release {version}'.format_map(f)
+    if dry_run:
+        print_info('[DRY RUN] Prepare commit message:')
+        print(commit_message)
+    else:
         git.commit_files(files_to_commit, commit_message)
 
 
@@ -190,16 +197,19 @@ def merge_release(ctx, version, to_branch='master', dry_run=False, debug=False):
         dry_run: Show what would be done, but don't actually do it
         debug: Show extra info that might be helpful for debugging
 
-    TODO: Implement dry run functionality.
-
     """
     current_branch = git.current_branch()
     f = locals()
+    print_dry_run_header(dry_run)
     print_header('Merging {current_branch} into {to_branch} for release {version}'.format_map(f))
     git.git(['log', '--oneline', '--reverse', '{to_branch}..'.format_map(f)])
+    commit_message = "Merge branch '{current_branch}' for release {version}".format_map(f)
+    if dry_run:
+        print_info('[DRY RUN] Merge commit message:')
+        print(commit_message)
+        return
     if not confirm(ctx, 'Merge these changes into {to_branch}?'.format_map(f), yes_values=('yes',)):
         abort(message='Aborted merge from {current_branch} to {to_branch}'.format_map(f))
-    commit_message = "Merge branch '{current_branch}' for release {version}".format_map(f)
     git.git(['checkout', to_branch])
     git.git(['merge', '--no-ff', current_branch, '-m', commit_message])
     git.git(['checkout', current_branch])
@@ -223,16 +233,19 @@ def tag_release(ctx, tag_name, to_branch='master', dry_run=False, debug=False):
         dry_run: Show what would be done, but don't actually do it
         debug: Show extra info that might be helpful for debugging
 
-    TODO: Implement dry run functionality.
-
     """
     f = locals()
+    print_dry_run_header(dry_run)
     print_header('Tagging release {tag_name} on {to_branch}'.format_map(f))
     commit = git.git(['log', '--oneline', '-1', to_branch], return_output=True)
     print_info('Commit that will be tagged on {to_branch}:\n    '.format_map(f), commit)
+    commit_message = 'Release {tag_name}'.format_map(f)
+    if dry_run:
+        print_info('[DRY RUN] Tag commit message:')
+        print(commit_message)
+        return
     if not confirm(ctx, 'Tag this commit as {tag_name}?'.format_map(f)):
         abort(message='Aborted tagging of release')
-    commit_message = 'Release {tag_name}'.format_map(f)
     git.tag(tag_name, to_branch, message=commit_message)
 
 
@@ -254,8 +267,6 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
         dry_run: Show what would be done, but don't actually do it
         debug: Show extra info that might be helpful for debugging
 
-    TODO: Implement dry run functionality.
-
     """
     distribution = ctx.distribution
 
@@ -264,12 +275,13 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
 
     f = locals()
 
+    print_dry_run_header(dry_run)
     print_header('Resuming development at {version}'.format_map(f))
 
     # Add section for next version to change log
     with open(changelog) as fp:
         lines = fp.readlines()
-    with open(changelog, 'w') as fp:
+    with open((os.devnull if dry_run else changelog), 'w') as fp:
         new_lines = [
             '\n',
             '## {version} - unreleased\n'.format_map(f),
@@ -278,7 +290,10 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
             '\n',
         ]
         lines[1:1] = new_lines
-        fp.writelines(lines)
+        if dry_run:
+            print_info('[DRY RUN] Added change log section for {version}'.format(**f))
+        else:
+            fp.writelines(lines)
 
     # Update package version
     dev_version = '{version}.dev0'.format(version=version)
@@ -291,11 +306,24 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
         files_to_commit.append('requirements-frozen.txt')
         with open(abs_path('arctasks:templates/requirements.txt.template')) as fp:
             contents = fp.read().format(**ctx)
-        with open('requirements-frozen.txt', 'w') as fp:
-            fp.write(contents)
+        with open((os.devnull if dry_run else 'requirements-frozen.txt'), 'w') as fp:
+            if dry_run:
+                print_info('[DRY RUN] New requirements-frozen.txt content would be:')
+                print(contents)
+            else:
+                fp.write(contents)
 
     commit_message = 'Resume development at {version}'.format_map(f)
-    git.commit_files(files_to_commit, commit_message)
+    if dry_run:
+        print_info('[DRY RUN] Resume commit message:')
+        print(commit_message)
+    else:
+        git.commit_files(files_to_commit, commit_message)
+
+
+def print_dry_run_header(dry_run):
+    if dry_run:
+        print_header('[DRY_RUN]', end=' ')
 
 
 def find_and_update_line(file_name, pattern, line_updater, flags=0, abort_when_not_found=True,
