@@ -352,7 +352,7 @@ def find_and_update_line(file_name, pattern, line_updater, flags=0, abort_when_n
             line_number = i + 1
             if debug:
                 print_error('-', original_line, sep='', end='')
-                print_success('+', line, sep='', end='')
+                print_success('+', updated_line, sep='', end='')
             break
     else:
         # No line matching pattern was found
