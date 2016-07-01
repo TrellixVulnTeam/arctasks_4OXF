@@ -97,7 +97,7 @@ class Deployer:
         self.do_local_preprocessing()
         self.do_remote_tasks()
         if git.current_branch() != self.current_branch:
-            git.git(['checkout', self.current_branch])
+            git.run(['checkout', self.current_branch])
 
     def show_info(self):
         """Show some info about what's being deployed."""
@@ -135,7 +135,7 @@ class Deployer:
         opts = self.options
         self.make_build_dir()
         if opts['version']:
-            git.git(['checkout', opts['version']])
+            git.run(['checkout', opts['version']])
             print_header('Attempting to create a clean local install for version...')
             clean(self.ctx)
             install(self.ctx)

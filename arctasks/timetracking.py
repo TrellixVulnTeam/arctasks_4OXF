@@ -20,7 +20,7 @@ def total_time_spent(ctx, key, debug=False):
     seconds = []
 
     # Search in just the body of each commit
-    result = git.git('log --pretty=format:%b', return_output=True)
+    result = git.run('log --pretty=format:%b', return_output=True)
 
     pattern = (
         r'{key}-\d+'

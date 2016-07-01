@@ -208,7 +208,7 @@ def merge_release(ctx, version, to_branch='master', dry_run=False, debug=False):
         abort(1, msg.format_map(f))
     print_dry_run_header(dry_run)
     print_header('Merging {current_branch} into {to_branch} for release {version}'.format_map(f))
-    git.git(['log', '--oneline', '--reverse', '{to_branch}..'.format_map(f)])
+    git.run(['log', '--oneline', '--reverse', '{to_branch}..'.format_map(f)])
     commit_message = "Merge branch '{current_branch}' for release {version}".format_map(f)
     if dry_run:
         print_info('[DRY RUN] Merge commit message:')
@@ -216,9 +216,9 @@ def merge_release(ctx, version, to_branch='master', dry_run=False, debug=False):
         return
     if not confirm(ctx, 'Merge these changes into {to_branch}?'.format_map(f), yes_values=('yes',)):
         abort(message='Aborted merge from {current_branch} to {to_branch}'.format_map(f))
-    git.git(['checkout', to_branch])
-    git.git(['merge', '--no-ff', current_branch, '-m', commit_message])
-    git.git(['checkout', current_branch])
+    git.run(['checkout', to_branch])
+    git.run(['merge', '--no-ff', current_branch, '-m', commit_message])
+    git.run(['checkout', current_branch])
 
 
 @arctask(configured='dev')
@@ -243,7 +243,7 @@ def tag_release(ctx, tag_name, to_branch='master', dry_run=False, debug=False):
     f = locals()
     print_dry_run_header(dry_run)
     print_header('Tagging release {tag_name} on {to_branch}'.format_map(f))
-    commit = git.git(['log', '--oneline', '-1', to_branch], return_output=True)
+    commit = git.run(['log', '--oneline', '-1', to_branch], return_output=True)
     print_info('Commit that will be tagged on {to_branch}:\n    '.format_map(f), commit)
     commit_message = 'Release {tag_name}'.format_map(f)
     if dry_run:

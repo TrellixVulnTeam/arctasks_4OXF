@@ -4,7 +4,7 @@ from arctasks.util import print_error, print_warning
 from .util import abort, confirm
 
 
-def git(args, return_output=False, **subprocess_args):
+def run(args, return_output=False, **subprocess_args):
     if isinstance(args, str):
         args = args.split()
     git_args = ['git']
@@ -30,8 +30,8 @@ def commit_files(files, message=None, add=True):
     """
     f = locals()
     if add:
-        git(['add'] + files)
-    output = git(['diff', '--cached', '--color=always'], return_output=True)
+        run(['add'] + files)
+    output = run(['diff', '--cached', '--color=always'], return_output=True)
     output = output.strip()
     if not output:
         abort(1, 'Nothing to commit')
@@ -48,11 +48,11 @@ def commit_files(files, message=None, add=True):
         message = ''
         while not message.strip():
             message = input(prompt)
-    git(['commit', '-m', message] + files)
+    run(['commit', '-m', message] + files)
 
 
 def current_branch():
-    return git(['rev-parse', '--abbrev-ref', 'HEAD'], return_output=True)
+    return run(['rev-parse', '--abbrev-ref', 'HEAD'], return_output=True)
 
 
 def tag(tag_name, commit, annotate=True, message=None):
@@ -64,19 +64,19 @@ def tag(tag_name, commit, annotate=True, message=None):
     args.append(tag_name)
     if commit:
         args.append(commit)
-    git(args)
+    run(args)
 
 
 def version(short=True):
     """Get tag associated with HEAD; fall back to SHA1."""
     try:
-        value = git(['rev-parse', 'HEAD'], return_output=True)
+        value = run(['rev-parse', 'HEAD'], return_output=True)
     except subprocess.CalledProcessError:
         print_error('`git rev-parse` failed, probably because this is not a git repo.')
         print_error('You can work around this by adding `version` to your task config.')
         abort(1)
     try:
-        value = git(['describe', '--tags', value], return_output=True, stderr=subprocess.DEVNULL)
+        value = run(['describe', '--tags', value], return_output=True, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
         print_warning('Could not find tag for HEAD; falling back to SHA1')
         if short:
