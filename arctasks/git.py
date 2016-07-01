@@ -68,17 +68,33 @@ def tag(tag_name, commit, annotate=True, message=None):
 
 
 def version(short=True):
-    """Get tag associated with HEAD; fall back to SHA1."""
+    """Get tag associated with HEAD; fall back to SHA1.
+
+    If HEAD is tagged, return the tag name; otherwise fall back to
+    HEAD's SHA1, shortened by default.
+
+    .. note:: Only annotated tags are considered.
+
+    TODO: Support non-annotated tags?
+
+    Args:
+        short: When falling back to SHA1, this indicates whether to
+            return the shortened unique SHA1 (typically 7 characters but
+            not always)
+
+    """
+    # TODO: Move this check up into run()
     try:
-        value = run(['rev-parse', 'HEAD'], return_output=True)
+        run(['rev-parse', '--is-inside-work-tree'],
+            return_output=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
-        print_error('`git rev-parse` failed, probably because this is not a git repo.')
+        print_error('git.version() was run outside of a git repository.')
         print_error('You can work around this by adding `version` to your task config.')
         abort(1)
+
     try:
-        value = run(['describe', '--tags', value], return_output=True, stderr=subprocess.DEVNULL)
+        value = run(['describe', '--exact-match'], return_output=True, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
-        print_warning('Could not find tag for HEAD; falling back to SHA1')
-        if short:
-            value = value[:7]
+        print_warning('HEAD is not tagged; falling back to SHA1')
+        value = run(['rev-parse', '--short' if short else '', 'HEAD'], return_output=True)
     return value
