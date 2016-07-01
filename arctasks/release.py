@@ -200,6 +200,12 @@ def merge_release(ctx, version, to_branch='master', dry_run=False, debug=False):
     """
     current_branch = git.current_branch()
     f = locals()
+    if current_branch == to_branch:
+        msg = (
+            'Cannot merge {current_branch} branch into itself\n'
+            'Check to make sure you are releasing from the branch you intended'
+        )
+        abort(1, msg.format_map(f))
     print_dry_run_header(dry_run)
     print_header('Merging {current_branch} into {to_branch} for release {version}'.format_map(f))
     git.git(['log', '--oneline', '--reverse', '{to_branch}..'.format_map(f)])
