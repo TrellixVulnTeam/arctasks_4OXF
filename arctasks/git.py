@@ -5,10 +5,19 @@ from .util import abort, confirm
 
 
 def run(args, return_output=False, **subprocess_args):
+    # Make sure we're in a git work tree.
+    # TODO: Be even more strict and require $PWD/.git?
+    try:
+        subprocess.check_call(
+            ['git', 'rev-parse', '--is-inside-work-tree'], stdout=subprocess.DEVNULL)
+    except subprocess.CalledProcessError:
+        abort(1, 'Cannot run git commands outside of a git repository.')
+
     if isinstance(args, str):
         args = args.split()
     git_args = ['git']
     git_args.extend(args)
+
     if return_output:
         output = subprocess.check_output(git_args, **subprocess_args)
         output = output.decode('utf-8').strip()
@@ -83,15 +92,6 @@ def version(short=True):
             not always)
 
     """
-    # TODO: Move this check up into run()
-    try:
-        run(['rev-parse', '--is-inside-work-tree'],
-            return_output=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-    except subprocess.CalledProcessError:
-        print_error('git.version() was run outside of a git repository.')
-        print_error('You can work around this by adding `version` to your task config.')
-        abort(1)
-
     try:
         value = run(['describe', '--exact-match'], return_output=True, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
