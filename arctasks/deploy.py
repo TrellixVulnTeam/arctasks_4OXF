@@ -488,7 +488,7 @@ def link(ctx, version, staticfiles_manifest=True, old_style=None):
     if staticfiles_manifest:
         remote(ctx, (
             'ln -sf',
-            '{remote.build.dir}/staticfiles.json',
+            '{build_dir}/staticfiles.json'.format_map(locals()),
             '{remote.path.static}/staticfiles.json'
         ))
 
