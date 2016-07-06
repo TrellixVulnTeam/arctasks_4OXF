@@ -476,13 +476,13 @@ def clean_builds(ctx, keep=3):
 
 @arctask(configured=True)
 def link(ctx, version, staticfiles_manifest=True, old_style=None):
-    build_dir = '{remote.build.root}/{v}'.format(v=version, **ctx)
-    remote(ctx, ('ln', '-sfn', build_dir, '{remote.path.root}/{env}'))
+    build_dir = '{ctx.remote.build.root}/{version}'.format_map(locals())
 
     result = remote(ctx, ('test -d', build_dir), abort_on_failure=False)
     if not result.ok:
         abort(1, 'Build directory {build_dir} does not exist'.format_map(locals()))
 
+    remote(ctx, ('ln -sfn', build_dir, '{remote.path.env}'))
 
     # Link the specified version's static manifest
     if staticfiles_manifest:
@@ -495,8 +495,8 @@ def link(ctx, version, staticfiles_manifest=True, old_style=None):
     # XXX: This supports old-style deployments where the media and
     #      static directories are in the source directory.
     if old_style:
-        media_dir = '{build_dir}/media'.format(build_dir=build_dir)
-        static_dir = '{build_dir}/static'.format(build_dir=build_dir)
+        media_dir = '{build_dir}/media'.format_map(locals())
+        static_dir = '{build_dir}/static'.format_map(locals())
         remote(ctx, ('ln -sfn {remote.path.root}/media/{env}', media_dir))
         remote(ctx, ('ln -sfn {remote.path.root}/static/{env}', static_dir))
 
