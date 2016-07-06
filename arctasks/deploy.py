@@ -479,6 +479,11 @@ def link(ctx, version, staticfiles_manifest=True, old_style=None):
     build_dir = '{remote.build.root}/{v}'.format(v=version, **ctx)
     remote(ctx, ('ln', '-sfn', build_dir, '{remote.path.root}/{env}'))
 
+    result = remote(ctx, ('test -d', build_dir), abort_on_failure=False)
+    if not result.ok:
+        abort(1, 'Build directory {build_dir} does not exist'.format_map(locals()))
+
+
     # Link the specified version's static manifest
     if staticfiles_manifest:
         remote(ctx, (
