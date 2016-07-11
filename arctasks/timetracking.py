@@ -5,7 +5,7 @@ from .arctask import arctask
 
 
 @arctask
-def total_time_spent(ctx, key, debug=False):
+def total_time_spent(ctx, key, after=None, since=None, debug=False):
     """Show total hours spent on a project.
 
     Parses JIRA smart commits for #time. Smart commits look like this::
@@ -14,13 +14,31 @@ def total_time_spent(ctx, key, debug=False):
 
     Args:
         key: The JIRA project key; for example: "QT"
+        after: A tag or other commit; if this is specified, only commits
+            *after* it will be included
+        since: A date in ``YYYY-MM-DD`` format (or any date format that
+            ``git log`` accepts); if this specified, only commits *after*
+            the specified date will be included
         debug: Show matching lines when this is set
+
+    Examples::
+
+        # Show time spent after release 1.2.0
+        inv total_time_spent NPULSE --after 1.2.0
+
+        # Show time spent after a specific date
+        inv total_time_spent NPULSE --since 2016-07-11
 
     """
     seconds = []
+    args =['log']
+    if after:
+        args.append('{after}..'.format_map(locals()))
+    if since:
+        args.extend(('--since', since))
 
     # Search in just the body of each commit
-    result = git.run('log --pretty=format:%b', return_output=True)
+    result = git.run(args, return_output=True)
 
     pattern = (
         r'{key}-\d+'
