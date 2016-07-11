@@ -7,4 +7,4 @@ from .django import coverage, dbshell, makemigrations, migrate, runserver, run_m
 from .release import release, prepare_release, merge_release, tag_release, resume_development
 from .runners import local, remote
 from .static import build_static, bower, lessc, pull_media, sass
-from .timetracking import total_time_spent
+from .timetracking import time_spent

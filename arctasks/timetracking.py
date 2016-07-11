@@ -5,12 +5,16 @@ from .arctask import arctask
 
 
 @arctask
-def total_time_spent(ctx, key, after=None, since=None, debug=False):
-    """Show total hours spent on a project.
+def time_spent(ctx, key, after=None, since=None, debug=False):
+    """Show time spent on a project based on git history.
 
     Parses JIRA smart commits for #time. Smart commits look like this::
 
         QT-10 #in-progress #time 30m
+
+    By default, the total time spent on the project is reported. This
+    can be constrained by specifying a commit (usually a tag) or a date;
+    the time spent *after* the commit or date will be reported.
 
     Args:
         key: The JIRA project key; for example: "QT"
@@ -24,10 +28,10 @@ def total_time_spent(ctx, key, after=None, since=None, debug=False):
     Examples::
 
         # Show time spent after release 1.2.0
-        inv total_time_spent NPULSE --after 1.2.0
+        inv time_spent NPULSE --after 1.2.0
 
         # Show time spent after a specific date
-        inv total_time_spent NPULSE --since 2016-07-11
+        inv time_spent NPULSE --since 2016-07-11
 
     """
     seconds = []
