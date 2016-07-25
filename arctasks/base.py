@@ -38,7 +38,7 @@ def virtualenv(ctx, executable='python3', overwrite=False):
 
 
 @arctask(configured='dev')
-def lint(ctx, where='{package}'):
+def lint(ctx, where=None):
     """Check source files for issues.
 
     For Python code, this uses the flake8 package, which wraps pep8 and
@@ -49,6 +49,11 @@ def lint(ctx, where='{package}'):
     TODO: Lint CSS?
 
     """
+    if where is None:
+        where = ctx['package']
+        where = where.replace('.', '/')
+    else:
+        where = where.format_map(ctx)
     print_header('Checking for Python lint in {where}...'.format(where=where))
     result = local(ctx, ('flake8', where), abort_on_failure=False)
     if result.failed:
