@@ -50,7 +50,7 @@ def lint(ctx, where='{package}'):
 
     """
     print_header('Checking for Python lint in {where}...'.format(where=where))
-    result = local(ctx, ('flake8', where), echo=False, abort_on_failure=False)
+    result = local(ctx, ('flake8', where), abort_on_failure=False)
     if result.failed:
         pieces_of_lint = len(result.stdout.strip().splitlines())
         print_error(pieces_of_lint, 'pieces of Python lint found')
