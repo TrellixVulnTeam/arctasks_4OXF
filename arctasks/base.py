@@ -96,7 +96,7 @@ def npm_install(ctx, where='.', modules=_npm_install_modules, force=False, overw
         print_warning('Removing {node_modules}...'.format_map(locals()))
         shutil.rmtree(node_modules)
     modules = as_list(modules)
-    local(ctx, ('npm install', ('--force' if force else ''), modules), cd=where, echo='stdout')
+    local(ctx, ('npm install', ('--force' if force else ''), modules), cd=where)
 
 
 @arctask(configured=DEFAULT_ENV)
