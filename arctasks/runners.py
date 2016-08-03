@@ -1,3 +1,5 @@
+import os
+
 from invoke.exceptions import Failure
 
 from .arctask import arctask
@@ -16,7 +18,12 @@ def local(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
     error code.
 
     """
-    path = 'PATH={bin.dir}:{cwd}/node_modules/.bin:$PATH'.format(**ctx)
+    path = 'PATH={bin.dir}'.format(**ctx)
+    node_modules_path = os.path.join(ctx.cwd, 'node_modules', '.bin')
+    if os.path.isdir(node_modules_path):
+        path = ':'.join((path, node_modules_path))
+    path = ':'.join((path, '$PATH'))
+
     args = (path, args)
     if sudo and run_as:
         abort(1, 'Only one of --sudo or --run-as may be passed')
