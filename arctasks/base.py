@@ -79,7 +79,7 @@ _npm_install_modules = (
 
 
 @arctask(configured='dev')
-def npm_install(ctx, modules=_npm_install_modules, force=False, overwrite=False):
+def npm_install(ctx, where='.', modules=_npm_install_modules, force=False, overwrite=False):
     """Install node modules via npm into ./node_modules.
 
     By default, any modules that are already installed will be skipped.
@@ -89,11 +89,14 @@ def npm_install(ctx, modules=_npm_install_modules, force=False, overwrite=False)
     result = local(ctx, 'which npm', echo=False, hide='stdout', abort_on_failure=False)
     if result.failed:
         abort(1, 'node and npm must be installed first')
-    if overwrite and os.path.isdir('./node_modules'):
-        print_warning('Removing ./node_modules...')
-        shutil.rmtree('./node_modules')
+    where = where.format_map(ctx)
+    where = os.path.normpath(os.path.abspath(where))
+    node_modules = os.path.join(where, 'node_modules')
+    if overwrite and os.path.isdir(node_modules):
+        print_warning('Removing {node_modules}...'.format_map(locals()))
+        shutil.rmtree(node_modules)
     modules = as_list(modules)
-    local(ctx, ('npm install', ('--force' if force else ''), modules), hide='stdout')
+    local(ctx, ('npm install', ('--force' if force else ''), modules), cd=where, echo='stdout')
 
 
 @arctask(configured=DEFAULT_ENV)
