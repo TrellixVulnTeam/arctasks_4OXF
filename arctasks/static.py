@@ -105,7 +105,7 @@ def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_b
         out, err = cmd.communicate()
 
         if cmd.returncode:
-            abort(cmd.returncode, err)
+            abort(cmd.returncode, err.decode('utf-8').strip(), color=False)
 
         with open(destination, 'w') as fp:
             fp.write(out.decode('utf-8'))
