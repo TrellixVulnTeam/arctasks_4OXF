@@ -142,6 +142,26 @@ def load_object(obj) -> object:
     return obj
 
 
+def get_path(ctx):
+    path = []
+    # Add default bin directory
+    path.append('{bin.dir}'.format_map(ctx))
+    # Add ./node_modules/.bin, if it exists
+    node_modules_path = os.path.join(ctx.cwd, 'node_modules', '.bin')
+    if os.path.isdir(node_modules_path):
+        path.append(node_modules_path)
+    # Add additional bin directories
+    additional_paths = as_list(ctx.bin.get('dirs', []))
+    additional_paths = [p.format_map(ctx) for p in additional_paths]
+    path.extend(additional_paths)
+    # Absolutize paths
+    path = [abs_path(p) for p in path]
+    # Add original $PATH
+    path.append('$PATH')
+    path = ':'.join(path)
+    return path
+
+
 class Color(enum.Enum):
 
     none = ''

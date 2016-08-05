@@ -7,7 +7,7 @@ from .arctask import arctask
 from .django import call_command, get_settings
 from .remote import rsync
 from .runners import local
-from .util import abort, abs_path, args_to_str, as_list
+from .util import abort, abs_path, args_to_str, as_list, get_path
 
 
 @arctask(configured='dev')
@@ -90,7 +90,8 @@ def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_b
             'autoprefixer.browsers', "'%s'" % autoprefixer_browsers
         ]
         cleancss_args = ['cleancss']
-        path = 'PATH={bin.dir}:{cwd}/node_modules/.bin'.format(**ctx)
+
+        path = 'PATH={path}'.format(path=get_path(ctx))
         env = os.environ.copy()
         env['PATH'] = ':'.join((path, env['PATH']))
         popen_kwargs = {'stdout': PIPE, 'stderr': PIPE, 'env': env}
