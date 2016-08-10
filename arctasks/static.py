@@ -134,14 +134,20 @@ def build_static(ctx, css=True, css_sources=None, js=True, js_sources=None, coll
         collectstatic(ctx, static_root=static_root)
 
 
+_collectstatic_default_ignore = (
+    'node_modules',
+)
 
 @arctask(configured='dev')
-def collectstatic(ctx, static_root=None):
+def collectstatic(ctx, static_root=None, default_ignore=True, ignore=None):
     settings = get_settings()
     original_static_root = settings.STATIC_ROOT
     settings.STATIC_ROOT = static_root
+    ignore = as_list(ignore)
+    if default_ignore:
+        ignore.extend(_collectstatic_default_ignore)
     print('Collecting static files into {0.STATIC_ROOT}...'.format(settings))
-    call_command('collectstatic', interactive=False, clear=True, hide=True)
+    call_command('collectstatic', interactive=False, ignore=ignore, clear=True, hide=True)
     settings.STATIC_ROOT = original_static_root
 
 
