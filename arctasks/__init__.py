@@ -6,5 +6,5 @@ from .deploy import builds, clean_builds, deploy, link, restart
 from .django import coverage, dbshell, makemigrations, migrate, runserver, run_mod_wsgi, shell, test
 from .release import release, prepare_release, merge_release, tag_release, resume_development
 from .runners import local, remote
-from .static import build_static, bower, lessc, pull_media, sass
+from .static import build_static, bower, collectstatic, lessc, pull_media, sass
 from .timetracking import time_spent

@@ -131,12 +131,18 @@ def build_static(ctx, css=True, css_sources=None, js=True, js_sources=None, coll
     if js:
         build_js(ctx, sources=js_sources, optimize=optimize)
     if collect:
-        settings = get_settings()
-        original_static_root = settings.STATIC_ROOT
-        settings.STATIC_ROOT = static_root
-        print('Collecting static files into {0.STATIC_ROOT}...'.format(settings))
-        call_command('collectstatic', interactive=False, clear=True, hide=True)
-        settings.STATIC_ROOT = original_static_root
+        collectstatic(ctx, static_root=static_root)
+
+
+
+@arctask(configured='dev')
+def collectstatic(ctx, static_root=None):
+    settings = get_settings()
+    original_static_root = settings.STATIC_ROOT
+    settings.STATIC_ROOT = static_root
+    print('Collecting static files into {0.STATIC_ROOT}...'.format(settings))
+    call_command('collectstatic', interactive=False, clear=True, hide=True)
+    settings.STATIC_ROOT = original_static_root
 
 
 @arctask(configured='dev')
