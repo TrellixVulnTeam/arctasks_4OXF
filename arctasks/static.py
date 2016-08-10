@@ -112,10 +112,8 @@ def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_b
 
 
 @arctask(configured='dev')
-def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, collect=True,
+def build_static(ctx, css=True, css_sources=None, js=True, js_sources=None, collect=True,
                  optimize=True, static_root=None):
-    if js:
-        build_js(ctx, sources=js_sources, optimize=optimize)
     if css:
         if css_sources is None:
             static_config = ctx.get('arctasks', {}).get('static', {})
@@ -130,6 +128,8 @@ def build_static(ctx, js=True, js_sources=None, css=True, css_sources=None, coll
             lessc(ctx, sources=less_sources, optimize=optimize)
         if sass_sources:
             sass(ctx, sources=sass_sources, optimize=optimize)
+    if js:
+        build_js(ctx, sources=js_sources, optimize=optimize)
     if collect:
         settings = get_settings()
         original_static_root = settings.STATIC_ROOT
