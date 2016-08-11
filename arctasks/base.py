@@ -1,5 +1,6 @@
 import os
 import shutil
+import sys
 import urllib.request
 
 from .arctask import DEFAULT_ENV, arctask
@@ -22,7 +23,7 @@ def install(ctx, requirements='{pip.requirements}', upgrade=False):
 
 
 @arctask(configured='dev')
-def virtualenv(ctx, executable='python3', overwrite=False):
+def virtualenv(ctx, executable=None, overwrite=False):
     create = True
     if os.path.exists(ctx.venv):
         if overwrite:
@@ -32,6 +33,9 @@ def virtualenv(ctx, executable='python3', overwrite=False):
             create = False
             print('virtualenv {venv} exists'.format(**ctx))
     if create:
+        if executable is None:
+            executable = 'python{v.major}.{v.minor}'.format(v=sys.version_info)
+            print_info('Automatically selected {executable} for virtualenv'.format_map(locals()))
         local(ctx, ('virtualenv', '-p', executable, '{venv}'))
         local(ctx, '{bin.pip} install -U setuptools')
         local(ctx, '{bin.pip} install -U pip')
