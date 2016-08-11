@@ -115,23 +115,28 @@ def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_b
 def build_static(ctx, css=True, css_sources=None, js=True, js_sources=None, collect=True,
                  optimize=True, static_root=None):
     if css:
-        if css_sources is None:
-            static_config = ctx.get('arctasks', {}).get('static', {})
-            css_sources = []
-            css_sources.extend(static_config.get('lessc', {}).get('sources', ()))
-            css_sources.extend(static_config.get('sass', {}).get('sources', ()))
-        else:
-            css_sources = as_list(css_sources)
-        less_sources = [s for s in css_sources if s.endswith('less')]
-        sass_sources = [s for s in css_sources if s.endswith('scss')]
-        if less_sources:
-            lessc(ctx, sources=less_sources, optimize=optimize)
-        if sass_sources:
-            sass(ctx, sources=sass_sources, optimize=optimize)
+        build_css(ctx, sources=css_sources, optimize=optimize)
     if js:
         build_js(ctx, sources=js_sources, optimize=optimize)
     if collect:
         collectstatic(ctx, static_root=static_root)
+
+
+@arctask(configured='dev')
+def build_css(ctx, sources=None, optimize=True):
+    if sources is None:
+        static_config = ctx.get('arctasks', {}).get('static', {})
+        sources = []
+        sources.extend(static_config.get('lessc', {}).get('sources', ()))
+        sources.extend(static_config.get('sass', {}).get('sources', ()))
+    else:
+        sources = as_list(sources)
+    less_sources = [s for s in sources if s.endswith('less')]
+    sass_sources = [s for s in sources if s.endswith('scss')]
+    if less_sources:
+        lessc(ctx, sources=less_sources, optimize=optimize)
+    if sass_sources:
+        sass(ctx, sources=sass_sources, optimize=optimize)
 
 
 _collectstatic_default_ignore = (
