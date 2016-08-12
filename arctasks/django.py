@@ -92,14 +92,15 @@ def runserver(ctx, host=_runserver_host, port=_runserver_port):
 @arctask(configured='dev')
 def run_mod_wsgi(ctx, host=_runserver_host, port=_runserver_port, processes=2, threads=25,
                  aliases=None, proxies=None):
+    settings = get_settings()
     local(ctx, (
         '{bin.dir}/mod_wsgi-express start-server {wsgi_file}',
         '--processes', str(processes),
         '--threads', str(threads),
         '--host', host,
         '--port', str(port),
-        '--url-alias /media media',
-        '--url-alias /static static',
+        '--url-alias', settings.MEDIA_URL, settings.MEDIA_ROOT,
+        '--url-alias', settings.STATIC_URL, settings.STATIC_ROOT,
         [('--url-alias', path, fs_path) for (path, fs_path) in aliases] if aliases else '',
         [('--proxy-mount-point', path, url) for (path, url) in proxies] if proxies else '',
         '--reload-on-changes --shutdown-timeout 1 --log-to-terminal',
