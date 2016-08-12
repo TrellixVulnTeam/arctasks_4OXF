@@ -2,7 +2,7 @@ import os
 
 from .arctask import arctask
 from .runners import local
-from .util import abort
+from .util import abort, abs_path, as_list, print_info
 
 
 DJANGO_SET_UP = False
@@ -92,17 +92,38 @@ def runserver(ctx, host=_runserver_host, port=_runserver_port):
 @arctask(configured='dev')
 def run_mod_wsgi(ctx, host=_runserver_host, port=_runserver_port, processes=2, threads=25,
                  aliases=None, proxies=None):
+    aliases = as_list(aliases)
+    proxies = as_list(proxies)
+
     settings = get_settings()
+    media_url = settings.MEDIA_URL.rstrip('/')
+    static_url = settings.STATIC_URL.rstrip('/')
+    default_media_alias = (media_url, settings.MEDIA_ROOT)
+    default_static_alias = (static_url, settings.STATIC_ROOT)
+
+    has_alias = lambda url: any((path == url) for (path, _) in aliases)
+
+    if not has_alias(media_url):
+        aliases.append(default_media_alias)
+    if not has_alias(static_url):
+        aliases.append(default_static_alias)
+
+    aliases = [(path, abs_path(fs_path)) for (path, fs_path) in aliases]
+
+    for (path, fs_path) in aliases:
+        print_info('Alias', path, '=>', fs_path)
+
+    for (path, url) in proxies:
+        print_info('Proxy', path, '=>', url)
+
     local(ctx, (
         '{bin.dir}/mod_wsgi-express start-server {wsgi_file}',
         '--processes', str(processes),
         '--threads', str(threads),
         '--host', host,
         '--port', str(port),
-        '--url-alias', settings.MEDIA_URL, settings.MEDIA_ROOT,
-        '--url-alias', settings.STATIC_URL, settings.STATIC_ROOT,
-        [('--url-alias', path, fs_path) for (path, fs_path) in aliases] if aliases else '',
-        [('--proxy-mount-point', path, url) for (path, url) in proxies] if proxies else '',
+        [('--url-alias', path, fs_path) for (path, fs_path) in aliases],
+        [('--proxy-mount-point', path, url) for (path, url) in proxies],
         '--reload-on-changes --shutdown-timeout 1 --log-to-terminal',
     ))
 
