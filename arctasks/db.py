@@ -126,7 +126,7 @@ def load_prod_data(ctx, schema='public', source='prod'):
 
 
 @arctask(configured=True)
-def reset_db(ctx, truncate=False):
+def reset_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', truncate=False):
     """DROP CASCADE tables in database.
 
     This drops all tables owned by the app user in the public schema
@@ -146,22 +146,25 @@ def reset_db(ctx, truncate=False):
     """
     if ctx.env == 'prod':
         abort(1, 'reset_db cannot be run on the prod database')
+    host = host.format_map(ctx)
+    user = user.format_map(ctx)
+    name = name.format_map(ctx)
     op = 'TRUNCATE' if truncate else 'DROP'
     msg = (
-        'Do you really want to reset the {env} database ({db.user}@{db.host}/{db.name})?\n'
-        'This will %s CASCADE all tables (excluding PostGIS tables).' % op)
+        'Do you really want to reset the {{env}} database ({user}@{host}/{name})?\n'
+        'This will {op} CASCADE all tables (excluding PostGIS tables).'.format_map(locals()))
     if not confirm(ctx, msg):
         abort(0)
     password = getpass('{env} database password: '.format(**ctx))
     if password:
         os.environ['PGPASSWORD'] = password
-    psql = 'psql -h {db.host} -U {db.user} {db.name}'
+    psql = ('psql', '-h', host, '-U', user, '-d', name)
     result = local(ctx, (
         psql, '--tuples-only --command "',
         "SELECT tablename "
         "FROM pg_tables "
         "WHERE schemaname = 'public' "
-        "AND tableowner = '{db.user}' "
+        "AND tableowner = '" + user + "' "
         "AND tablename NOT IN ('geography_columns', 'geometry_columns', 'spatial_ref_sys');",
         '"',
     ), hide='stdout')
