@@ -11,18 +11,20 @@ from .util import abort, as_tuple, confirm
 
 
 @arctask(configured='dev')
-def createdb(ctx, type=None, name='{db.name}', drop=False, with_postgis=False, extensions=()):
+def createdb(ctx, type=None, host='{db.host}', user='{db.user}', name='{db.name}', drop=False,
+             with_postgis=False, extensions=()):
     if type is None:
         type = ctx.db.type
     if type == 'mysql':
-        create_mysql_db(ctx, name, drop)
+        create_mysql_db(ctx, host, user, name, drop)
     elif type == 'postgresql':
-        create_postgresql_db(ctx, name, drop, with_postgis, extensions)
+        create_postgresql_db(ctx, host, user, name, drop, with_postgis, extensions)
     else:
         raise ValueError('Unknown database type: {db.type}'.format(**ctx))
 
 
-def create_postgresql_db(ctx, name='{db.name}', drop=False, with_postgis=False, extensions=()):
+def create_postgresql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', drop=False,
+                         with_postgis=False, extensions=()):
     """Create a PostgreSQL database with the specified ``name``.
 
     The --with-postgis flag can be used to spatially-enable the
@@ -39,20 +41,26 @@ def create_postgresql_db(ctx, name='{db.name}', drop=False, with_postgis=False, 
         'run_as': 'postgres' if result.ok else None,
     }
     if drop:
-        local(ctx, ('dropdb', name), **args)
-    local(ctx, ('createdb', name), **args)
+        local(ctx, ('dropdb', '-h', host, '-U', user, name), **args)
+    local(ctx, ('createdb', '-h', host, '-U', user, name), **args)
     if with_postgis and 'postgis' not in extensions:
         extensions = ('postgis',) + extensions
     for extension in extensions:
         statement = '"CREATE EXTENSION {extension};"'.format(extension=extension)
-        local(ctx, ('psql -d', name, '-c', statement), **args)
+        local(ctx, ('psql', '-h', host, '-U', user, '-d', name, '-c', statement), **args)
 
 
-def create_mysql_db(ctx, name='{db.name}', drop=False):
+def create_mysql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', drop=False):
     """Create a MySQL database with the specified ``name``."""
     if drop:
-        local(ctx, ('mysql -u root -e "DROP DATABASE', name, '"'), abort_on_failure=False)
-    local(ctx, ('mysql -u root -e "CREATE DATABASE', name, '"'), abort_on_failure=False)
+        local(ctx, (
+            'mysql', '-h', host, '-u', user,
+            '-e', '"DROP DATABASE', name, '"'
+        ), abort_on_failure=False)
+    local(ctx, (
+        'mysql', '-h', host, '-u', user,
+        '-e "CREATE DATABASE', name, '"'
+    ), abort_on_failure=False)
 
 
 @arctask(configured='dev')
