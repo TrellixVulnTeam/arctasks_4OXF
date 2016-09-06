@@ -1,7 +1,9 @@
 import glob
 import itertools
 import os
-from subprocess import PIPE, Popen
+import shutil
+from subprocess import Popen
+from tempfile import NamedTemporaryFile
 
 from .arctask import arctask
 from .django import call_command, get_settings
@@ -73,42 +75,52 @@ def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_b
     which = local(ctx, 'which node-sass', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
         abort(1, 'node-sass must be installed (via npm) and on $PATH')
+
     sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
     sources = [glob.glob(s) for s in sources]
+
+    echo = ctx['run']['echo']
+    path = 'PATH={path}'.format(path=get_path(ctx))
+    env = os.environ.copy()
+    env['PATH'] = ':'.join((path, env['PATH']))
+
     for source in itertools.chain(*sources):
         root, ext = os.path.splitext(source)
+        destination = '{root}.css'.format(root=root)
 
         if ext != '.scss':
             abort(1, 'Expected a .scss file; got "{source}"'.format(source=source))
 
-        destination = '{root}.css'.format(root=root)
+        def do_or_die(args, in_file=None):
+            if in_file is not None:
+                in_file.seek(0)
+            out_file = NamedTemporaryFile()
+            if echo:
+                print(' '.join(args), end=' ')
+                if in_file is not None:
+                    print('<', in_file.name, sep='', end=' ')
+                print('>', out_file.name, sep='')
+            cmd = Popen(args, stdin=in_file, stdout=out_file, env=env)
+            cmd.wait()
+            if cmd.returncode:
+                abort(cmd.returncode, 'Aborted due to errors', color=False)
+            return out_file
 
-        sass_args = ['node-sass', source]
-        postcss_args = [
-            'postcss',
-            '--use', 'autoprefixer',
-            'autoprefixer.browsers', "'%s'" % autoprefixer_browsers
-        ]
-        cleancss_args = ['cleancss']
+        out = do_or_die(['node-sass', source])
 
-        path = 'PATH={path}'.format(path=get_path(ctx))
-        env = os.environ.copy()
-        env['PATH'] = ':'.join((path, env['PATH']))
-        popen_kwargs = {'stdout': PIPE, 'stderr': PIPE, 'env': env}
-
-        cmd = Popen(sass_args, **popen_kwargs)
         if autoprefixer_browsers:
-            cmd = Popen(postcss_args, stdin=cmd.stdout, **popen_kwargs)
+            out = do_or_die([
+                'postcss',
+                '--use', 'autoprefixer',
+                'autoprefixer.browsers', autoprefixer_browsers
+            ], in_file=out)
+
         if optimize:
-            cmd = Popen(cleancss_args, stdin=cmd.stdout, **popen_kwargs)
+            out = do_or_die(['cleancss'], in_file=out)
 
-        out, err = cmd.communicate()
-
-        if cmd.returncode:
-            abort(cmd.returncode, err.decode('utf-8').strip(), color=False)
-
-        with open(destination, 'w') as fp:
-            fp.write(out.decode('utf-8'))
+        if echo:
+            print('cp {out.name} {destination}'.format_map(locals()))
+            shutil.copyfile(out.name, destination)
 
 
 @arctask(configured='dev')
