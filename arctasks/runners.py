@@ -1,5 +1,3 @@
-import os
-
 from invoke.exceptions import Failure
 
 from .arctask import arctask

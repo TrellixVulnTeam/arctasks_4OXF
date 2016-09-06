@@ -1,6 +1,6 @@
 import subprocess
 
-from arctasks.util import print_error, print_warning
+from arctasks.util import print_warning
 from .util import abort, confirm
 
 
