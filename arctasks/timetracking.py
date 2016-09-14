@@ -5,7 +5,7 @@ from .arctask import arctask
 
 
 @arctask
-def time_spent(ctx, key, after=None, since=None, debug=False):
+def time_spent(ctx, key, after=None, since=None, rate=0, debug=False):
     """Show time spent on a project based on git history.
 
     Parses JIRA smart commits for #time. Smart commits look like this::
@@ -23,6 +23,8 @@ def time_spent(ctx, key, after=None, since=None, debug=False):
         since: A date in ``YYYY-MM-DD`` format (or any date format that
             ``git log`` accepts); if this specified, only commits *after*
             the specified date will be included
+        rate: Hourly rate; if this something other than zero, the total
+            cost of included hours will be shown
         debug: Show matching lines when this is set
 
     Examples::
@@ -70,4 +72,11 @@ def time_spent(ctx, key, after=None, since=None, debug=False):
             seconds.append(amount)
 
     seconds = sum(seconds)
-    print('%s hours' % (seconds / 60 / 60))
+    hours = seconds / 60 / 60
+    dollars = rate * hours if rate else None
+    f = locals()
+
+    print('{hours:.2f}h'.format_map(f), end='')
+    if dollars is not None:
+        print(' at ${rate}/h = ${dollars:.2f}'.format_map(f), end='')
+    print()
