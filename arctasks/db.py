@@ -32,35 +32,50 @@ def create_postgresql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name
 
     """
     extensions = as_tuple(extensions)
+    if with_postgis and 'postgis' not in extensions:
+        extensions = ('postgis',) + extensions
+
     # Try to run the drop and create commands with the postgres user; if
     # that user doesn't exist, run those commands as the current user.
     # This supports VM and Homebrew setups.
     result = local(ctx, 'id -u postgres', echo=False, hide=True, abort_on_failure=False)
-    args = {
-        'abort_on_failure': False,
-        'run_as': 'postgres' if result.ok else None,
-    }
+    run_as = 'postgres' if result.ok else None
+
+    def run_command(*command, database='postgres'):
+        command = ' '.join(command)
+        command = '"{command}"'.format(command=command)
+        local(ctx, (
+            'psql',
+            '-h', host,
+            '-d', database,
+            '-c', command,
+        ), run_as=run_as, abort_on_failure=False)
+
     if drop:
-        local(ctx, ('dropdb', '-h', host, '-U', user, name), **args)
-    local(ctx, ('createdb', '-h', host, '-U', user, name), **args)
-    if with_postgis and 'postgis' not in extensions:
-        extensions = ('postgis',) + extensions
+        run_command('DROP DATABASE', name) if drop else None
+
+    run_command('CREATE DATABASE', name, 'WITH OWNER', user)
+
     for extension in extensions:
-        statement = '"CREATE EXTENSION {extension};"'.format(extension=extension)
-        local(ctx, ('psql', '-h', host, '-U', user, '-d', name, '-c', statement), **args)
+        run_command('CREATE EXTENSION', extension, database=name)
 
 
 def create_mysql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', drop=False):
     """Create a MySQL database with the specified ``name``."""
-    if drop:
+    def run_command(*command):
+        command = ' '.join(command)
+        command = '"{command}"'.format(command=command)
         local(ctx, (
-            'mysql', '-h', host, '-u', user,
-            '-e', '"DROP DATABASE', name, '"'
+            'mysql',
+            '-h', host,
+            '-u', 'root',
+            '-e', command,
         ), abort_on_failure=False)
-    local(ctx, (
-        'mysql', '-h', host, '-u', user,
-        '-e "CREATE DATABASE', name, '"'
-    ), abort_on_failure=False)
+
+    if drop:
+        run_command('DROP DATABASE', name)
+
+    run_command('CREATE DATABASE', name)
 
 
 @arctask(configured='dev')
