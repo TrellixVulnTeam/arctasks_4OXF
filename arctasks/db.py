@@ -27,6 +27,10 @@ def create_postgresql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name
                          with_postgis=False, extensions=()):
     """Create a PostgreSQL database with the specified ``name``.
 
+    This also creates the user specified by ``user`` as a superuser
+    with no password. This is insecure and should only be used in
+    development and testing.
+
     The --with-postgis flag can be used to spatially-enable the
     database. This only works with PostgreSQL 9.1+ and PostGIS 2.0+.
 
@@ -51,6 +55,8 @@ def create_postgresql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name
             '-c', command,
         ), run_as=run_as, abort_on_failure=False)
 
+    run_command('CREATE USER', user, 'WITH SUPERUSER')
+
     if drop:
         run_command('DROP DATABASE', name) if drop else None
 
@@ -61,7 +67,13 @@ def create_postgresql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name
 
 
 def create_mysql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', drop=False):
-    """Create a MySQL database with the specified ``name``."""
+    """Create a MySQL database with the specified ``name``.
+
+    This also creates the user specified by ``user`` as a superuser
+    with no password. This is insecure and should only be used in
+    development and testing.
+
+    """
     def run_command(*command):
         command = ' '.join(command)
         command = '"{command}"'.format(command=command)
@@ -71,6 +83,11 @@ def create_mysql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', d
             '-u', 'root',
             '-e', command,
         ), abort_on_failure=False)
+
+    f = locals()
+
+    run_command("CREATE USER '{user}'@'{host}'".format(**f))
+    run_command("GRANT ALL PRIVILEGES on *.* TO '{user}'@'{host}' WITH GRANT OPTION".format(**f))
 
     if drop:
         run_command('DROP DATABASE', name)
