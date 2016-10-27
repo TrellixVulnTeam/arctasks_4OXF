@@ -96,7 +96,10 @@ def create_mysql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', d
 
 
 @arctask(configured='dev')
-def load_prod_data(ctx, schema='public', source='prod'):
+def load_prod_data(ctx,
+                   source='prod', source_host=None, source_user=None, source_name=None,
+                   host='{db.host}', user='{db.user}', name='{db.name}',
+                   schema='public'):
     """Load data from prod database directly into env database.
 
     This is generally intended for fetching a fresh copy of production
@@ -129,9 +132,9 @@ def load_prod_data(ctx, schema='public', source='prod'):
         local(ctx, (
             'pg_dump',
             '--format', 'custom',
-            '-U', source_ctx.db.user,
-            '-h', source_ctx.db.host,
-            '-d', source_ctx.db.name,
+            '-U', source_user or source_ctx.db.user,
+            '-h', source_host or source_ctx.db.host,
+            '-d', source_name or source_ctx.db.name,
             '--schema', schema,
             '--blobs',
             '--no-acl',
@@ -143,9 +146,9 @@ def load_prod_data(ctx, schema='public', source='prod'):
             os.environ['PGPASSWORD'] = env_pw
         local(ctx, (
             'pg_restore',
-            '-U {db.user}',
-            '-h {db.host}',
-            '-d {db.name}',
+            '-U', user,
+            '-h', host,
+            '-d', name,
             '--no-owner',
             temp_path,
         ))
