@@ -1,7 +1,7 @@
 from invoke.exceptions import Failure
 
 from .arctask import arctask
-from .util import abort, args_to_str, get_path
+from .util import abort, abs_path, args_to_str, get_path
 
 
 @arctask(configured='dev')
@@ -25,7 +25,8 @@ def local(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
     elif run_as:
         args = ('sudo', '-u', run_as, args)
     if cd:
-        args = (('cd', cd, '&&'), args)
+        cd = _get_cd_prefix(ctx, cd)
+        args = (cd, args)
     cmd = args_to_str(args, format_kwargs=(ctx if inject_context else None))
     if echo is None:
         echo = ctx['run'].echo
@@ -79,8 +80,7 @@ def remote(ctx, args, user='{remote.user}', host='{remote.host}', path='{remote.
         run_as = 'sudo -u {run_as}'.format(run_as=run_as)
 
     if cd:
-        cd = args_to_str(cd, format_kwargs=ctx)
-        cd = 'cd {cd} &&'.format(cd=cd)
+        cd = _get_cd_prefix(ctx, cd)
 
     if path:
         path = args_to_str(path, format_kwargs=ctx)
@@ -103,3 +103,14 @@ def remote(ctx, args, user='{remote.user}', host='{remote.host}', path='{remote.
         else:
             return result
 
+
+def _get_cd_prefix(ctx, path):
+    """Convert ``path`` to abs. path; return ``cd {path} &&``.
+
+    See :func:`abs_path` for details on how ``path`` is converted to an
+    absolute path.
+
+    """
+    path = args_to_str(path, format_kwargs=ctx)
+    path = abs_path(path)
+    return 'cd {path} &&'.format_map(locals())
