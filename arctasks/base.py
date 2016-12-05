@@ -5,7 +5,7 @@ import urllib.request
 
 from .arctask import DEFAULT_ENV, arctask
 from .runners import local
-from .util import abort, as_list
+from .util import abort, abs_path, as_list
 from .util import print_header, print_error, print_info, print_success, print_warning
 
 
@@ -93,8 +93,7 @@ def npm_install(ctx, where='.', modules=_npm_install_modules, force=False, overw
     result = local(ctx, 'which npm', echo=False, hide='stdout', abort_on_failure=False)
     if result.failed:
         abort(1, 'node and npm must be installed first')
-    where = where.format_map(ctx)
-    where = os.path.normpath(os.path.abspath(where))
+    where = abs_path(where, format_kwargs=ctx)
     node_modules = os.path.join(where, 'node_modules')
     if overwrite and os.path.isdir(node_modules):
         print_warning('Removing {node_modules}...'.format_map(locals()))
