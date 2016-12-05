@@ -202,5 +202,5 @@ def pull_media(ctx, user='{remote.user}', host='{remote.host}', run_as='{remote.
     """Pull media from specified env [prod] to ./media."""
     local(ctx, 'mkdir -p media')
     rsync(
-        ctx, local_path='media', remote_path='{remote.path.media}/', source='remote',
-        default_excludes=None)
+        ctx, local_path='media', remote_path='{remote.path.media}/', user=user, host=host,
+        run_as=run_as, source='remote', default_excludes=None)
