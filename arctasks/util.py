@@ -161,22 +161,12 @@ def get_path(ctx):
     Extra paths that will be added:
 
         - Path specified via ``bin.dir`` config
-        - ./node_modules/.bin (if present)
-        - ./{package}/static/node_modules/.bin (if present)
         - Additional paths specified via ``bin.dirs`` config
 
     """
     path = []
     # Add default bin directory
     path.append('{bin.dir}'.format_map(ctx))
-    # Add ./node_modules/.bin, if it exists
-    node_modules_path = os.path.join(ctx.cwd, 'node_modules', '.bin')
-    if os.path.isdir(node_modules_path):
-        path.append(node_modules_path)
-    # Add .{package}/static/node_modules/.bin, if it exists
-    alt_node_modules_path = os.path.join(ctx.cwd, ctx.package, 'static', 'node_modules', '.bin')
-    if os.path.isdir(alt_node_modules_path):
-        path.append(alt_node_modules_path)
     # Add additional bin directories
     additional_paths = as_list(ctx.bin.get('dirs', []))
     additional_paths = [p.format_map(ctx) for p in additional_paths]
