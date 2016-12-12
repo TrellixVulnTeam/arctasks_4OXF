@@ -161,6 +161,10 @@ def get_path(ctx):
     node_modules_path = os.path.join(ctx.cwd, 'node_modules', '.bin')
     if os.path.isdir(node_modules_path):
         path.append(node_modules_path)
+    # Add .{package}/static/node_modules/.bin, if it exists
+    alt_node_modules_path = os.path.join(ctx.cwd, ctx.package, 'static', 'node_modules', '.bin')
+    if os.path.isdir(alt_node_modules_path):
+        path.append(alt_node_modules_path)
     # Add additional bin directories
     additional_paths = as_list(ctx.bin.get('dirs', []))
     additional_paths = [p.format_map(ctx) for p in additional_paths]
