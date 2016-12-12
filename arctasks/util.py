@@ -154,6 +154,18 @@ def load_object(obj) -> object:
 
 
 def get_path(ctx):
+    """Add extra default paths to front of $PATH.
+
+    Returns a string like "{path}:{path}:...:$PATH".
+
+    Extra paths that will be added:
+
+        - Path specified via ``bin.dir`` config
+        - ./node_modules/.bin (if present)
+        - ./{package}/static/node_modules/.bin (if present)
+        - Additional paths specified via ``bin.dirs`` config
+
+    """
     path = []
     # Add default bin directory
     path.append('{bin.dir}'.format_map(ctx))
