@@ -117,7 +117,7 @@ def run_mod_wsgi(ctx, host=_runserver_host, port=_runserver_port, processes=2, t
         print_info('Proxy', path, '=>', url)
 
     local(ctx, (
-        '{bin.dir}/mod_wsgi-express start-server {wsgi_file}',
+        '{venv}/bin/mod_wsgi-express start-server {wsgi_file}',
         '--processes', str(processes),
         '--threads', str(threads),
         '--host', host,

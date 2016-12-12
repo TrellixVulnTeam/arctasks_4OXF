@@ -156,24 +156,12 @@ def load_object(obj) -> object:
 def get_path(ctx):
     """Add extra default paths to front of $PATH.
 
-    Returns a string like "{path}:{path}:...:$PATH".
-
-    Extra paths that will be added:
-
-        - Path specified via ``bin.dir`` config
-        - Additional paths specified via ``bin.dirs`` config
+    Paths are specified via the ``bin.dirs`` config. Returns a string
+    like "{path}:{path}:...:$PATH".
 
     """
-    path = []
-    # Add default bin directory
-    path.append('{bin.dir}'.format_map(ctx))
-    # Add additional bin directories
-    additional_paths = as_list(ctx.bin.get('dirs', []))
-    additional_paths = [p.format_map(ctx) for p in additional_paths]
-    path.extend(additional_paths)
-    # Absolutize paths
-    path = [abs_path(p) for p in path]
-    # Add original $PATH
+    path = as_list(ctx.bin.get('dirs', []))
+    path = [abs_path(p, format_kwargs=ctx) for p in path]
     path.append('$PATH')
     path = ':'.join(path)
     return path
