@@ -5,6 +5,8 @@ from functools import partial
 
 import enum
 
+from invoke.util import isatty
+
 
 def abort(code=0, message='Aborted', color=True):
     if message:
@@ -216,11 +218,7 @@ def colorize(*args, color=Color.none, sep=' ', end=Color.reset):
 
 
 def print_color(*args, color=Color.none, file=sys.stdout, **kwargs):
-        try:
-            is_a_tty = file.isatty()
-        except AttributeError:
-            is_a_tty = False
-        if is_a_tty:
+        if isatty(file):
             colorize_kwargs = kwargs.copy()
             colorize_kwargs.pop('end', None)
             string = colorize(*args, color=color, **colorize_kwargs)
