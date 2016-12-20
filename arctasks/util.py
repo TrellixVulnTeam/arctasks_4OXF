@@ -218,14 +218,14 @@ def colorize(*args, color=Color.none, sep=' ', end=Color.reset):
 
 
 def print_color(*args, color=Color.none, file=sys.stdout, **kwargs):
-        if isatty(file):
-            colorize_kwargs = kwargs.copy()
-            colorize_kwargs.pop('end', None)
-            string = colorize(*args, color=color, **colorize_kwargs)
-            print(string, **kwargs)
-        else:
-            args = [a for a in args if not isinstance(a, Color)]
-            print(*args, **kwargs)
+    if isatty(file):
+        colorize_kwargs = kwargs.copy()
+        colorize_kwargs.pop('end', None)
+        string = colorize(*args, color=color, **colorize_kwargs)
+        print(string, **kwargs)
+    else:
+        args = [a for a in args if not isinstance(a, Color)]
+        print(*args, **kwargs)
 
 
 print_header = partial(print_color, color=COLOR_MAP['header'])
