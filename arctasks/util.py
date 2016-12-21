@@ -5,7 +5,25 @@ from functools import partial
 
 import enum
 
-from invoke.util import isatty
+
+def isatty(stream):
+    # Copied from Invoke 0.12 When we're finally able to upgrade from
+    # 0.11.0, this should be replaced with the following import:
+    #
+    #     from invoke.util import isatty
+    import io
+
+    def has_fileno():
+        try:
+            return isinstance(stream.fileno(), int)
+        except (AttributeError, io.UnsupportedOperation):
+            return False
+
+    if hasattr(stream, 'isatty') and callable(stream.isatty):
+        return stream.isatty()
+    elif has_fileno(stream):
+        return os.isatty(stream.fileno())
+    return False
 
 
 def abort(code=0, message='Aborted', color=True):
