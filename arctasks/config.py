@@ -181,6 +181,7 @@ def make_env_task(env_name):
 
 # These let us do `inv dev ...` instead of `inv config dev ...`
 dev = make_env_task('dev')
+docker = make_env_task('docker')
 test = make_env_task('test')
 stage = make_env_task('stage')
 prod = make_env_task('prod')

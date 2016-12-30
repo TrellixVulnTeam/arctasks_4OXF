@@ -1,6 +1,6 @@
 from .arctask import DEFAULT_ENV, arctask
 from .base import clean, install, lint, npm_install, retrieve, virtualenv
-from .config import configure, show_config, dev, stage, prod
+from .config import configure, show_config, dev, docker, stage, prod
 from .db import createdb, load_prod_data, reset_db
 from .deploy import builds, clean_builds, deploy, link, restart
 from .django import coverage, dbshell, makemigrations, migrate, runserver, run_mod_wsgi, shell, test
