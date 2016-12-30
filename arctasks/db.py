@@ -48,11 +48,12 @@ def create_postgresql_db(ctx, user='{db.user}', host='{db.host}', port='{db.port
     result = local(ctx, 'id -u postgres', echo=False, hide=True, abort_on_failure=False)
     run_as = 'postgres' if result.ok else None
 
-    def run_command(*command, database='postgres'):
+    def run_command(*command, superuser='postgres', database='postgres'):
         command = ' '.join(command)
         command = '"{command}"'.format(command=command)
         local(ctx, (
             'psql',
+            '-U', superuser,
             '-h', host,
             '-p', port,
             '-d', database,
