@@ -127,6 +127,7 @@ def load_prod_data(ctx,
     """
     if ctx.env == 'prod':
         abort(1, 'Cannot load data into prod database')
+
     if ctx.env == source:
         abort(1, 'Cannot load data into source database')
 
@@ -138,9 +139,11 @@ def load_prod_data(ctx,
     source_pw = getpass('{source} database password: '.format(**locals()))
     env_pw = getpass('{env} database password: '.format(**ctx))
     temp_fd, temp_path = mkstemp()
+
     if ctx.db.type == 'postgresql':
         if source_pw:
             os.environ['PGPASSWORD'] = source_pw
+
         local(ctx, (
             'pg_dump',
             '--format', 'custom',
@@ -155,8 +158,10 @@ def load_prod_data(ctx,
             '--no-privileges',
             '--file', temp_path,
         ))
+
         if env_pw:
             os.environ['PGPASSWORD'] = env_pw
+
         local(ctx, (
             'pg_restore',
             '-U', user,
@@ -166,6 +171,7 @@ def load_prod_data(ctx,
             '--no-owner',
             temp_path,
         ))
+
         os.close(temp_fd)
         os.remove(temp_path)
     elif ctx.db.type == 'mysql':
