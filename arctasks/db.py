@@ -202,20 +202,25 @@ def reset_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', name='{d
     """
     if ctx.env == 'prod':
         abort(1, 'reset_db cannot be run on the prod database')
+
     user = user.format_map(ctx)
     host = host.format_map(ctx)
     port = port.format_map(ctx)
     name = name.format_map(ctx)
     op = 'TRUNCATE' if truncate else 'DROP'
+
     msg = (
         'Do you really want to reset the {{env}} database ({user}@{host}:{port}/{name})?\n'
         'This will {op} CASCADE all tables (excluding PostGIS tables).'.format_map(locals()))
     if not confirm(ctx, msg):
         abort(0)
+
     password = getpass('{env} database password: '.format(**ctx))
     if password:
         os.environ['PGPASSWORD'] = password
+
     psql = ('psql', '-U', user, '-h', host, '-p', port, '-d', name)
+
     result = local(ctx, (
         psql, '--tuples-only --command "',
         "SELECT tablename "
@@ -225,14 +230,20 @@ def reset_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', name='{d
         "AND tablename NOT IN ('geography_columns', 'geometry_columns', 'spatial_ref_sys');",
         '"',
     ), hide='stdout')
+
     tables = sorted(s.strip() for s in result.stdout.strip().splitlines())
     if not tables:
         abort(1, 'No tables found to drop')
+
     statements = ['{op} TABLE "{table}" CASCADE;'.format(op=op, table=table) for table in tables]
+
     print('\nThe following statements will be run:\n')
     print('    {statements}\n'.format(statements='\n    '.join(statements)))
-    msg = 'Are you sure you want to do this (you must type out "yes")?'
-    if confirm(ctx, msg, yes_values=('yes',)):
+
+    confirmation_message = 'Are you sure you want to do this (you must type out "yes")?'
+    confirmed = confirm(ctx, confirmation_message, yes_values=('yes',))
+
+    if confirmed:
         local(ctx, (psql, '-c "', statements, '"'))
     else:
         print('Cancelled')
