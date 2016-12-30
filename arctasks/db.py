@@ -103,6 +103,7 @@ def create_mysql_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', n
 
 @arctask(configured='dev')
 def load_prod_data(ctx,
+                   reset=False,
                    source='prod', source_user=None, source_host=None, source_port=None,
                    source_name=None,
                    user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
@@ -128,6 +129,10 @@ def load_prod_data(ctx,
         abort(1, 'Cannot load data into prod database')
     if ctx.env == source:
         abort(1, 'Cannot load data into source database')
+
+    if reset:
+        reset_db(ctx, user, host, port, name)
+
     source_ctx = Context()
     configure(source_ctx, source)
     source_pw = getpass('{source} database password: '.format(**locals()))
