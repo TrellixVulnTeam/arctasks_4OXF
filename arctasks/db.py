@@ -11,20 +11,23 @@ from .util import abort, as_tuple, confirm
 
 
 @arctask(configured='dev')
-def createdb(ctx, type=None, host='{db.host}', user='{db.user}', name='{db.name}', drop=False,
-             with_postgis=False, extensions=()):
+def createdb(ctx, type=None, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
+             drop=False, with_postgis=False, extensions=()):
     if type is None:
         type = ctx.db.type
+    args = (ctx, user, host, port, name, drop)
     if type == 'mysql':
-        create_mysql_db(ctx, host, user, name, drop)
+        creator = create_mysql_db
     elif type == 'postgresql':
-        create_postgresql_db(ctx, host, user, name, drop, with_postgis, extensions)
+        args += (with_postgis, extensions)
+        creator = create_postgresql_db
     else:
         raise ValueError('Unknown database type: {db.type}'.format(**ctx))
+    creator(*args)
 
 
-def create_postgresql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', drop=False,
-                         with_postgis=False, extensions=()):
+def create_postgresql_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}',
+                         name='{db.name}', drop=False, with_postgis=False, extensions=()):
     """Create a PostgreSQL database with the specified ``name``.
 
     This also creates the user specified by ``user`` as a superuser
@@ -51,6 +54,7 @@ def create_postgresql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name
         local(ctx, (
             'psql',
             '-h', host,
+            '-p', port,
             '-d', database,
             '-c', command,
         ), run_as=run_as, abort_on_failure=False)
@@ -66,7 +70,8 @@ def create_postgresql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name
         run_command('CREATE EXTENSION', extension, database=name)
 
 
-def create_mysql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', drop=False):
+def create_mysql_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
+                    drop=False):
     """Create a MySQL database with the specified ``name``.
 
     This also creates the user specified by ``user`` as a superuser
@@ -80,6 +85,7 @@ def create_mysql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', d
         local(ctx, (
             'mysql',
             '-h', host,
+            '-p', port,
             '-u', 'root',
             '-e', command,
         ), abort_on_failure=False)
@@ -97,8 +103,9 @@ def create_mysql_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', d
 
 @arctask(configured='dev')
 def load_prod_data(ctx,
-                   source='prod', source_host=None, source_user=None, source_name=None,
-                   host='{db.host}', user='{db.user}', name='{db.name}',
+                   source='prod', source_user=None, source_host=None, source_port=None,
+                   source_name=None,
+                   user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
                    schema='public'):
     """Load data from prod database directly into env database.
 
@@ -134,6 +141,7 @@ def load_prod_data(ctx,
             '--format', 'custom',
             '-U', source_user or source_ctx.db.user,
             '-h', source_host or source_ctx.db.host,
+            '-p', source_port or source_ctx.db.port,
             '-d', source_name or source_ctx.db.name,
             '--schema', schema,
             '--blobs',
@@ -148,6 +156,7 @@ def load_prod_data(ctx,
             'pg_restore',
             '-U', user,
             '-h', host,
+            '-p', port,
             '-d', name,
             '--no-owner',
             temp_path,
@@ -161,7 +170,8 @@ def load_prod_data(ctx,
 
 
 @arctask(configured=True)
-def reset_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', truncate=False):
+def reset_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
+             truncate=False):
     """DROP CASCADE tables in database.
 
     This drops all tables owned by the app user in the public schema
@@ -181,19 +191,20 @@ def reset_db(ctx, host='{db.host}', user='{db.user}', name='{db.name}', truncate
     """
     if ctx.env == 'prod':
         abort(1, 'reset_db cannot be run on the prod database')
-    host = host.format_map(ctx)
     user = user.format_map(ctx)
+    host = host.format_map(ctx)
+    port = port.format_map(ctx)
     name = name.format_map(ctx)
     op = 'TRUNCATE' if truncate else 'DROP'
     msg = (
-        'Do you really want to reset the {{env}} database ({user}@{host}/{name})?\n'
+        'Do you really want to reset the {{env}} database ({user}@{host}:{port}/{name})?\n'
         'This will {op} CASCADE all tables (excluding PostGIS tables).'.format_map(locals()))
     if not confirm(ctx, msg):
         abort(0)
     password = getpass('{env} database password: '.format(**ctx))
     if password:
         os.environ['PGPASSWORD'] = password
-    psql = ('psql', '-h', host, '-U', user, '-d', name)
+    psql = ('psql', '-U', user, '-h', host, '-p', port, '-d', name)
     result = local(ctx, (
         psql, '--tuples-only --command "',
         "SELECT tablename "
