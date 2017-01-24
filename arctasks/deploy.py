@@ -36,10 +36,16 @@ def provision(ctx, overwrite=False):
     # Create virtualenv for build
     result = remote(ctx, ('test -d', venv), abort_on_failure=False)
     if result.failed:
-        remote(ctx, ('{remote.build.make_venv}', venv))
-    # Provision virtualenv with basics
+        remote(ctx, (
+            'curl -L -o {virtualenv.tarball_name} {virtualenv.download_url}',
+            '&& tar xvfz {virtualenv.tarball_name}',
+        ), cd='{remote.build.dir}', hide=True)
+        remote(ctx, (
+            '{remote.bin.python} virtualenv.py {remote.build.venv}'
+        ), cd='{remote.build.dir}/{virtualenv.base_name}')
     pip = ctx.remote.build.pip
     find_links = ctx.remote.pip.find_links
+    # Provision virtualenv with basics
     remote(ctx, (
         (pip, 'install -U setuptools', '&&'),
         (pip, 'install --find-links', find_links, '"pip=={pip.version}"', '&&'),
