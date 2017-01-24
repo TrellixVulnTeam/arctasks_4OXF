@@ -43,13 +43,16 @@ def provision(ctx, overwrite=False):
         remote(ctx, (
             '{remote.bin.python} virtualenv.py {remote.build.venv}'
         ), cd='{remote.build.dir}/{virtualenv.base_name}')
-    pip = ctx.remote.build.pip
-    find_links = ctx.remote.pip.find_links
     # Provision virtualenv with basics
+    pip_install = (ctx.remote.build.pip, 'install')
+    pip_upgrade = pip_install + ('--upgrade',)
+    has_pip_version = ctx.pip.get('version')
     remote(ctx, (
-        (pip, 'install -U setuptools', '&&'),
-        (pip, 'install --find-links', find_links, '"pip=={pip.version}"', '&&'),
-        (pip, 'install --find-links', find_links, '--cache-dir {remote.pip.cache_dir} wheel'),
+        (pip_upgrade, 'setuptools'),
+        '&&',
+        (pip_install, '"pip=={pip.version}"') if has_pip_version else (pip_upgrade, 'pip'),
+        '&&',
+        (pip_install, 'wheel'),
     ))
 
 
