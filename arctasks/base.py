@@ -70,12 +70,12 @@ def lint(ctx, where=None):
 _npm_install_modules = (
     'autoprefixer',
     'bower',
-    'clean-css',
     'jshint',
     'less',
     'less-plugin-autoprefix',
     'less-plugin-clean-css',
     'node-sass',
+    'postcss-clean',
     'postcss-cli',
     'requirejs',
     'uglify-js',

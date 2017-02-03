@@ -79,6 +79,8 @@ def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_b
     sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
     sources = [glob.glob(s) for s in sources]
 
+    run_postcss = bool(optimize or autoprefixer_browsers)
+
     echo = ctx['run']['echo']
     path = 'PATH={path}'.format(path=get_path(ctx))
     env = os.environ.copy()
@@ -108,15 +110,19 @@ def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_b
 
         out = do_or_die(['node-sass', source])
 
-        if autoprefixer_browsers:
-            out = do_or_die([
-                'postcss',
-                '--use', 'autoprefixer',
-                'autoprefixer.browsers', autoprefixer_browsers
-            ], in_file=out)
+        if run_postcss:
+            postcss_args = ['postcss']
 
-        if optimize:
-            out = do_or_die(['cleancss'], in_file=out)
+            if autoprefixer_browsers:
+                postcss_args += [
+                    '--use', 'autoprefixer',
+                    '--autoprefixer.browsers', autoprefixer_browsers
+                ]
+
+            if optimize:
+                postcss_args += ['--use', 'postcss-clean']
+
+            out = do_or_die(postcss_args, in_file=out)
 
         if echo:
             print('cp {out.name} {destination}'.format_map(locals()))
