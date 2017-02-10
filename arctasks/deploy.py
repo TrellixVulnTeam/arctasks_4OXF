@@ -321,19 +321,23 @@ class Deployer:
         restart(ctx)
 
     def set_permissions(self):
-        """Explicitly, recursively chmod remote build directory.
+        """Explicitly, recursively chmod remote build directories.
 
         Permissions are updated after restarting because this could take
-        a while. A screen session is used to run the chmod command
-        because we don't want to sit around waiting, and we assume the
-        chmod will succeed.
+        a while. The chmod command is run in the background because we don't
+        want to sit around waiting, and we assume it will succeed.
 
         """
         print_header('Setting permissions in background...')
-        remote(self.ctx, (
-            'screen -d -m',
-            'chmod -R ug=rwX,o-rwx {remote.build.dir} {remote.path.static}'
-        ), host='hrimfaxi.oit.pdx.edu')
+
+        def chmod(mode, where, options='-R', host='hrimfaxi.oit.pdx.edu'):
+            args = (options, mode, where)
+            local(self.ctx, (
+                'ssh -f', host,
+                '"sudo -u {service.user} sh -c \'nohup chmod', args, '>/dev/null 2>&1 &\'"',
+            ))
+
+        chmod('ug=rwX,o-rwx', '{remote.build.dir} {remote.path.static}')
 
 
 @arctask(configured='stage', timed=True)
