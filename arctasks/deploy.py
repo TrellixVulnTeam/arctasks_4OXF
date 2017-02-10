@@ -544,7 +544,7 @@ def push_static(ctx, delete=False):
 @arctask(configured=True)
 def restart(ctx, get=True, scheme='http', path='/'):
     settings = django.get_settings()
-    remote(ctx, 'touch {remote.path.wsgi_file}')
+    remote(ctx, '{remote.build.restart}')
     if get:
         host = getattr(settings, 'DOMAIN_NAME', None)
         if host is None:
