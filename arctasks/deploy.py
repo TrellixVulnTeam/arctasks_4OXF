@@ -25,14 +25,17 @@ from .util import print_header, print_info, print_success, print_warning, print_
 def provision(ctx, overwrite=False):
     build_dir = ctx.remote.build.dir
     venv = ctx.remote.build.venv
+
     if overwrite:
         # Remove existing build directory if present
         remote(ctx, ('rm -rf', build_dir))
+
     # Make build directories
     build_dirs = ['{remote.build.dir}', '{remote.build.dist}']
     if ctx.remote.build.wsgi_dir:
         build_dirs.append('{remote.build.wsgi_dir}')
     remote(ctx, ('mkdir -p -m ug=rwx,o-rwx', build_dirs))
+
     # Create virtualenv for build
     result = remote(ctx, ('test -d', venv), abort_on_failure=False)
     if result.failed:
@@ -43,15 +46,14 @@ def provision(ctx, overwrite=False):
         remote(ctx, (
             '{remote.bin.python} virtualenv.py {remote.build.venv}'
         ), cd='{remote.build.dir}/{virtualenv.base_name}')
+
     # Provision virtualenv with basics
     pip_install = (ctx.remote.build.pip, 'install')
     pip_upgrade = pip_install + ('--upgrade',)
     has_pip_version = ctx.pip.get('version')
     remote(ctx, (
-        (pip_upgrade, 'setuptools'),
-        '&&',
-        (pip_install, '"pip=={pip.version}"') if has_pip_version else (pip_upgrade, 'pip'),
-        '&&',
+        (pip_upgrade, 'setuptools'), '&&',
+        (pip_install, '"pip=={pip.version}"') if has_pip_version else (pip_upgrade, 'pip'), '&&',
         (pip_install, 'wheel'),
     ))
 
