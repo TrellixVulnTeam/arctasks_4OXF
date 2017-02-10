@@ -1,0 +1,5 @@
+# Used by mod_wsgi-express
+export DJANGO_SETTINGS_MODULE="{django_settings_module}"
+export LOCAL_SETTINGS_FILE="{remote.build.local_settings_file}"
+export WSGI_ROOT="{remote.build.dir}"
+export WSGI_VENV="{remote.build.venv}"

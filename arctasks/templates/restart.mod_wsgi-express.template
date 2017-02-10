@@ -1,0 +1,21 @@
+#!/bin/bash
+
+{remote.build.bin}/mod_wsgi-express \
+    setup-server \
+    --application-type module \
+    --entry-point {remote.build.wsgi_module} \
+    --envvars-script {remote.build.envvars} \
+    --process-name {remote.build.wsgi_module} \
+    --pid-file {remote.path.var.run}/mod_wsgi.pid \
+    --server-root {remote.path.etc.root}/mod_wsgi \
+    --service-user {service.user} \
+    --service-group {service.group} \
+    --host {remote.app_server.ip_address} \
+    --port {remote.app_server.port} \
+    --working-directory {remote.build.dir} \
+    --processes {remote.app_server.num_processes} \
+    --threads {remote.app_server.num_threads} \
+    --log-directory {remote.path.var.log} \
+    --error-log-name error.log
+
+{remote.path.etc.root}/mod_wsgi/apachectl graceful

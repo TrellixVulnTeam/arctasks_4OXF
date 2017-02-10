@@ -79,6 +79,8 @@ class Deployer:
             static/{env}/         # Static files for env (shared across builds)
 
     [1] Use {package}/wsgi.py for legacy builds.
+    [1] Not used with newer deployments that proxy from a front end
+        Apache to a back end app server
     [2] Only necessary for legacy Apache config; only created when the
         ``--old-style`` flag is passed to the :func:`.link` task.
 
@@ -251,6 +253,9 @@ class Deployer:
         exe_mode = 'ug+rwx,o-rwx'
         self._push_task_config(exe_mode)
         copy_file(
+            ctx, '{remote.build.envvars_template}', '{remote.build.envvars}', template=True,
+            mode=exe_mode)
+        copy_file(
             ctx, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
             mode=exe_mode)
         copy_file(
@@ -338,7 +343,7 @@ class Deployer:
                 '"sudo -u {service.user} sh -c \'nohup chmod', args, '>/dev/null 2>&1 &\'"',
             ))
 
-        chmod('ug=rwX,o-rwx', '{remote.build.dir} {remote.path.static}')
+        chmod('ug=rwX,o-rwx', '{remote.build.dir} {remote.path.log_dir} {remote.path.static}')
 
 
 @arctask(configured='stage', timed=True)
