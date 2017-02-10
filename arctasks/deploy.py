@@ -28,11 +28,11 @@ def provision(ctx, overwrite=False):
     if overwrite:
         # Remove existing build directory if present
         remote(ctx, ('rm -rf', build_dir))
-    # Make build dir
-    remote(ctx, (
-        'mkdir -p -m ug=rwx,o-rwx',
-        '{remote.build.dir} {remote.build.dist} {remote.build.wsgi_dir}',
-    ))
+    # Make build directories
+    build_dirs = ['{remote.build.dir}', '{remote.build.dist}']
+    if ctx.remote.build.wsgi_dir:
+        build_dirs.append('{remote.build.wsgi_dir}')
+    remote(ctx, ('mkdir -p -m ug=rwx,o-rwx', build_dirs))
     # Create virtualenv for build
     result = remote(ctx, ('test -d', venv), abort_on_failure=False)
     if result.failed:
@@ -258,7 +258,8 @@ class Deployer:
             mode=exe_mode)
         copy_file(ctx, 'local.base.cfg', '{remote.build.dir}')
         copy_file(ctx, '{local_settings_file}', '{remote.build.local_settings_file}')
-        copy_file(ctx, '{wsgi_file}', '{remote.build.wsgi_file}')
+        if ctx.remote.build.wsgi_file:
+            copy_file(ctx, '{wsgi_file}', '{remote.build.wsgi_file}')
 
         # Copy requirements file. If a frozen requirements files exists,
         # copy that; if it doesn't, copy a default requirements file.
