@@ -342,7 +342,7 @@ class Deployer:
             args = (options, mode, where)
             local(self.ctx, (
                 'ssh -f', host,
-                '"sudo -u {service.user} sh -c \'nohup chmod', args, '>/dev/null 2>&1 &\'"',
+                'sudo -u {service.user} sh -c "nohup chmod', args, '>/dev/null 2>&1 &"',
             ))
 
         chmod('ug=rwX,o-rwx', '{remote.build.dir} {remote.path.log_dir} {remote.path.static}')
