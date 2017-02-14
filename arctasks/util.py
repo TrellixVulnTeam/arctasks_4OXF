@@ -179,9 +179,13 @@ def get_path(ctx):
     Paths are specified via the ``bin.dirs`` config. Returns a string
     like "{path}:{path}:...:$PATH".
 
+    .. note:: Directories in ``bin.dirs`` that don't exist will be
+        excluded.
+
     """
     path = as_list(ctx.bin.get('dirs', []))
     path = [abs_path(p, format_kwargs=ctx) for p in path]
+    path = [p for p in path if os.path.isdir(p)]
     path.append('$PATH')
     path = ':'.join(path)
     return path
