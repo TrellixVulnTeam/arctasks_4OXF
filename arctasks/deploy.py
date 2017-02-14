@@ -159,9 +159,9 @@ class Deployer:
         """Make the local build directory."""
         build_dir = self.ctx.path.build.root
         if os.path.isdir(build_dir):
-            print_header('Removing existing build directory...')
+            print_header('Removing existing build directory: {build_dir} ...'.format(**locals()))
             shutil.rmtree(build_dir)
-        print_header('Creating build dir...')
+        print_header('Creating build directory: {build_dir}'.format(**locals()))
         os.makedirs(build_dir)
 
     def build_static(self):
