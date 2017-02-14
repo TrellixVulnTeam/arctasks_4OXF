@@ -1,7 +1,6 @@
 import getpass
 import json
 import os
-import tempfile
 from collections import Mapping, OrderedDict, Sequence
 from configparser import ConfigParser, ExtendedInterpolation
 
@@ -84,7 +83,6 @@ def configure(ctx, env, version=None, file_name=None, options=None):
         ('version', version if version is not None else LazyConfigValue(git.version)),
         ('current_user', LazyConfigValue(getpass.getuser)),
         ('cwd', cwd),
-        ('arctasks.static.collectstatic.static_root', LazyConfigValue(tempfile.mkdtemp)),
     ))
 
     parser = ConfigParser(interpolation=ExtendedInterpolation())
