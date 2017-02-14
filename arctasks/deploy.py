@@ -172,7 +172,7 @@ class Deployer:
 
         """
         print_header('Building static files...')
-        build_static(self.ctx)
+        build_static(self.ctx, static_root='{path.build.static_root}')
 
     # Remote
 
@@ -540,7 +540,7 @@ def push_app(ctx, deps=None):
 
 @arctask(build_static, configured=True)
 def push_static(ctx, delete=False):
-    static_root = ctx.arctasks.static.collectstatic.static_root
+    static_root = ctx.path.build.static_root
     if not static_root.endswith(os.sep):
         static_root += os.sep
     rsync(ctx, static_root, ctx.remote.path.static, delete=delete, excludes=('staticfiles.json',))
