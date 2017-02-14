@@ -6,7 +6,6 @@
     --entry-point {remote.build.wsgi_module} \
     --envvars-script {remote.build.envvars} \
     --process-name {remote.build.wsgi_module} \
-    --pid-file {remote.path.var.run}/mod_wsgi.pid \
     --server-root {remote.path.etc.root}/mod_wsgi \
     --service-user {service.user} \
     --service-group {service.group} \
