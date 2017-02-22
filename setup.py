@@ -3,7 +3,7 @@ from distutils.core import setup
 
 install_requires = [
     'invoke==0.11.1',
-    'setuptools>=34.1.1',
+    'setuptools>=34.2.0',
 ]
 
 if sys.version_info[:2] < (3, 4):
