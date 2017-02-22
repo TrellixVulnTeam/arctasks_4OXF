@@ -11,7 +11,7 @@ if sys.version_info[:2] < (3, 4):
 
 setup(
     name='psu.oit.arc.tasks',
-    version='0.0.0.dev0',
+    version='1.0.0.dev0',
     author='Wyatt Baldwin',
     author_email='wbaldwin@pdx.edu',
     description='Tasks',
