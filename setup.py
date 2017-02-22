@@ -16,12 +16,12 @@ setup(
     author_email='wbaldwin@pdx.edu',
     description='Tasks',
     license='MIT',
+    url='https://github.com/PSU-OIT-ARC/arctasks',
+    install_requires=install_requires,
     packages=['arctasks'],
     package_data={
         'arctasks': ['tasks.cfg', 'templates/*'],
     },
-    url='https://github.com/PSU-OIT-ARC/arctasks',
-    install_requires=install_requires,
     classifiers=[
         'Development Status :: 4 - Beta',
         'Intended Audience :: Developers',
