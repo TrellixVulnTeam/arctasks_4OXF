@@ -1,33 +1,25 @@
 import os
 
-from .arctask import arctask
-from .runners import local
-from .util import abort, abs_path, as_list, print_info
+from taskrunner import task
+from taskrunner.tasks import local
+from taskrunner.util import abort, abs_path, as_list, print_info
 
 
-DJANGO_SET_UP = False
+def setup(config):
+    os.environ.setdefault('DJANGO_SETTINGS_MODULE', config.get('django_settings_module'))
+    os.environ.setdefault('LOCAL_SETTINGS_FILE', config.get('local_settings_file'))
+    import django
+    django.setup()
 
 
-def setup():
-    get_settings()
-    global DJANGO_SET_UP
-    if not DJANGO_SET_UP:
-        import django
-        django.setup()
-    DJANGO_SET_UP = True
-
-
-def get_settings():
-    try:
-        import django
-    except ImportError:
-        abort(1, 'Django is not installed')
+def get_settings(config):
+    setup(config)
     import django.conf
     return django.conf.settings
 
 
-def call_command(*args, hide=False, **kwargs):
-    setup()
+def call_command(config, *args, hide=False, **kwargs):
+    setup(config)
     import django.core.management
     try:
         if hide:
@@ -39,43 +31,43 @@ def call_command(*args, hide=False, **kwargs):
         abort(message='\nAborted Django management command')
 
 
-@arctask(configured='dev')
-def manage(ctx, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
+@task(default_env='dev')
+def manage(config, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
            abort_on_failure=True):
     local(
-        ctx, ('{bin.python}', 'manage.py', args),
+        config, ('{bin.python}', 'manage.py', args),
         cd=cd, sudo=sudo, run_as=run_as, echo=echo, hide=hide, abort_on_failure=abort_on_failure)
 
 
-@arctask(configured='dev')
-def makemigrations(ctx, app=None):
+@task(default_env='dev')
+def makemigrations(config, app=None):
     args = [app]
     args = [a for a in args if a]
-    call_command('makemigrations', *args)
+    call_command(config, 'makemigrations', *args)
 
 
-@arctask(configured='dev')
-def migrate(ctx, app=None, migration=None):
+@task(default_env='dev')
+def migrate(config, app=None, migration=None):
     if migration and not app:
         abort(1, 'You must specify an app to run a specific migration')
     args = [app, migration]
     args = [a for a in args if a]
-    call_command('migrate', *args)
+    call_command(config, 'migrate', *args)
 
 
-@arctask(configured='test')
-def test(ctx, test=None, failfast=False, keepdb=True, verbosity=1):
+@task(default_env='test')
+def test(config, test=None, failfast=False, keepdb=True, verbosity=1):
     args = [test]
     args = [a for a in args if a]
-    call_command('test', *args, failfast=failfast, keepdb=keepdb, verbosity=verbosity)
+    call_command(config, 'test', *args, failfast=failfast, keepdb=keepdb, verbosity=verbosity)
 
 
-@arctask(configured='test')
-def coverage(ctx, keepdb=True):
+@task(default_env='test')
+def coverage(config, keepdb=True):
     from coverage import coverage
-    cov = coverage(source=[ctx.package])
+    cov = coverage(source=[config.package])
     cov.start()
-    call_command('test', keepdb=keepdb)
+    call_command(config, 'test', keepdb=keepdb)
     cov.stop()
     cov.report()
 
@@ -84,18 +76,18 @@ _runserver_host = '0.0.0.0'
 _runserver_port = 8000
 
 
-@arctask(configured='dev')
-def runserver(ctx, host=_runserver_host, port=_runserver_port):
-    call_command('runserver', '{host}:{port}'.format(**locals()))
+@task(default_env='dev')
+def runserver(config, host=_runserver_host, port=_runserver_port):
+    call_command(config, 'runserver', '{host}:{port}'.format(**locals()))
 
 
-@arctask(configured='dev')
-def run_mod_wsgi(ctx, host=_runserver_host, port=_runserver_port, processes=2, threads=25,
+@task(default_env='dev')
+def run_mod_wsgi(config, host=_runserver_host, port=_runserver_port, processes=2, threads=25,
                  aliases=None, proxies=None):
     aliases = as_list(aliases)
     proxies = as_list(proxies)
 
-    settings = get_settings()
+    settings = get_settings(config)
     media_url = settings.MEDIA_URL.rstrip('/')
     static_url = settings.STATIC_URL.rstrip('/')
     default_media_alias = (media_url, settings.MEDIA_ROOT)
@@ -116,7 +108,7 @@ def run_mod_wsgi(ctx, host=_runserver_host, port=_runserver_port, processes=2, t
     for (path, url) in proxies:
         print_info('Proxy', path, '=>', url)
 
-    local(ctx, (
+    local(config, (
         '{venv}/bin/mod_wsgi-express start-server {wsgi_file}',
         '--processes', str(processes),
         '--threads', str(threads),
@@ -128,11 +120,11 @@ def run_mod_wsgi(ctx, host=_runserver_host, port=_runserver_port, processes=2, t
     ))
 
 
-@arctask(configured='dev')
-def shell(ctx):
-    call_command('shell')
+@task(default_env='dev')
+def shell(config):
+    call_command(config, 'shell')
 
 
-@arctask(configured='dev')
-def dbshell(ctx):
-    call_command('dbshell')
+@task(default_env='dev')
+def dbshell(config):
+    call_command(config, 'dbshell')

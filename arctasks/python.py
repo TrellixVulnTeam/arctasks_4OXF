@@ -2,12 +2,12 @@ from packaging.version import parse
 from pkg_resources import find_distributions, get_distribution
 from subprocess import check_call, CalledProcessError, DEVNULL
 
-from .arctask import arctask
-from .util import abort, print_warning
+from taskrunner import task
+from taskrunner.util import abort, print_warning
 
 
-@arctask
-def show_upgraded_packages(ctx):
+@task
+def show_upgraded_packages(config):
     """Show packages that have been upgraded.
 
     Compares the specified minimum version of each requirement to the

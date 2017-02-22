@@ -15,10 +15,11 @@ import os
 import re
 import subprocess
 
+from taskrunner import task
+from taskrunner.util import (
+    abort, abs_path, confirm, print_error, print_header, print_info, print_success, print_warning)
+
 from . import git
-from .arctask import arctask
-from .util import abort, abs_path, confirm
-from .util import print_error, print_header, print_info, print_success, print_warning
 
 
 __all__ = [
@@ -47,15 +48,15 @@ SETUP_GLOBAL_VERSION_RE = r'VERSION += +(?P<quote>(\'|"))(?P<old_version>.+)(\1)
 SETUP_VERSION_RE = r'version=(?P<quote>(\'|"))(?P<old_version>.+)(\1),'
 
 
-@arctask(configured='dev')
-def release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG, freeze_requirements=True,
-            merge_to_branch='master', tag_name=None, next_version=None, prepare=True, merge=True,
-            tag=True, resume=True, dry_run=False, debug=False):
+@task(default_env='dev')
+def release(config, version, release_date=None, changelog=DEFAULT_CHANGELOG,
+            freeze_requirements=True, merge_to_branch='master', tag_name=None, next_version=None,
+            prepare=True, merge=True, tag=True, resume=True, dry_run=False, debug=False):
     """Cut a release.
 
     A typical run looks like this::
 
-        inv release A.B.C --next-version X.Y.Z
+        run release A.B.C --next-version X.Y.Z
 
     The steps involved are:
 
@@ -67,7 +68,7 @@ def release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG, freeze
     All steps are run by default. To disable a step, pass the
     corresponding ``--no-{step}`` option. E.g.::
 
-        inv release X.Y.Z --no-resume
+        run release X.Y.Z --no-resume
 
     Args:
         version: The release version
@@ -94,20 +95,20 @@ def release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG, freeze
     args = dict(dry_run=dry_run, debug=debug)
     if prepare:
         prepare_release(
-            ctx, version, release_date=release_date, changelog=changelog,
+            config, version, release_date=release_date, changelog=changelog,
             freeze_requirements=freeze_requirements, **args)
     if merge:
-        merge_release(ctx, version, to_branch=merge_to_branch, **args)
+        merge_release(config, version, to_branch=merge_to_branch, **args)
     if tag:
-        tag_release(ctx, tag_name, **args)
+        tag_release(config, tag_name, **args)
     if resume:
-        resume_development(ctx, next_version, changelog=changelog, **args)
+        resume_development(config, next_version, changelog=changelog, **args)
     print_warning('NOTE: Release-related changes are *not* pushed automatically')
     print_warning('NOTE: You still need to `git push` and `git push --tags`')
 
 
-@arctask(configured='dev')
-def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG,
+@task(default_env='dev')
+def prepare_release(config, version, release_date=None, changelog=DEFAULT_CHANGELOG,
                     freeze_requirements=True, dry_run=False, debug=False):
     """Prepare a release.
 
@@ -128,7 +129,7 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
         debug: Show extra info that might be helpful for debugging
 
     """
-    distribution = ctx.distribution
+    distribution = config.distribution
 
     if release_date is None:
         release_date = datetime.date.today().strftime('%Y-%m-%d')
@@ -153,7 +154,7 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
         requirements_file = os.devnull if dry_run else 'requirements-frozen.txt'
         with open(requirements_file, 'w') as requirements_fp:
             subprocess.check_call(
-                [ctx.bin.pip, 'freeze', '-f', ctx.remote.pip.find_links],
+                [config.bin.pip, 'freeze', '-f', config.remote.pip.find_links],
                 stdout=requirements_fp)
         # Adjust frozen requirements:
         #   - Ensure distribution spec is correct in frozen requirements
@@ -183,8 +184,8 @@ def prepare_release(ctx, version, release_date=None, changelog=DEFAULT_CHANGELOG
         git.commit_files(files_to_commit, commit_message)
 
 
-@arctask(configured='dev')
-def merge_release(ctx, version, to_branch='master', dry_run=False, debug=False):
+@task(default_env='dev')
+def merge_release(config, version, to_branch='master', dry_run=False, debug=False):
     """Merge release.
 
     By default, this does a "no fast forward" merge into master.
@@ -214,15 +215,15 @@ def merge_release(ctx, version, to_branch='master', dry_run=False, debug=False):
         print_info('[DRY RUN] Merge commit message:')
         print(commit_message)
         return
-    if not confirm(ctx, 'Merge these changes into {to_branch}?'.format_map(f), yes_values=('yes',)):
+    if not confirm(config, 'Merge these changes into {to_branch}?'.format_map(f), yes_values=('yes',)):
         abort(message='Aborted merge from {current_branch} to {to_branch}'.format_map(f))
     git.run(['checkout', to_branch])
     git.run(['merge', '--no-ff', current_branch, '-m', commit_message])
     git.run(['checkout', current_branch])
 
 
-@arctask(configured='dev')
-def tag_release(ctx, tag_name, to_branch='master', dry_run=False, debug=False):
+@task(default_env='dev')
+def tag_release(config, tag_name, to_branch='master', dry_run=False, debug=False):
     """Tag release.
 
     By default, this tags the master branch as ``version``. It's assumed
@@ -250,13 +251,14 @@ def tag_release(ctx, tag_name, to_branch='master', dry_run=False, debug=False):
         print_info('[DRY RUN] Tag commit message:')
         print(commit_message)
         return
-    if not confirm(ctx, 'Tag this commit as {tag_name}?'.format_map(f)):
+    if not confirm(config, 'Tag this commit as {tag_name}?'.format_map(f)):
         abort(message='Aborted tagging of release')
     git.tag(tag_name, to_branch, message=commit_message)
 
 
-@arctask(configured='dev')
-def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=False, debug=False):
+@task(default_env='dev')
+def resume_development(config, version=None, changelog=DEFAULT_CHANGELOG, dry_run=False,
+                       debug=False):
     """Resume development.
 
     Resuming development consists of:
@@ -274,7 +276,7 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
         debug: Show extra info that might be helpful for debugging
 
     """
-    distribution = ctx.distribution
+    distribution = config.distribution
 
     if version is None:
         version = input('Version for new release (.dev0 will be appended): ')
@@ -311,7 +313,7 @@ def resume_development(ctx, version=None, changelog=DEFAULT_CHANGELOG, dry_run=F
     if os.path.isfile('requirements-frozen.txt'):
         files_to_commit.append('requirements-frozen.txt')
         with open(abs_path('arctasks:templates/requirements.txt.template')) as fp:
-            contents = fp.read().format(**ctx)
+            contents = fp.read().format(**config)
         with open((os.devnull if dry_run else 'requirements-frozen.txt'), 'w') as fp:
             if dry_run:
                 print_info('[DRY RUN] New requirements-frozen.txt content would be:')

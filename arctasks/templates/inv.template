@@ -1,4 +1,0 @@
-#!/bin/bash
-export ARCTASKS_DEFAULT_ENV="{env}"
-export PATH="{remote.build.bin}:$PATH"
-{remote.build.bin}/inv "$@"

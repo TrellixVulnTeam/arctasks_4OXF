@@ -3,46 +3,46 @@ import shutil
 import sys
 import urllib.request
 
-from .arctask import DEFAULT_ENV, arctask
-from .runners import local
-from .util import abort, abs_path, as_list
-from .util import print_header, print_error, print_info, print_success, print_warning
+from taskrunner import task
+from taskrunner.tasks import local
+from taskrunner.util import abort, abs_path, as_list
+from taskrunner.util import print_header, print_error, print_info, print_success, print_warning
 
 
-@arctask
-def clean(ctx):
-    local(ctx, 'find . -name __pycache__ -type d -print0 | xargs -0 rm -r')
-    local(ctx, 'find . -name "*.py[co]" -print0 | xargs -0 rm')
-    local(ctx, 'rm -rf build')
-    local(ctx, 'rm -rf dist')
+@task
+def clean(config):
+    local(config, 'find . -name __pycache__ -type d -print0 | xargs -0 rm -r')
+    local(config, 'find . -name "*.py[co]" -print0 | xargs -0 rm')
+    local(config, 'rm -rf build')
+    local(config, 'rm -rf dist')
 
 
-@arctask(configured='dev')
-def install(ctx, requirements='{pip.requirements}', upgrade=False):
-    local(ctx, ('{bin.pip}', 'install', '--upgrade' if upgrade else '', '-r', requirements))
+@task(default_env='dev')
+def install(config, requirements='{pip.requirements}', upgrade=False):
+    local(config, ('{bin.pip}', 'install', '--upgrade' if upgrade else '', '-r', requirements), echo=config._get_dotted('run.echo'))
 
 
-@arctask(configured='dev')
-def virtualenv(ctx, executable=None, overwrite=False):
+@task(default_env='dev')
+def virtualenv(config, where, executable=None, overwrite=False):
     create = True
-    if os.path.exists(ctx.venv):
+    if os.path.exists(where):
         if overwrite:
-            print('Overwriting virtualenv {venv}'.format(**ctx))
-            shutil.rmtree(ctx.venv)
+            print('Overwriting virtualenv {where}'.format(where=where))
+            shutil.rmtree(where)
         else:
             create = False
-            print('virtualenv {venv} exists'.format(**ctx))
+            print('virtualenv {where} exists'.format(where=where))
     if create:
         if executable is None:
             executable = 'python{v.major}.{v.minor}'.format(v=sys.version_info)
             print_info('Automatically selected {executable} for virtualenv'.format_map(locals()))
-        local(ctx, ('virtualenv', '-p', executable, '{venv}'))
-        local(ctx, '{bin.pip} install -U setuptools')
-        local(ctx, '{bin.pip} install -U pip')
+        local(config, ('virtualenv', '-p', executable, where))
+        local(config, '{bin.pip} install -U setuptools')
+        local(config, '{bin.pip} install -U pip')
 
 
-@arctask(configured='dev')
-def lint(ctx, where=None):
+@task(default_env='dev')
+def lint(config, where=None):
     """Check source files for issues.
 
     For Python code, this uses the flake8 package, which wraps pep8 and
@@ -54,14 +54,14 @@ def lint(ctx, where=None):
 
     """
     if where is None:
-        where = ctx['package']
+        where = config['package']
         where = where.replace('.', '/')
     else:
-        where = where.format_map(ctx)
+        where = where.format_map(config)
     print_header('Checking for Python lint in {where}...'.format(where=where))
-    result = local(ctx, ('flake8', where), abort_on_failure=False)
+    result = local(config, ('flake8', where), abort_on_failure=False)
     if result.failed:
-        pieces_of_lint = len(result.stdout.strip().splitlines())
+        pieces_of_lint = len(result.stdout_lines)
         print_error(pieces_of_lint, 'pieces of Python lint found')
     else:
         print_success('Python is clean')
@@ -82,28 +82,28 @@ _npm_install_modules = (
 )
 
 
-@arctask(configured='dev')
-def npm_install(ctx, where='.', modules=_npm_install_modules, force=False, overwrite=False):
+@task(default_env='dev')
+def npm_install(config, where='.', modules=_npm_install_modules, force=False, overwrite=False):
     """Install node modules via npm into ./node_modules.
 
     By default, any modules that are already installed will be skipped.
     Pass --force to install all specified modules.
 
     """
-    result = local(ctx, 'which npm', echo=False, hide='stdout', abort_on_failure=False)
+    result = local(config, 'which npm', echo=False, hide='stdout', abort_on_failure=False)
     if result.failed:
         abort(1, 'node and npm must be installed first')
-    where = abs_path(where, format_kwargs=ctx)
+    where = abs_path(where, format_kwargs=config)
     node_modules = os.path.join(where, 'node_modules')
     if overwrite and os.path.isdir(node_modules):
         print_warning('Removing {node_modules}...'.format_map(locals()))
         shutil.rmtree(node_modules)
     modules = as_list(modules)
-    local(ctx, ('npm install', ('--force' if force else ''), modules), cd=where)
+    local(config, ('npm install', ('--force' if force else ''), modules), cd=where)
 
 
-@arctask(configured=DEFAULT_ENV)
-def retrieve(ctx, source, destination, overwrite=False, chmod=None):
+@task
+def retrieve(config, source, destination, overwrite=False, chmod=None):
     """Similar to ``wget``, retrieves and saves a resource.
 
     If ``destination`` exists, the resource won't be retrieved unless
@@ -132,8 +132,8 @@ def retrieve(ctx, source, destination, overwrite=False, chmod=None):
     destination).
 
     """
-    source = source.format(**ctx)
-    destination = destination.format(**ctx)
+    source = source.format(**config)
+    destination = destination.format(**config)
     chmod = int(chmod, 8) if isinstance(chmod, str) else chmod
     make_dir = None
 

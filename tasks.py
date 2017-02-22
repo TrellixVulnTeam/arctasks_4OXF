@@ -1,1 +1,1 @@
-from arctasks import *
+from arctasks.tasks import *

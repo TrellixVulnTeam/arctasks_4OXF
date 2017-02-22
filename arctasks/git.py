@@ -1,7 +1,6 @@
 import subprocess
 
-from arctasks.util import print_warning
-from .util import abort, confirm
+from taskrunner.util import abort, confirm, print_warning
 
 
 def run(args, return_output=False, **subprocess_args):

@@ -1,15 +1,15 @@
 import os
 import tempfile
 
-from .arctask import arctask
-from .runners import local, remote
-from .util import abs_path, args_to_str, as_tuple
+from taskrunner import task
+from taskrunner.tasks import local, remote
+from taskrunner.util import abs_path, args_to_str, as_tuple
 
 
-@arctask(configured=True)
-def manage(ctx, args):
+@task
+def manage(config, args):
     """Run a Django management command on the remote host."""
-    remote(ctx, (
+    remote(config, (
         'LOCAL_SETTINGS_FILE="{remote.build.local_settings_file}"',
         '{remote.build.python}',
         '{remote.build.manage}',
@@ -21,10 +21,10 @@ _rsync_default_mode = 'ug=rwX,o-rwx'
 _rsync_default_excludes = ('__pycache__/', '.DS_Store', '*.pyc', '*.swp')
 
 
-@arctask(configured=True, optional=('default_excludes',))
-def rsync(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host}',
+@task
+def rsync(config, local_path, remote_path, user='{remote.user}', host='{remote.host}',
           run_as='{remote.run_as}', dry_run=False, delete=False, excludes=(),
-          default_excludes=_rsync_default_excludes, echo=True, hide=True, mode=_rsync_default_mode,
+          default_excludes=_rsync_default_excludes, echo=True, hide='all', mode=_rsync_default_mode,
           source='local'):
     """Copy files using rsync.
 
@@ -43,8 +43,8 @@ def rsync(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host
     excludes = as_tuple(excludes)
     if default_excludes:
         excludes += as_tuple(default_excludes)
-    run_as = args_to_str(run_as, format_kwargs=ctx)
-    local(ctx, (
+    run_as = args_to_str(run_as, format_kwargs=config)
+    local(config, (
         'rsync',
         '-rltvz',
         '--dry-run' if dry_run else '',
@@ -56,17 +56,17 @@ def rsync(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host
     ), echo=echo, hide=hide)
 
 
-@arctask(configured=True)
-def copy_file(ctx, local_path, remote_path, user='{remote.user}', host='{remote.host}',
+@task
+def copy_file(config, local_path, remote_path, user='{remote.user}', host='{remote.host}',
               run_as='{remote.run_as}', template=False, mode=_rsync_default_mode):
-    local_path = abs_path(local_path, format_kwargs=ctx)
+    local_path = abs_path(local_path, format_kwargs=config)
     if template:
         with open(local_path) as in_fp:
-            contents = in_fp.read().format(**ctx)
+            contents = in_fp.read().format(**config)
         temp_fd, local_path = tempfile.mkstemp(
-            prefix='%s-' % ctx.package,
+            prefix='%s-' % config.package,
             suffix='-%s' % os.path.basename(local_path),
             text=True)
         os.write(temp_fd, contents.encode('utf-8'))
         os.close(temp_fd)
-    rsync(ctx, local_path, remote_path, user=user, host=host, run_as=run_as, mode=mode)
+    rsync(config, local_path, remote_path, user=user, host=host, run_as=run_as, mode=mode)

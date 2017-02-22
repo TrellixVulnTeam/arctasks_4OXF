@@ -1,11 +1,12 @@
 import re
 
+from taskrunner import task
+
 from . import git
-from .arctask import arctask
 
 
-@arctask
-def time_spent(ctx, key, after=None, since=None, rate=0, debug=False):
+@task
+def time_spent(config, key, after=None, since=None, rate=0, debug=False):
     """Show time spent on a project based on git history.
 
     Parses JIRA smart commits for #time. Smart commits look like this::
@@ -30,10 +31,10 @@ def time_spent(ctx, key, after=None, since=None, rate=0, debug=False):
     Examples::
 
         # Show time spent after release 1.2.0
-        inv time_spent NPULSE --after 1.2.0
+        run time_spent NPULSE --after 1.2.0
 
         # Show time spent after a specific date
-        inv time_spent NPULSE --since 2016-07-11
+        run time_spent NPULSE --since 2016-07-11
 
     """
     seconds = []

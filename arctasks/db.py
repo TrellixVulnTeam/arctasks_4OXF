@@ -2,31 +2,29 @@ import os
 from getpass import getpass
 from tempfile import mkstemp
 
-from invoke import Context
-
-from .arctask import arctask
-from .config import configure
-from .runners import local
-from .util import abort, as_tuple, confirm
+from taskrunner import task
+from taskrunner.config import Config
+from taskrunner.tasks import local
+from taskrunner.util import abort, as_tuple, confirm
 
 
-@arctask(configured='dev')
-def createdb(ctx, type=None, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
-             drop=False, with_postgis=False, extensions=()):
+@task(default_env='dev')
+def createdb(config, type=None, user='{db.user}', host='{db.host}', port='{db.port}',
+             name='{db.name}', drop=False, with_postgis=False, extensions=()):
     if type is None:
-        type = ctx.db.type
-    args = (ctx, user, host, port, name, drop)
+        type = config.db.type
+    args = (config, user, host, port, name, drop)
     if type == 'mysql':
         creator = create_mysql_db
     elif type == 'postgresql':
         args += (with_postgis, extensions)
         creator = create_postgresql_db
     else:
-        raise ValueError('Unknown database type: {db.type}'.format(**ctx))
+        raise ValueError('Unknown database type: {db.type}'.format(**config))
     creator(*args)
 
 
-def create_postgresql_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}',
+def create_postgresql_db(config, user='{db.user}', host='{db.host}', port='{db.port}',
                          name='{db.name}', drop=False, with_postgis=False, extensions=()):
     """Create a PostgreSQL database with the specified ``name``.
 
@@ -45,13 +43,13 @@ def create_postgresql_db(ctx, user='{db.user}', host='{db.host}', port='{db.port
     # Try to run the drop and create commands with the postgres user; if
     # that user doesn't exist, run those commands as the current user.
     # This supports VM and Homebrew setups.
-    result = local(ctx, 'id -u postgres', echo=False, hide=True, abort_on_failure=False)
-    run_as = 'postgres' if result.ok else None
+    result = local(config, 'id -u postgres', echo=False, hide='all', abort_on_failure=False)
+    run_as = 'postgres' if result.succeeded else None
 
     def run_command(*command, superuser='postgres', database='postgres'):
         command = ' '.join(command)
         command = '"{command}"'.format(command=command)
-        local(ctx, (
+        local(config, (
             'psql',
             '-U', superuser,
             '-h', host,
@@ -71,7 +69,7 @@ def create_postgresql_db(ctx, user='{db.user}', host='{db.host}', port='{db.port
         run_command('CREATE EXTENSION', extension, database=name)
 
 
-def create_mysql_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
+def create_mysql_db(config, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
                     drop=False):
     """Create a MySQL database with the specified ``name``.
 
@@ -83,7 +81,7 @@ def create_mysql_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', n
     def run_command(*command):
         command = ' '.join(command)
         command = '"{command}"'.format(command=command)
-        local(ctx, (
+        local(config, (
             'mysql',
             '-h', host,
             '-p', port,
@@ -102,8 +100,8 @@ def create_mysql_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', n
     run_command('CREATE DATABASE', name)
 
 
-@arctask(configured='dev')
-def load_prod_data(ctx,
+@task(default_env='dev')
+def load_prod_data(config,
                    reset=False,
                    source='prod', source_user=None, source_host=None, source_port=None,
                    source_name=None,
@@ -115,43 +113,42 @@ def load_prod_data(ctx,
     data into the dev database. As such, this will typically be run like
     so::
 
-        inv createdb -d load_prod_data
+        run createdb -d load_prod_data
 
     You can also choose another data source, such as 'stage'::
 
-        inv createdb -d load_prod_data --source stage
+        run createdb -d load_prod_data --source stage
 
     To refresh the stage database, you'd run this instead::
 
-        inv stage reset_db load_prod_data
+        run stage reset_db load_prod_data
 
     """
-    if ctx.env == 'prod':
+    if config.env == 'prod':
         abort(1, 'Cannot load data into prod database')
 
-    if ctx.env == source:
+    if config.env == source:
         abort(1, 'Cannot load data into source database')
 
     if reset:
-        reset_db(ctx, user, host, port, name)
+        reset_db(config, user, host, port, name)
 
-    source_ctx = Context()
-    configure(source_ctx, source)
+    source_config = Config(config_file=config.config_file, env=source)
     source_pw = getpass('{source} database password: '.format(**locals()))
-    env_pw = getpass('{env} database password: '.format(**ctx))
+    env_pw = getpass('{env} database password: '.format(**config))
     temp_fd, temp_path = mkstemp()
 
-    if ctx.db.type == 'postgresql':
+    if config.db.type == 'postgresql':
         if source_pw:
             os.environ['PGPASSWORD'] = source_pw
 
-        local(ctx, (
+        local(config, (
             'pg_dump',
             '--format', 'custom',
-            '-U', source_user or source_ctx.db.user,
-            '-h', source_host or source_ctx.db.host,
-            '-p', source_port or source_ctx.db.port,
-            '-d', source_name or source_ctx.db.name,
+            '-U', source_user or source_config.db.user,
+            '-h', source_host or source_config.db.host,
+            '-p', source_port or source_config.db.port,
+            '-d', source_name or source_config.db.name,
             '--schema', schema,
             '--blobs',
             '--no-acl',
@@ -163,7 +160,7 @@ def load_prod_data(ctx,
         if env_pw:
             os.environ['PGPASSWORD'] = env_pw
 
-        local(ctx, (
+        local(config, (
             'pg_restore',
             '-U', user,
             '-h', host,
@@ -175,14 +172,14 @@ def load_prod_data(ctx,
 
         os.close(temp_fd)
         os.remove(temp_path)
-    elif ctx.db.type == 'mysql':
+    elif config.db.type == 'mysql':
         raise NotImplementedError('load_prod_data not yet implemented for MySQL')
     else:
-        raise ValueError('Unknown database type: {db.type}'.format(**ctx))
+        raise ValueError('Unknown database type: {db.type}'.format(**config))
 
 
-@arctask(configured=True)
-def reset_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
+@task
+def reset_db(config, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
              truncate=False):
     """DROP CASCADE tables in database.
 
@@ -201,28 +198,28 @@ def reset_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', name='{d
     cannot be run in prod.
 
     """
-    if ctx.env == 'prod':
+    if config.env == 'prod':
         abort(1, 'reset_db cannot be run on the prod database')
 
-    user = user.format_map(ctx)
-    host = host.format_map(ctx)
-    port = port.format_map(ctx)
-    name = name.format_map(ctx)
+    user = user.format_map(config)
+    host = host.format_map(config)
+    port = port.format_map(config)
+    name = name.format_map(config)
     op = 'TRUNCATE' if truncate else 'DROP'
 
     msg = (
         'Do you really want to reset the {{env}} database ({user}@{host}:{port}/{name})?\n'
         'This will {op} CASCADE all tables (excluding PostGIS tables).'.format_map(locals()))
-    if not confirm(ctx, msg):
+    if not confirm(config, msg):
         abort(0)
 
-    password = getpass('{env} database password: '.format(**ctx))
+    password = getpass('{env} database password: '.format(**config))
     if password:
         os.environ['PGPASSWORD'] = password
 
     psql = ('psql', '-U', user, '-h', host, '-p', port, '-d', name)
 
-    result = local(ctx, (
+    result = local(config, (
         psql, '--tuples-only --command "',
         "SELECT tablename "
         "FROM pg_tables "
@@ -242,9 +239,9 @@ def reset_db(ctx, user='{db.user}', host='{db.host}', port='{db.port}', name='{d
     print('    {statements}\n'.format(statements='\n    '.join(statements)))
 
     confirmation_message = 'Are you sure you want to do this (you must type out "yes")?'
-    confirmed = confirm(ctx, confirmation_message, yes_values=('yes',))
+    confirmed = confirm(config, confirmation_message, yes_values=('yes',))
 
     if confirmed:
-        local(ctx, (psql, '-c "', statements, '"'))
+        local(config, (psql, '-c "', statements, '"'))
     else:
         print('Cancelled')

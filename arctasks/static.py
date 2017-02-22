@@ -5,20 +5,22 @@ import shutil
 from subprocess import Popen
 from tempfile import NamedTemporaryFile
 
-from .arctask import arctask
+from taskrunner import task
+from taskrunner.tasks import local
+from taskrunner.runners.tasks import get_default_prepend_path
+from taskrunner.util import abort, abs_path, args_to_str, as_list
+
 from .django import call_command, get_settings
 from .remote import rsync
-from .runners import local
-from .util import abort, abs_path, args_to_str, as_list, get_path
 
 
-@arctask(configured='dev')
-def bower(ctx, where='{package}:static', update=False):
-    which = local(ctx, 'which bower', echo=False, hide='stdout', abort_on_failure=False)
+@task(default_env='dev')
+def bower(config, where='{package}:static', update=False):
+    which = local(config, 'which bower', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
         abort(1, 'bower must be installed (via npm) and on $PATH')
-    where = abs_path(where, format_kwargs=ctx)
-    local(ctx, ('bower', 'update' if update else 'install'), cd=where)
+    where = abs_path(where, format_kwargs=config)
+    local(config, ('bower', 'update' if update else 'install'), cd=where)
 
 
 # Copied from Bootstrap (from grunt/configBridge.json in the source)
@@ -34,8 +36,8 @@ _autoprefixer_browsers = ','.join((
 ))
 
 
-@arctask(configured='dev')
-def lessc(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers):
+@task(default_env='dev')
+def lessc(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers):
     """Compile the LESS files specified by ``sources``.
 
     Each LESS file will be compiled into a CSS file with the same root
@@ -44,17 +46,17 @@ def lessc(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_
     TODO: Make destination paths configurable?
 
     """
-    which = local(ctx, 'which lessc', echo=False, hide='stdout', abort_on_failure=False)
+    which = local(config, 'which lessc', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
         abort(1, 'less must be installed (via npm) and on $PATH')
-    sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
+    sources = [abs_path(s, format_kwargs=config) for s in as_list(sources)]
     sources = [glob.glob(s) for s in sources]
     for source in itertools.chain(*sources):
         root, ext = os.path.splitext(source)
         if ext != '.less':
             abort(1, 'Expected a .less file; got "{source}"'.format(source=source))
         destination = '{root}.css'.format(root=root)
-        local(ctx, (
+        local(config, (
             'lessc',
             '--autoprefix="%s"' % autoprefixer_browsers,
             '--clean-css' if optimize else '',
@@ -62,8 +64,8 @@ def lessc(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_
         ))
 
 
-@arctask(configured='dev', timed=True)
-def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers):
+@task(default_env='dev')
+def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers):
     """Compile the SASS files specified by ``sources``.
 
     Each SASS file will be compiled into a CSS file with the same root
@@ -72,17 +74,17 @@ def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_b
     TODO: Make destination paths configurable?
 
     """
-    which = local(ctx, 'which node-sass', echo=False, hide='stdout', abort_on_failure=False)
+    which = local(config, 'which node-sass', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
         abort(1, 'node-sass must be installed (via npm) and on $PATH')
 
-    sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
+    sources = [abs_path(s, format_kwargs=config) for s in as_list(sources)]
     sources = [glob.glob(s) for s in sources]
 
     run_postcss = bool(optimize or autoprefixer_browsers)
 
-    echo = ctx['run']['echo']
-    path = 'PATH={path}'.format(path=get_path(ctx))
+    echo = config['run']['echo']
+    path = 'PATH={path}'.format(path=get_default_prepend_path(config))
     env = os.environ.copy()
     env['PATH'] = ':'.join((path, env['PATH']))
 
@@ -129,21 +131,21 @@ def sass(ctx, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_b
             shutil.copyfile(out.name, destination)
 
 
-@arctask(configured='dev')
-def build_static(ctx, css=True, css_sources=None, js=True, js_sources=None, collect=True,
+@task(default_env='dev')
+def build_static(config, css=True, css_sources=None, js=True, js_sources=None, collect=True,
                  optimize=True, static_root=None, default_ignore=True, ignore=None):
     if css:
-        build_css(ctx, sources=css_sources, optimize=optimize)
+        build_css(config, sources=css_sources, optimize=optimize)
     if js:
-        build_js(ctx, sources=js_sources, optimize=optimize)
+        build_js(config, sources=js_sources, optimize=optimize)
     if collect:
-        collectstatic(ctx, static_root=static_root, default_ignore=default_ignore, ignore=ignore)
+        collectstatic(config, static_root=static_root, default_ignore=default_ignore, ignore=ignore)
 
 
-@arctask(configured='dev')
-def build_css(ctx, sources=None, optimize=True):
+@task(default_env='dev')
+def build_css(config, sources=None, optimize=True):
     if sources is None:
-        static_config = ctx.get('arctasks', {}).get('static', {})
+        static_config = config.get('arctasks', {}).get('static', {})
         sources = []
         sources.extend(static_config.get('lessc', {}).get('sources', ()))
         sources.extend(static_config.get('sass', {}).get('sources', ()))
@@ -152,22 +154,23 @@ def build_css(ctx, sources=None, optimize=True):
     less_sources = [s for s in sources if s.endswith('less')]
     sass_sources = [s for s in sources if s.endswith('scss')]
     if less_sources:
-        lessc(ctx, sources=less_sources, optimize=optimize)
+        lessc(config, sources=less_sources, optimize=optimize)
     if sass_sources:
-        sass(ctx, sources=sass_sources, optimize=optimize)
+        sass(config, sources=sass_sources, optimize=optimize)
 
 
 _collectstatic_default_ignore = (
     'node_modules',
 )
 
-@arctask(configured='dev')
-def collectstatic(ctx, static_root=None, default_ignore=True, ignore=None):
-    settings = get_settings()
+
+@task(default_env='dev')
+def collectstatic(config, static_root=None, default_ignore=True, ignore=None):
+    settings = get_settings(config)
     override_static_root = bool(static_root)
 
     if override_static_root:
-        static_root = static_root.format(**ctx)
+        static_root = static_root.format(**config)
         original_static_root = settings.STATIC_ROOT
         settings.STATIC_ROOT = static_root
 
@@ -176,19 +179,19 @@ def collectstatic(ctx, static_root=None, default_ignore=True, ignore=None):
         ignore.extend(_collectstatic_default_ignore)
 
     print('Collecting static files into {0.STATIC_ROOT} ...'.format(settings))
-    call_command('collectstatic', interactive=False, ignore=ignore, clear=True, hide=True)
+    call_command(config, 'collectstatic', interactive=False, ignore=ignore, clear=True, hide='all')
 
     if override_static_root:
         settings.STATIC_ROOT = original_static_root
 
 
-@arctask(configured='dev')
-def build_js(ctx, sources=None, main_config_file='{package}:static/requireConfig.js',
+@task(default_env='dev')
+def build_js(config, sources=None, main_config_file='{package}:static/requireConfig.js',
              base_url='{package}:static', optimize=True, paths=None):
-    sources = [abs_path(s, format_kwargs=ctx) for s in as_list(sources)]
+    sources = [abs_path(s, format_kwargs=config) for s in as_list(sources)]
     sources = [glob.glob(s) for s in sources]
-    main_config_file = abs_path(main_config_file, format_kwargs=ctx)
-    base_url = abs_path(base_url, format_kwargs=ctx)
+    main_config_file = abs_path(main_config_file, format_kwargs=config)
+    base_url = abs_path(base_url, format_kwargs=config)
     optimize = 'uglify' if optimize else 'none'
     paths = as_list(paths)
     if paths:
@@ -208,13 +211,13 @@ def build_js(ctx, sources=None, main_config_file='{package}:static/requireConfig
             paths or '',
             'out={out}',
         ), format_kwargs=locals())
-        local(ctx, cmd, hide='stdout')
+        local(config, cmd, hide='stdout')
 
 
-@arctask(configured='prod')
-def pull_media(ctx, user='{remote.user}', host='{remote.host}', run_as='{remote.run_as}'):
+@task(default_env='prod')
+def pull_media(config, user='{remote.user}', host='{remote.host}', run_as='{remote.run_as}'):
     """Pull media from specified env [prod] to ./media."""
-    local(ctx, 'mkdir -p media')
+    local(config, 'mkdir -p media')
     rsync(
-        ctx, local_path='media', remote_path='{remote.path.media}/', user=user, host=host,
+        config, local_path='media', remote_path='{remote.path.media}/', user=user, host=host,
         run_as=run_as, source='remote', default_excludes=None)

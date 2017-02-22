@@ -2,7 +2,7 @@ import sys
 from distutils.core import setup
 
 install_requires = [
-    'invoke==0.11.1',
+    'taskrunner>=1.0.0.dev0',
     'setuptools>=34.2.0',
 ]
 
