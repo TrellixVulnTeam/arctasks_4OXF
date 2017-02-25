@@ -2,7 +2,7 @@ import sys
 from distutils.core import setup
 
 install_requires = [
-    'taskrunner>=1.0.0.dev0',
+    'taskrunner>=1.0a1',
     'setuptools>=34.2.0',
 ]
 
