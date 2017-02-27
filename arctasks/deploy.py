@@ -533,6 +533,7 @@ def push_app(config, deps=None):
         '{bin.pip}',
         'wheel',
         '--wheel-dir {path.build.dist}',
+        '--find-links {remote.pip.find_links}',
         'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
     ))
     remote(config, 'rm -f {remote.build.dist}/*')
