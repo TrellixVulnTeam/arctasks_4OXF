@@ -422,16 +422,15 @@ def builds(config, active=False, rm=None, yes=False):
             if yes or confirm(config, prompt, color='error', yes_values=('yes',)):
                 remote(config, cmd)
     else:
-        active = remote(config, 'readlink {remote.path.env}', abort_on_failure=False)
+        active = remote(config, 'readlink {remote.path.env}', abort_on_failure=False, hide='stdout')
         active = active.stdout.strip() if active.succeeded else ''
         printer.header('Builds for {env} (in {remote.build.root}; newest first):'.format(**config))
         # Get a list of all the build directories.
-        dirs = remote(config, (
+        result = remote(config, (
             'find', build_root, '-mindepth 1 -maxdepth 1 -type d'
         ), cd='/', echo=False, hide='stdout')
-        result = dirs.stdout.strip().splitlines()
-        if result:
-            dirs = ' '.join(result)
+        if result.stdout_lines:
+            dirs = ' '.join(result.stdout_lines)
             # Get path and timestamp of last modification for each build
             # directory.
             # Example stat entry:
