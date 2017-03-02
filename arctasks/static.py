@@ -75,10 +75,6 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
     TODO: Make destination paths configurable?
 
     """
-    which = local(config, 'which node-sass', echo=False, hide='stdout', abort_on_failure=False)
-    if which.failed:
-        abort(1, 'node-sass must be installed (via npm) and on $PATH')
-
     sources = as_list(sources)
     sources = [abs_path(s, format_kwargs=config) for s in sources]
 
