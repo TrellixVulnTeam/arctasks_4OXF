@@ -148,10 +148,9 @@ def build_static(config, css=True, css_sources=None, js=True, js_sources=None, c
 @task(default_env='dev')
 def build_css(config, sources=None, optimize=True):
     if sources is None:
-        static_config = config.get('arctasks', {}).get('static', {})
         sources = []
-        sources.extend(static_config.get('lessc', {}).get('sources', ()))
-        sources.extend(static_config.get('sass', {}).get('sources', ()))
+        sources.extend(config._get_dotted('defaults.arctasks.static.lessc.sources', default=[]))
+        sources.extend(config._get_dotted('defaults.arctasks.static.sass.sources', default=[]))
     else:
         sources = as_list(sources)
     less_sources = [s for s in sources if s.endswith('less')]
