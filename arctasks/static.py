@@ -106,10 +106,7 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
                 in_file.seek(0)
             out_file = NamedTemporaryFile()
             if echo:
-                print(' '.join(args), end=' ')
-                if in_file is not None:
-                    print('<', in_file.name, sep='', end=' ')
-                print('>', out_file.name, sep='')
+                print(' '.join(args))
             cmd = Popen(args, stdin=in_file, stdout=out_file, env=env)
             cmd.wait()
             if cmd.returncode:
@@ -132,9 +129,7 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
 
             out = do_or_die(postcss_args, in_file=out)
 
-        if echo:
-            print('cp {out.name} {destination}'.format_map(locals()))
-            shutil.copyfile(out.name, destination)
+        shutil.copyfile(out.name, destination)
 
 
 @task(default_env='dev')
