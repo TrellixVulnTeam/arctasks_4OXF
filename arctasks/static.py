@@ -79,7 +79,13 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
     if which.failed:
         abort(1, 'node-sass must be installed (via npm) and on $PATH')
 
-    sources = [abs_path(s, format_kwargs=config) for s in as_list(sources)]
+    sources = as_list(sources)
+    sources = [abs_path(s, format_kwargs=config) for s in sources]
+
+    for s in sources:
+        if not glob.glob(s):
+            abort(1, 'No SASS sources found for "{s}"'.format(s=s))
+
     sources = [glob.glob(s) for s in sources]
 
     hide_stdout = Hide.hide_stdout(hide)
