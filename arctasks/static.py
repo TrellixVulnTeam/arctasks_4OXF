@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 from taskrunner import task
 from taskrunner.tasks import local
 from taskrunner.runners.tasks import get_default_prepend_path
-from taskrunner.util import abort, abs_path, args_to_str, as_list
+from taskrunner.util import abort, abs_path, args_to_str, as_list, Hide
 
 from .django import call_command, get_settings
 from .remote import rsync
@@ -65,7 +65,8 @@ def lessc(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefix
 
 
 @task(default_env='dev')
-def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers):
+def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers,
+         echo=False, hide=None):
     """Compile the SASS files specified by ``sources``.
 
     Each SASS file will be compiled into a CSS file with the same root
@@ -81,9 +82,11 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
     sources = [abs_path(s, format_kwargs=config) for s in as_list(sources)]
     sources = [glob.glob(s) for s in sources]
 
+    hide_stdout = Hide.hide_stdout(hide)
+    echo = echo and not hide_stdout
+
     run_postcss = bool(optimize or autoprefixer_browsers)
 
-    echo = config['run']['echo']
     path = 'PATH={path}'.format(path=get_default_prepend_path(config))
     env = os.environ.copy()
     env['PATH'] = ':'.join((path, env['PATH']))
@@ -91,6 +94,9 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
     for source in itertools.chain(*sources):
         root, ext = os.path.splitext(source)
         destination = '{root}.css'.format(root=root)
+
+        if not hide_stdout:
+            print('Compiling {source} to {destination}'.format_map(locals()))
 
         if ext != '.scss':
             abort(1, 'Expected a .scss file; got "{source}"'.format(source=source))
