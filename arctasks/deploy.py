@@ -539,13 +539,13 @@ def push_app(config, deps=None, echo=False, hide=None):
 
 
 @task
-def push_static(config, delete=False):
+def push_static(config, dry_run=False, delete=False):
     static_root = config.path.build.static_root
     build_static(config, static_root=static_root)
     if not static_root.endswith(os.sep):
         static_root += os.sep
     rsync(
-        config, static_root, config.remote.path.static, delete=delete,
+        config, static_root, config.remote.path.static, dry_run=dry_run, delete=delete,
         excludes=('staticfiles.json',))
     manifest = os.path.join(static_root, 'staticfiles.json')
     if os.path.isfile(manifest):
