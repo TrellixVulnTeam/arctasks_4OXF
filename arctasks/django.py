@@ -2,7 +2,7 @@ import os
 
 from taskrunner import task
 from taskrunner.tasks import local
-from taskrunner.util import abort, abs_path, as_list, printer
+from taskrunner.util import Hide, abort, abs_path, as_list, printer
 
 
 def setup(config):
@@ -18,13 +18,15 @@ def get_settings(config):
     return django.conf.settings
 
 
-def call_command(config, *args, hide=False, **kwargs):
+def call_command(config, *args, hide=None, **kwargs):
     setup(config)
     import django.core.management
     try:
         if hide:
             with open(os.devnull, 'w') as devnull:
-                django.core.management.call_command(*args, stdout=devnull, **kwargs)
+                stdout = devnull if Hide.hide_stdout(hide) else None
+                stderr = devnull if Hide.hide_stderr(hide) else None
+                django.core.management.call_command(*args, stdout=stdout, stderr=stderr, **kwargs)
         else:
             django.core.management.call_command(*args, **kwargs)
     except KeyboardInterrupt:
