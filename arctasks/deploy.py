@@ -198,7 +198,7 @@ class Deployer:
 
     def push(self):
         printer.header('Pushing app...')
-        push_app(self.config)
+        push_app(self.config, hide='all')
         if self.options['push_config']:
             self.push_config()
         if self.options['static']:
@@ -523,18 +523,18 @@ def link(config, version, staticfiles_manifest=True, old_style=None):
 
 
 @task
-def push_app(config, deps=None):
+def push_app(config, deps=None, echo=False, hide=None):
     sdist = 'setup.py sdist -d {path.build.dist}'
-    local(config, (sys.executable, sdist), hide='stdout')
+    local(config, (sys.executable, sdist), echo=echo, hide=hide)
     for path in as_list(deps):
-        local(config, (sys.executable, sdist), hide='stdout', cd=path)
+        local(config, (sys.executable, sdist), cd=path, echo=echo, hide=hide)
     local(config, (
         '{bin.pip}',
         'wheel',
         '--wheel-dir {path.build.dist}',
         '--find-links {remote.pip.find_links}',
         'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
-    ))
+    ), echo=echo, hide=hide)
     remote(config, 'rm -f {remote.build.dist}/*')
     rsync(config, '{path.build.dist}/*', '{remote.build.dist}')
 
