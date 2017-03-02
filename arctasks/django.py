@@ -2,7 +2,7 @@ import os
 
 from taskrunner import task
 from taskrunner.tasks import local
-from taskrunner.util import abort, abs_path, as_list, print_info
+from taskrunner.util import abort, abs_path, as_list, printer
 
 
 def setup(config):
@@ -103,10 +103,10 @@ def run_mod_wsgi(config, host=_runserver_host, port=_runserver_port, processes=2
     aliases = [(path, abs_path(fs_path)) for (path, fs_path) in aliases]
 
     for (path, fs_path) in aliases:
-        print_info('Alias', path, '=>', fs_path)
+        printer.info('Alias', path, '=>', fs_path)
 
     for (path, url) in proxies:
-        print_info('Proxy', path, '=>', url)
+        printer.info('Proxy', path, '=>', url)
 
     local(config, (
         '{venv}/bin/mod_wsgi-express start-server {wsgi_file}',

@@ -5,8 +5,7 @@ import urllib.request
 
 from taskrunner import task
 from taskrunner.tasks import local
-from taskrunner.util import abort, abs_path, as_list
-from taskrunner.util import print_header, print_error, print_info, print_success, print_warning
+from taskrunner.util import abort, abs_path, as_list, printer
 
 
 @task
@@ -35,7 +34,7 @@ def virtualenv(config, where, executable=None, overwrite=False):
     if create:
         if executable is None:
             executable = 'python{v.major}.{v.minor}'.format(v=sys.version_info)
-            print_info('Automatically selected {executable} for virtualenv'.format_map(locals()))
+            printer.info('Automatically selected {executable} for virtualenv'.format_map(locals()))
         local(config, ('virtualenv', '-p', executable, where))
         local(config, '{bin.pip} install -U setuptools')
         local(config, '{bin.pip} install -U pip')
@@ -58,13 +57,13 @@ def lint(config, where=None):
         where = where.replace('.', '/')
     else:
         where = where.format_map(config)
-    print_header('Checking for Python lint in {where}...'.format(where=where))
+    printer.header('Checking for Python lint in {where}...'.format(where=where))
     result = local(config, ('flake8', where), abort_on_failure=False)
     if result.failed:
         pieces_of_lint = len(result.stdout_lines)
-        print_error(pieces_of_lint, 'pieces of Python lint found')
+        printer.error(pieces_of_lint, 'pieces of Python lint found')
     else:
-        print_success('Python is clean')
+        printer.success('Python is clean')
 
 
 _npm_install_modules = (
@@ -96,7 +95,7 @@ def npm_install(config, where='.', modules=_npm_install_modules, force=False, ov
     where = abs_path(where, format_kwargs=config)
     node_modules = os.path.join(where, 'node_modules')
     if overwrite and os.path.isdir(node_modules):
-        print_warning('Removing {node_modules}...'.format_map(locals()))
+        printer.warning('Removing {node_modules}...'.format_map(locals()))
         shutil.rmtree(node_modules)
     modules = as_list(modules)
     local(config, ('npm install', ('--force' if force else ''), modules), cd=where)
@@ -151,12 +150,12 @@ def retrieve(config, source, destination, overwrite=False, chmod=None):
 
     if os.path.exists(destination):
         if not overwrite:
-            print_warning('{destination} exists; pass --overwrite to re-fetch it'.format(**f_args))
+            printer.warning('{destination} exists; pass --overwrite to re-fetch it'.format(**f_args))
             return destination
         else:
-            print_warning('Overwriting {destination}...'.format(**f_args))
+            printer.warning('Overwriting {destination}...'.format(**f_args))
     else:
-        print_info('Retrieving {source}...'.format(**f_args))
+        printer.info('Retrieving {source}...'.format(**f_args))
 
     if make_dir:
         os.makedirs(make_dir, exist_ok=True)

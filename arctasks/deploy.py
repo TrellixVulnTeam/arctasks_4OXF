@@ -11,9 +11,7 @@ from urllib.request import urlretrieve
 
 from taskrunner import task
 from taskrunner.tasks import show_config, local, remote
-from taskrunner.util import (
-    abort, as_list, confirm, load_object, print_header, print_info, print_success, print_warning,
-    print_error, print_danger)
+from taskrunner.util import abort, as_list, confirm, load_object, printer
 
 from . import django
 from . import git
@@ -122,20 +120,21 @@ class Deployer:
             config, 'readlink {remote.path.env}', echo=False, hide='all', abort_on_failure=False)
         active_path = result.stdout.strip()
 
-        print_header('Preparing to deploy {name} to {env} ({remote.host})'.format(**config))
+        printer.header('Preparing to deploy {name} to {env} ({remote.host})'.format(**config))
         if active_path:
             active_version = posixpath.basename(active_path)
-            print_error('Active version: {} ({})'.format(active_version, active_path))
+            printer.error('Active version: {} ({})'.format(active_version, active_path))
         else:
-            print_warning('There is no active version')
-        print_success('New version: {version} ({remote.build.dir})'.format(**config))
+            printer.warning('There is no active version')
+        printer.success('New version: {version} ({remote.build.dir})'.format(**config))
 
-        print_info('Configuration:')
+        printer.info('Configuration:')
         show_config(config, defaults=False, initial_level=1)
-        print_warning('\nPlease review the configuration above.')
+        printer.warning('\nPlease review the configuration above.')
 
         if not opts['migrate']:
-            print_warning('\nNOTE: Migrations are not run by default; pass --migrate to run them\n')
+            printer.warning(
+                '\nNOTE: Migrations are not run by default; pass --migrate to run them\n')
 
     def confirm(self):
         """Give ourselves a chance to change our minds."""
@@ -150,7 +149,7 @@ class Deployer:
         self.make_build_dir()
         if opts['version']:
             git.run(['checkout', opts['version']])
-            print_header('Attempting to create a clean local install for version...')
+            printer.header('Attempting to create a clean local install for version...')
             clean(self.config)
             install(self.config)
         if opts['static'] and opts['build_static']:
@@ -160,9 +159,9 @@ class Deployer:
         """Make the local build directory."""
         build_dir = self.config.path.build.root
         if os.path.isdir(build_dir):
-            print_header('Removing existing build directory: {build_dir} ...'.format(**locals()))
+            printer.header('Removing existing build directory: {build_dir} ...'.format(**locals()))
             shutil.rmtree(build_dir)
-        print_header('Creating build directory: {build_dir}'.format(**locals()))
+        printer.header('Creating build directory: {build_dir}'.format(**locals()))
         os.makedirs(build_dir)
 
     def build_static(self):
@@ -172,7 +171,7 @@ class Deployer:
         then collects all static assets into a single directory.
 
         """
-        print_header('Building static files...')
+        printer.header('Building static files...')
         build_static(self.config, static_root='{path.build.static_root}')
 
     # Remote
@@ -194,21 +193,21 @@ class Deployer:
                 getattr(self, task)()
 
     def provision(self):
-        print_header('Provisioning...')
+        printer.header('Provisioning...')
         provision(self.config, self.options['overwrite'])
 
     def push(self):
-        print_header('Pushing app...')
+        printer.header('Pushing app...')
         push_app(self.config)
         if self.options['push_config']:
             self.push_config()
         if self.options['static']:
-            print_header('Pushing static files...')
+            printer.header('Pushing static files...')
             push_static(self.config)
 
     def wheels(self):
         """Build and cache packages (as wheels)."""
-        print_header('Building wheels...')
+        printer.header('Building wheels...')
         config, opts = self.config, self.options
         wheel_dir = config.remote.pip.wheel_dir
         paths_to_remove = []
@@ -235,7 +234,7 @@ class Deployer:
 
     def install(self):
         """Install new version in deployment environment."""
-        print_header('Installing...')
+        printer.header('Installing...')
         config, opts = self.config, self.options
         for dist in opts['remove_distributions']:
             remote(config, ('{remote.build.pip} uninstall -y', dist), abort_on_failure=False)
@@ -251,7 +250,7 @@ class Deployer:
 
     def push_config(self):
         """Copy task config, requirements, settings, scripts, etc."""
-        print_header('Pushing config...')
+        printer.header('Pushing config...')
         config, opts = self.config, self.options
         exe_mode = 'ug+rwx,o-rwx'
         self._push_task_config(exe_mode)
@@ -307,7 +306,7 @@ class Deployer:
 
     def migrate(self):
         """Run database migrations."""
-        print_header('Running migrations...')
+        printer.header('Running migrations...')
         remote_manage(self.config, 'migrate')
 
     def make_active(self):
@@ -321,7 +320,7 @@ class Deployer:
         redundant, but it's left in for clarity.
 
         """
-        print_header('Linking new version and restarting...')
+        printer.header('Linking new version and restarting...')
         config = self.config
         link(config, config.version)
         restart(config)
@@ -334,7 +333,7 @@ class Deployer:
         want to sit around waiting, and we assume it will succeed.
 
         """
-        print_header('Setting permissions in background...')
+        printer.header('Setting permissions in background...')
 
         def chmod(mode, where, options='-R', host='hrimfaxi.oit.pdx.edu'):
             args = (options, mode, where)
@@ -406,17 +405,17 @@ def builds(config, active=False, rm=None, yes=False):
     if active:
         result = remote(config, 'readlink {remote.path.env}', abort_on_failure=False)
         if result.failed:
-            print_error('Could not read link for active version')
+            printer.error('Could not read link for active version')
     elif rm:
         versions = as_list(rm)
         build_dirs = ['{build_root}/{v}'.format(build_root=build_root, v=v) for v in versions]
         cmd = ' && '.join('test -d {d}'.format(d=d) for d in build_dirs)
         result = remote(config, cmd, echo=False, abort_on_failure=False)
         if result.failed:
-            print_error('Build directory not found')
+            printer.error('Build directory not found')
         else:
             cmd = 'rm -r {dirs}'.format(dirs=' '.join(build_dirs))
-            print_header('The following builds will be removed:')
+            printer.header('The following builds will be removed:')
             for d in build_dirs:
                 print(d)
             prompt = 'Remove builds?'.format(cmd=cmd)
@@ -425,7 +424,7 @@ def builds(config, active=False, rm=None, yes=False):
     else:
         active = remote(config, 'readlink {remote.path.env}', abort_on_failure=False)
         active = active.stdout.strip() if active.succeeded else ''
-        print_header('Builds for {env} (in {remote.build.root}; newest first):'.format(**config))
+        printer.header('Builds for {env} (in {remote.build.root}; newest first):'.format(**config))
         # Get a list of all the build directories.
         dirs = remote(config, (
             'find', build_root, '-mindepth 1 -maxdepth 1 -type d'
@@ -458,11 +457,11 @@ def builds(config, active=False, rm=None, yes=False):
                     out.append('[active]')
                 out = ' '.join(out)
                 if is_active:
-                    print_success(out)
+                    printer.success(out)
                 else:
                     print(out)
         else:
-            print_warning('No {env} builds found in {remote.build.root}'.format(**config))
+            printer.warning('No {env} builds found in {remote.build.root}'.format(**config))
 
 
 @task
@@ -481,19 +480,19 @@ def clean_builds(config, keep=3):
     versions_to_keep = versions[:keep]
     versions_to_remove = versions[keep:]
     if versions_to_keep:
-        print_success('Versions that will be kept:')
+        printer.success('Versions that will be kept:')
         print(', '.join(versions_to_keep))
     if versions_to_remove:
         versions_to_remove_str = ', '.join(versions_to_remove)
-        print_danger('Versions that will be removed from {remote.build.root}:'.format(**config))
+        printer.danger('Versions that will be removed from {remote.build.root}:'.format(**config))
         print(versions_to_remove_str)
         if confirm(config, 'Really remove these versions?', yes_values=('really',)):
-            print_danger('Removing {0}...'.format(versions_to_remove_str))
+            printer.danger('Removing {0}...'.format(versions_to_remove_str))
             rm_paths = [posixpath.join(config.remote.build.root, v) for v in versions_to_remove]
             remote(config, ('rm -r', rm_paths), echo=True)
             builds(config)
     else:
-        print_warning('No versions to remove')
+        printer.warning('No versions to remove')
 
 
 @task
@@ -564,13 +563,13 @@ def restart(config, get=True, scheme='http', path='/'):
             host = settings.ALLOWED_HOSTS[0]
             host = host.lstrip('.')
         else:
-            print_warning(
+            printer.warning(
                 'The DOMAIN_NAME setting is deprecated; '
                 'set the first entry in ALLOWED_HOSTS to the canonical host instead')
         if not path.startswith('/'):
             path = '/{path}'.format(path=path)
         url = '{scheme}://{host}{path}'.format_map(locals())
-        print_info('Getting {url}...'.format_map(locals()))
+        printer.info('Getting {url}...'.format_map(locals()))
         try:
             urlretrieve(url, os.devnull)
         except (HTTPError, URLError) as exc:

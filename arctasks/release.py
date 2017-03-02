@@ -16,8 +16,7 @@ import re
 import subprocess
 
 from taskrunner import task
-from taskrunner.util import (
-    abort, abs_path, confirm, print_error, print_header, print_info, print_success, print_warning)
+from taskrunner.util import abort, abs_path, confirm, printer
 
 from . import git
 
@@ -103,8 +102,8 @@ def release(config, version, release_date=None, changelog=DEFAULT_CHANGELOG,
         tag_release(config, tag_name, **args)
     if resume:
         resume_development(config, next_version, changelog=changelog, **args)
-    print_warning('NOTE: Release-related changes are *not* pushed automatically')
-    print_warning('NOTE: You still need to `git push` and `git push --tags`')
+    printer.warning('NOTE: Release-related changes are *not* pushed automatically')
+    printer.warning('NOTE: You still need to `git push` and `git push --tags`')
 
 
 @task(default_env='dev')
@@ -137,7 +136,7 @@ def prepare_release(config, version, release_date=None, changelog=DEFAULT_CHANGE
     f = locals()
 
     print_dry_run_header(dry_run)
-    print_header('Preparing release {version} - {release_date}'.format_map(f))
+    printer.header('Preparing release {version} - {release_date}'.format_map(f))
 
     # Args passed to all find_and_update_line() calls
     find_and_update_line_args = {
@@ -170,7 +169,7 @@ def prepare_release(config, version, release_date=None, changelog=DEFAULT_CHANGE
         ]
         with open(requirements_file, 'w') as requirements_fp:
             if dry_run:
-                print_info('[DRY RUN] New requirements-frozen.txt content would be:')
+                printer.info('[DRY RUN] New requirements-frozen.txt content would be:')
                 print(''.join(adjusted_requirements))
             else:
                 requirements_fp.writelines(adjusted_requirements)
@@ -178,7 +177,7 @@ def prepare_release(config, version, release_date=None, changelog=DEFAULT_CHANGE
 
     commit_message = 'Prepare release {version}'.format_map(f)
     if dry_run:
-        print_info('[DRY RUN] Prepare commit message:')
+        printer.info('[DRY RUN] Prepare commit message:')
         print(commit_message)
     else:
         git.commit_files(files_to_commit, commit_message)
@@ -208,11 +207,11 @@ def merge_release(config, version, to_branch='master', dry_run=False, debug=Fals
         )
         abort(1, msg.format_map(f))
     print_dry_run_header(dry_run)
-    print_header('Merging {current_branch} into {to_branch} for release {version}'.format_map(f))
+    printer.header('Merging {current_branch} into {to_branch} for release {version}'.format_map(f))
     git.run(['log', '--oneline', '--reverse', '{to_branch}..'.format_map(f)])
     commit_message = "Merge branch '{current_branch}' for release {version}".format_map(f)
     if dry_run:
-        print_info('[DRY RUN] Merge commit message:')
+        printer.info('[DRY RUN] Merge commit message:')
         print(commit_message)
         return
     if not confirm(config, 'Merge these changes into {to_branch}?'.format_map(f), yes_values=('yes',)):
@@ -243,12 +242,12 @@ def tag_release(config, tag_name, to_branch='master', dry_run=False, debug=False
     """
     f = locals()
     print_dry_run_header(dry_run)
-    print_header('Tagging release {tag_name} on {to_branch}'.format_map(f))
+    printer.header('Tagging release {tag_name} on {to_branch}'.format_map(f))
     commit = git.run(['log', '--oneline', '-1', to_branch], return_output=True)
-    print_info('Commit that will be tagged on {to_branch}:\n    '.format_map(f), commit)
+    printer.info('Commit that will be tagged on {to_branch}:\n    '.format_map(f), commit)
     commit_message = 'Release {tag_name}'.format_map(f)
     if dry_run:
-        print_info('[DRY RUN] Tag commit message:')
+        printer.info('[DRY RUN] Tag commit message:')
         print(commit_message)
         return
     if not confirm(config, 'Tag this commit as {tag_name}?'.format_map(f)):
@@ -284,7 +283,7 @@ def resume_development(config, version=None, changelog=DEFAULT_CHANGELOG, dry_ru
     f = locals()
 
     print_dry_run_header(dry_run)
-    print_header('Resuming development at {version}'.format_map(f))
+    printer.header('Resuming development at {version}'.format_map(f))
 
     # Add section for next version to change log
     with open(changelog) as fp:
@@ -299,7 +298,7 @@ def resume_development(config, version=None, changelog=DEFAULT_CHANGELOG, dry_ru
         ]
         lines[1:1] = new_lines
         if dry_run:
-            print_info('[DRY RUN] Added change log section for {version}'.format(**f))
+            printer.info('[DRY RUN] Added change log section for {version}'.format(**f))
         else:
             fp.writelines(lines)
 
@@ -316,14 +315,14 @@ def resume_development(config, version=None, changelog=DEFAULT_CHANGELOG, dry_ru
             contents = fp.read().format(**config)
         with open((os.devnull if dry_run else 'requirements-frozen.txt'), 'w') as fp:
             if dry_run:
-                print_info('[DRY RUN] New requirements-frozen.txt content would be:')
+                printer.info('[DRY RUN] New requirements-frozen.txt content would be:')
                 print(contents)
             else:
                 fp.write(contents)
 
     commit_message = 'Resume development at {version}'.format_map(f)
     if dry_run:
-        print_info('[DRY RUN] Resume commit message:')
+        printer.info('[DRY RUN] Resume commit message:')
         print(commit_message)
     else:
         git.commit_files(files_to_commit, commit_message)
@@ -331,7 +330,7 @@ def resume_development(config, version=None, changelog=DEFAULT_CHANGELOG, dry_ru
 
 def print_dry_run_header(dry_run):
     if dry_run:
-        print_header('[DRY_RUN]', end=' ')
+        printer.header('[DRY_RUN]', end=' ')
 
 
 def find_and_update_line(file_name, pattern, line_updater, flags=0, abort_when_not_found=True,
@@ -373,7 +372,7 @@ def find_and_update_line(file_name, pattern, line_updater, flags=0, abort_when_n
     f = locals()
 
     if debug:
-        print_info('Searching for a line matching "{pattern}" in {file_name}...'.format_map(f))
+        printer.info('Searching for a line matching "{pattern}" in {file_name}...'.format_map(f))
 
     with open(file_name) as fp:
         lines = fp.readlines()
@@ -387,25 +386,25 @@ def find_and_update_line(file_name, pattern, line_updater, flags=0, abort_when_n
             lines[i] = updated_line
             line_number = i + 1
             if debug:
-                print_error('-', original_line, sep='', end='')
-                print_success('+', updated_line, sep='', end='')
+                printer.error('-', original_line, sep='', end='')
+                printer.success('+', updated_line, sep='', end='')
             break
     else:
         # No line matching pattern was found
         if debug:
-            print_error('No line matching "{pattern}" found in {file_name}'.format_map(f))
+            printer.error('No line matching "{pattern}" found in {file_name}'.format_map(f))
         if abort_when_not_found:
             abort(1, not_found_message)
         elif not_found_message:
-            print_error(not_found_message)
+            printer.error(not_found_message)
         return False
 
     if dry_run:
-        print_info('[DRY RUN] Updated {file_name} contents would be:'.format_map(f))
+        printer.info('[DRY RUN] Updated {file_name} contents would be:'.format_map(f))
         for j, line in enumerate(lines):
             if i == j:
-                print_error('-', original_line, sep='', end='')
-                print_success('+', line, sep='', end='')
+                printer.error('-', original_line, sep='', end='')
+                printer.success('+', line, sep='', end='')
             else:
                 print(' ', line, sep='', end='')
         print('\n')
@@ -413,7 +412,7 @@ def find_and_update_line(file_name, pattern, line_updater, flags=0, abort_when_n
         with open(file_name, 'w') as fp:
             fp.writelines(lines)
         f = locals()
-        print_info('Updated line {line_number} of {file_name}'.format_map(f))
+        printer.info('Updated line {line_number} of {file_name}'.format_map(f))
 
     return True
 

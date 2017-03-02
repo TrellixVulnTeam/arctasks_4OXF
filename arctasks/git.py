@@ -1,6 +1,6 @@
 import subprocess
 
-from taskrunner.util import abort, confirm, print_warning
+from taskrunner.util import abort, confirm, printer
 
 
 def run(args, return_output=False, **subprocess_args):
@@ -94,6 +94,6 @@ def version(short=True):
     try:
         value = run(['describe', '--exact-match'], return_output=True, stderr=subprocess.DEVNULL)
     except subprocess.CalledProcessError:
-        print_warning('HEAD is not tagged; falling back to SHA1')
+        printer.warning('HEAD is not tagged; falling back to SHA1')
         value = run(['rev-parse', '--short' if short else '', 'HEAD'], return_output=True)
     return value

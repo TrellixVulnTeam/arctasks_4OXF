@@ -3,7 +3,7 @@ from pkg_resources import find_distributions, get_distribution
 from subprocess import check_call, CalledProcessError, DEVNULL
 
 from taskrunner import task
-from taskrunner.util import abort, print_warning
+from taskrunner.util import abort, printer
 
 
 @task
@@ -59,7 +59,7 @@ def show_upgraded_packages(config):
             print(dep.project_name, specified_min_version, '=>', installed_version)
 
         if not req.specifier.contains(installed_version):
-            print_warning(
+            printer.warning(
                 '{dep.project_name} {installed_version} '
                 'is not in range specified in requirements: '
                 '{specified_min_op}{specified_min_version},'
