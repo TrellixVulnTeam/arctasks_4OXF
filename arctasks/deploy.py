@@ -92,9 +92,7 @@ class Deployer:
         self.current_branch = git.current_branch()
         version = self.options['version']
         if version is not None:
-            self.config = config.__class__(
-                config_file=config.config_file, env=config.env, run=config.run, version=version,
-                debug=config.debug)
+            self.config = config._clone(version=version)
 
     def init_options(self, options):
         config = self.config
