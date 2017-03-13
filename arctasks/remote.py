@@ -66,9 +66,10 @@ def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run
 
 
 @task
-def copy_file(config, local_path, remote_path, user='{remote.user}', host='{remote.host}',
-              run_as='{remote.run_as}', template=False, mode=_rsync_default_mode):
+def copy_file(config, local_path, remote_path, user=None, host=None, sudo=False, run_as=None,
+              template=False, mode=_rsync_default_mode):
     local_path = abs_path(local_path, format_kwargs=config)
+
     if template:
         with open(local_path) as in_fp:
             contents = in_fp.read().format(**config)
@@ -78,4 +79,6 @@ def copy_file(config, local_path, remote_path, user='{remote.user}', host='{remo
             text=True)
         os.write(temp_fd, contents.encode('utf-8'))
         os.close(temp_fd)
-    rsync(config, local_path, remote_path, user=user, host=host, run_as=run_as, mode=mode)
+
+    rsync(
+        config, local_path, remote_path, user=user, host=host, sudo=sudo, run_as=run_as, mode=mode)
