@@ -222,4 +222,4 @@ def pull_media(config, user='{remote.user}', host='{remote.host}', run_as='{remo
     local(config, 'mkdir -p media')
     rsync(
         config, local_path='media', remote_path='{remote.path.media}/', user=user, host=host,
-        run_as=run_as, source='remote', default_excludes=None)
+        run_as=run_as, source='remote', default_excludes=False)

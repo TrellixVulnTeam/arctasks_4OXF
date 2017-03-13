@@ -18,12 +18,11 @@ def manage(config, args):
 
 
 _rsync_default_mode = 'ug=rwX,o-rwx'
-_rsync_default_excludes = ('__pycache__/', '.DS_Store', '*.pyc', '*.swp')
 
 
 @task
 def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run_as=None,
-          dry_run=False, delete=False, excludes=(), default_excludes=_rsync_default_excludes,
+          dry_run=False, delete=False, excludes=(), default_excludes=True,
           echo=True, hide=None, mode=_rsync_default_mode, source='local'):
     """Copy files using rsync.
 
@@ -41,10 +40,6 @@ def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run
     else:
         raise ValueError('source must be either "local" or "remote"')
 
-    excludes = as_tuple(excludes)
-    if default_excludes:
-        excludes += as_tuple(default_excludes)
-
     if sudo:
         rsync_path = '--rsync-path "sudo rsync"'
     elif run_as and run_as != user:
@@ -53,6 +48,16 @@ def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run
     else:
         rsync_path = None
 
+    if default_excludes:
+        default_excludes_file = abs_path('arctasks:rsync.excludes')
+        exclude_from = ('--exclude-from', default_excludes_file)
+    else:
+        exclude_from = None
+
+    excludes = as_tuple(excludes)
+    if excludes:
+        excludes = tuple("--exclude '{p}'".format(p=p) for p in excludes)
+
     local(config, (
         'rsync',
         '-rltvz',
@@ -60,7 +65,8 @@ def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run
         '--delete' if delete else '',
         rsync_path,
         '--no-perms', '--no-group', '--chmod=%s' % mode,
-        tuple("--exclude '{p}'".format(p=p) for p in excludes),
+        exclude_from,
+        excludes,
         source_path, destination_path,
     ), echo=echo, hide=hide)
 
