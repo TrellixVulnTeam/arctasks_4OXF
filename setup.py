@@ -3,7 +3,7 @@ from distutils.core import setup
 
 install_requires = [
     'taskrunner>=1.0a3',
-    'setuptools>=34.2.0',
+    'setuptools>=34.3.2',
 ]
 
 if sys.version_info[:2] < (3, 4):
