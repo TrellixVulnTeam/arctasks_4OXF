@@ -110,7 +110,7 @@ def deploy(config, version=None, provision_=False, create_cert=False, overwrite=
     deploy_dir_exists = remote(config, 'test -d {deploy.dir}', abort_on_failure=False)
 
     if deploy_dir_exists and overwrite:
-        remote(config, 'rm -rf {deploy.dir}')
+        remote(config, 'rm -r {deploy.dir}')
         deploy_dir_exists = False
 
     if not deploy_dir_exists:
