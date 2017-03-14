@@ -537,15 +537,15 @@ def push_app(config, deps=None, echo=False, hide=None):
 
 
 @task
-def push_static(config, build=True, dry_run=False, delete=False):
+def push_static(config, build=True, dry_run=False, delete=False, echo=False, hide='stdout'):
     static_root = config.path.build.static_root
     if build:
         build_static(config, static_root=static_root)
     if not static_root.endswith(os.sep):
         static_root += os.sep
     rsync(
-        config, static_root, config.remote.path.static, dry_run=dry_run, delete=delete,
-        excludes=('staticfiles.json',))
+        config, static_root, config.remote.path.static, dry_run=dry_run, delete=delete, echo=echo,
+        hide=hide, excludes=('staticfiles.json',))
     manifest = os.path.join(static_root, 'staticfiles.json')
     if os.path.isfile(manifest):
         copy_file(config, manifest, config.remote.build.dir)
