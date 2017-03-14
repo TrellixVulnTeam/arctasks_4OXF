@@ -39,8 +39,6 @@ def provision(config, create_cert=False):
     if not remote(config, 'id {deploy.user}', hide='stdout'):
         remote(config, 'adduser --home-dir {deploy.root} {deploy.user} --user-group')
 
-    # copy_file(config, 'arctasks.aws:uwsgi.conf', '/etc/init/uwsgi.conf')
-
     # Upgrade system packages
     remote(config, 'yum update -y')
 
