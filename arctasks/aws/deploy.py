@@ -36,8 +36,10 @@ def provision(config, create_cert=False):
 
     """
     # Create service user for deployments
-    if not remote(config, 'id {deploy.user}', hide='stdout'):
-        remote(config, 'adduser --home-dir {deploy.root} {deploy.user} --user-group')
+    remote(config, (
+        'id {deploy.user} ||',
+        'adduser --home-dir {deploy.root} {deploy.user} --user-group'
+    ))
 
     # Upgrade system packages
     remote(config, 'yum update -y')
@@ -58,8 +60,10 @@ def provision(config, create_cert=False):
     copy_file(config, '{deploy.uwsgi.init_file}', '/etc/init/uwsgi.conf')
 
     # Install Let's Encrypt
-    remote(config, 'curl -O https://dl.eff.org/certbot-auto', cd='/usr/local/bin')
-    remote(config, 'chmod +x /usr/local/bin/certbot-auto')
+    remote(config, (
+        'curl -O https://dl.eff.org/certbot-auto &&',
+        'chmod +x certbot-auto',
+    ), cd='/usr/local/bin')
 
     if create_cert:
         remote(config, 'mkdir -p /etc/pki/nginx')
@@ -77,13 +81,14 @@ def provision(config, create_cert=False):
         ))
 
     # Start web server now and make sure it starts on boot
-    remote(config, 'service nginx start')
-    remote(config, 'chkconfig nginx on')
+    remote(config, 'service nginx start && chkconfig nginx on')
 
     # Create root directory for deployments
-    remote(config, 'mkdir -p {deploy.root}')
-    remote(config, 'chown {deploy.user}:{deploy.user} {deploy.root}')
-    remote(config, 'chmod 771 {deploy.root}')
+    remote(config, (
+        'mkdir -p {deploy.root} &&',
+        'chown {deploy.user}:{deploy.user} {deploy.root} &&'
+        'chmod 771 {deploy.root}',
+    ))
 
 
 @task
