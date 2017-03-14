@@ -55,7 +55,7 @@ def provision(config, create_cert=False):
     # Install and configure uWSGI
     remote(config, '/usr/bin/pip-3.5 install uwsgi')
     remote(config, 'mkdir -p /etc/uwsgi /var/log/uwsgi /var/run/uwsgi')
-    copy_file(config, 'arctasks.aws:uwsgi.conf', '/etc/init/uwsgi.conf')
+    copy_file(config, '{deploy.uwsgi.init_file}', '/etc/init/uwsgi.conf')
 
     # Install Let's Encrypt
     remote(config, 'curl -O https://dl.eff.org/certbot-auto', cd='/usr/local/bin')
