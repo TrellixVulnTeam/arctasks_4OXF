@@ -537,9 +537,10 @@ def push_app(config, deps=None, echo=False, hide=None):
 
 
 @task
-def push_static(config, dry_run=False, delete=False):
+def push_static(config, build=True, dry_run=False, delete=False):
     static_root = config.path.build.static_root
-    build_static(config, static_root=static_root)
+    if build:
+        build_static(config, static_root=static_root)
     if not static_root.endswith(os.sep):
         static_root += os.sep
     rsync(
