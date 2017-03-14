@@ -159,7 +159,7 @@ def deploy(config, version=None, provision_=False, create_cert=False, overwrite=
     # Copying the uWSGI config file will cause the app's uWSGI process
     # to restart automatically.
     if restart_uwsgi_:
-        template = 'arctasks.aws:uwsgi.ini'
+        template = '{deploy.uwsgi.config_file}'
         destination = '/etc/uwsgi/{package}.ini'
         copy_file(config, template, destination, sudo=True, template=True)
 
