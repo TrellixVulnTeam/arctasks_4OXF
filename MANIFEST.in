@@ -1,4 +1,5 @@
 include CHANGELOG.md
 include README.md
+include arctasks/rsync.excludes
 include arctasks/tasks.cfg
 recursive-include arctasks/templates *
