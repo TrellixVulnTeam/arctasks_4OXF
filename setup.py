@@ -20,7 +20,7 @@ setup(
     install_requires=install_requires,
     packages=['arctasks'],
     package_data={
-        'arctasks': ['tasks.cfg', 'templates/*'],
+        'arctasks': ['rsync.excludes', 'tasks.cfg', 'templates/*'],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
