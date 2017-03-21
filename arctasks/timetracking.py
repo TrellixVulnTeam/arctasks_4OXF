@@ -1,11 +1,11 @@
 import re
 
-from taskrunner import task
+from runcommands import command
 
 from . import git
 
 
-@task
+@command
 def time_spent(config, key, after=None, since=None, rate=0, debug=False):
     """Show time spent on a project based on git history.
 

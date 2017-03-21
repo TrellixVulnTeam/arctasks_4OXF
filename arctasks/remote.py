@@ -1,12 +1,12 @@
 import os
 import tempfile
 
-from taskrunner import task
-from taskrunner.tasks import local, remote
-from taskrunner.util import abs_path, args_to_str, as_tuple
+from runcommands import command
+from runcommands.commands import local, remote
+from runcommands.util import abs_path, args_to_str, as_tuple
 
 
-@task
+@command
 def manage(config, args):
     """Run a Django management command on the remote host."""
     remote(config, (
@@ -20,7 +20,7 @@ def manage(config, args):
 _rsync_default_mode = 'ug=rwX,o-rwx'
 
 
-@task
+@command
 def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run_as=None,
           dry_run=False, delete=False, excludes=(), default_excludes=True,
           echo=True, hide=None, mode=_rsync_default_mode, source='local'):
@@ -71,7 +71,7 @@ def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run
     ), echo=echo, hide=hide)
 
 
-@task
+@command
 def copy_file(config, local_path, remote_path, user=None, host=None, sudo=False, run_as=None,
               template=False, mode=_rsync_default_mode):
     local_path = abs_path(local_path, format_kwargs=config)

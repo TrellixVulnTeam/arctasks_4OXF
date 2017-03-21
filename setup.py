@@ -2,7 +2,7 @@ import sys
 from distutils.core import setup
 
 install_requires = [
-    'taskrunner>=1.0a6',
+    'runcommands>=1.0a7',
     'setuptools>=34.3.2',
 ]
 
@@ -14,13 +14,13 @@ setup(
     version='1.0.0.dev0',
     author='Wyatt Baldwin',
     author_email='wbaldwin@pdx.edu',
-    description='Tasks',
+    description='Commands for WDT (formerly ARC) projects',
     license='MIT',
     url='https://github.com/PSU-OIT-ARC/arctasks',
     install_requires=install_requires,
     packages=['arctasks'],
     package_data={
-        'arctasks': ['rsync.excludes', 'tasks.cfg', 'templates/*'],
+        'arctasks': ['rsync.excludes', 'commands.cfg', 'templates/*'],
     },
     classifiers=[
         'Development Status :: 4 - Beta',

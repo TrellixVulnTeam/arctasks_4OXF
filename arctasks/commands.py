@@ -1,4 +1,4 @@
-from taskrunner.tasks import *
+from runcommands.commands import *
 
 from .base import clean, install, lint, npm_install, retrieve, virtualenv
 from .db import createdb, load_prod_data, reset_db

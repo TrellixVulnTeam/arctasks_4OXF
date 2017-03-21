@@ -3,12 +3,12 @@ import shutil
 import sys
 import urllib.request
 
-from taskrunner import task
-from taskrunner.tasks import local
-from taskrunner.util import abort, abs_path, as_list, printer
+from runcommands import command
+from runcommands.commands import local
+from runcommands.util import abort, abs_path, as_list, printer
 
 
-@task
+@command
 def clean(config):
     local(config, 'find . -name __pycache__ -type d -print0 | xargs -0 rm -r')
     local(config, 'find . -name "*.py[co]" -print0 | xargs -0 rm')
@@ -16,12 +16,12 @@ def clean(config):
     local(config, 'rm -rf dist')
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def install(config, requirements='{pip.requirements}', upgrade=False):
     local(config, ('{bin.pip}', 'install', '--upgrade' if upgrade else '', '-r', requirements), echo=config._get_dotted('run.echo'))
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def virtualenv(config, where, executable=None, overwrite=False):
     create = True
     if os.path.exists(where):
@@ -40,7 +40,7 @@ def virtualenv(config, where, executable=None, overwrite=False):
         local(config, '{bin.pip} install -U pip')
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def lint(config, where=None):
     """Check source files for issues.
 
@@ -81,7 +81,7 @@ _npm_install_modules = (
 )
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def npm_install(config, where='.', modules=_npm_install_modules, force=False, overwrite=False):
     """Install node modules via npm into ./node_modules.
 
@@ -101,7 +101,7 @@ def npm_install(config, where='.', modules=_npm_install_modules, force=False, ov
     local(config, ('npm install', ('--force' if force else ''), modules), cd=where)
 
 
-@task
+@command
 def retrieve(config, source, destination, overwrite=False, chmod=None):
     """Similar to ``wget``, retrieves and saves a resource.
 

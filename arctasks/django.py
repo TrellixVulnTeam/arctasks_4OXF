@@ -1,8 +1,8 @@
 import os
 
-from taskrunner import task
-from taskrunner.tasks import local
-from taskrunner.util import Hide, abort, abs_path, as_list, printer
+from runcommands import command
+from runcommands.commands import local
+from runcommands.util import Hide, abort, abs_path, as_list, printer
 
 
 def setup(config):
@@ -33,7 +33,7 @@ def call_command(config, *args, hide=None, **kwargs):
         abort(message='\nAborted Django management command')
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def manage(config, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
            abort_on_failure=True):
     local(
@@ -41,14 +41,14 @@ def manage(config, args, cd=None, sudo=False, run_as=None, echo=None, hide=None,
         cd=cd, sudo=sudo, run_as=run_as, echo=echo, hide=hide, abort_on_failure=abort_on_failure)
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def makemigrations(config, app=None):
     args = [app]
     args = [a for a in args if a]
     call_command(config, 'makemigrations', *args)
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def migrate(config, app=None, migration=None):
     if migration and not app:
         abort(1, 'You must specify an app to run a specific migration')
@@ -57,14 +57,14 @@ def migrate(config, app=None, migration=None):
     call_command(config, 'migrate', *args)
 
 
-@task(default_env='test')
+@command(default_env='test')
 def test(config, test=None, failfast=False, keepdb=True, verbosity=1):
     args = [test]
     args = [a for a in args if a]
     call_command(config, 'test', *args, failfast=failfast, keepdb=keepdb, verbosity=verbosity)
 
 
-@task(default_env='test')
+@command(default_env='test')
 def coverage(config, keepdb=True):
     from coverage import coverage
     cov = coverage(source=[config.package])
@@ -78,12 +78,12 @@ _runserver_host = '0.0.0.0'
 _runserver_port = 8000
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def runserver(config, host=_runserver_host, port=_runserver_port):
     call_command(config, 'runserver', '{host}:{port}'.format(**locals()))
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def run_mod_wsgi(config, host=_runserver_host, port=_runserver_port, processes=2, threads=25,
                  aliases=None, proxies=None):
     aliases = as_list(aliases)
@@ -122,11 +122,11 @@ def run_mod_wsgi(config, host=_runserver_host, port=_runserver_port, processes=2
     ))
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def shell(config):
     call_command(config, 'shell')
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def dbshell(config):
     call_command(config, 'dbshell')

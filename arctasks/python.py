@@ -2,11 +2,11 @@ from packaging.version import parse
 from pkg_resources import find_distributions, get_distribution
 from subprocess import check_call, CalledProcessError, DEVNULL
 
-from taskrunner import task
-from taskrunner.util import abort, printer
+from runcommands import command
+from runcommands.util import abort, printer
 
 
-@task
+@command
 def show_upgraded_packages(config):
     """Show packages that have been upgraded.
 

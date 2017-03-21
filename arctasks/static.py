@@ -5,16 +5,16 @@ import shutil
 from subprocess import Popen
 from tempfile import NamedTemporaryFile
 
-from taskrunner import task
-from taskrunner.tasks import local
-from taskrunner.runners.tasks import get_default_prepend_path
-from taskrunner.util import abort, abs_path, args_to_str, as_list, Hide
+from runcommands import command
+from runcommands.commands import local
+from runcommands.runners.commands import get_default_prepend_path
+from runcommands.util import abort, abs_path, args_to_str, as_list, Hide
 
 from .django import call_command, get_settings
 from .remote import rsync
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def bower(config, where='{package}:static', update=False):
     which = local(config, 'which bower', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
@@ -36,7 +36,7 @@ _autoprefixer_browsers = ','.join((
 ))
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def lessc(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers):
     """Compile the LESS files specified by ``sources``.
 
@@ -64,7 +64,7 @@ def lessc(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefix
         ))
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers,
          echo=False, hide=None):
     """Compile the SASS files specified by ``sources``.
@@ -134,7 +134,7 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
         shutil.copyfile(out.name, destination)
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def build_static(config, css=True, css_sources=None, js=True, js_sources=None, collect=True,
                  optimize=True, static_root=None, default_ignore=True, ignore=None):
     if css:
@@ -145,7 +145,7 @@ def build_static(config, css=True, css_sources=None, js=True, js_sources=None, c
         collectstatic(config, static_root=static_root, default_ignore=default_ignore, ignore=ignore)
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def build_css(config, sources=None, optimize=True):
     if sources is None:
         sources = []
@@ -166,7 +166,7 @@ _collectstatic_default_ignore = (
 )
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def collectstatic(config, static_root=None, default_ignore=True, ignore=None):
     settings = get_settings(config)
     override_static_root = bool(static_root)
@@ -187,7 +187,7 @@ def collectstatic(config, static_root=None, default_ignore=True, ignore=None):
         settings.STATIC_ROOT = original_static_root
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def build_js(config, sources=None, main_config_file='{package}:static/requireConfig.js',
              base_url='{package}:static', optimize=True, paths=None):
     sources = [abs_path(s, format_kwargs=config) for s in as_list(sources)]
@@ -216,7 +216,7 @@ def build_js(config, sources=None, main_config_file='{package}:static/requireCon
         local(config, cmd, hide='stdout')
 
 
-@task(default_env='prod')
+@command(default_env='prod')
 def pull_media(config, user='{remote.user}', host='{remote.host}', run_as='{remote.run_as}'):
     """Pull media from specified env [prod] to ./media."""
     local(config, 'mkdir -p media')

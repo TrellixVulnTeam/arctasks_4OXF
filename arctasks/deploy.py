@@ -9,9 +9,9 @@ from datetime import datetime
 from urllib.error import HTTPError, URLError
 from urllib.request import urlretrieve
 
-from taskrunner import task
-from taskrunner.tasks import show_config, local, remote
-from taskrunner.util import abort, as_list, confirm, load_object, printer
+from runcommands import command
+from runcommands.commands import show_config, local, remote
+from runcommands.util import abort, as_list, confirm, load_object, printer
 
 from . import django
 from . import git
@@ -20,7 +20,7 @@ from .remote import manage as remote_manage, rsync, copy_file
 from .static import build_static
 
 
-@task
+@command
 def provision(config, overwrite=False):
     build_dir = config.remote.build.dir
     venv = config.remote.build.venv
@@ -81,7 +81,7 @@ class Deployer:
 
     [1] Use {package}/wsgi.py for legacy builds.
     [2] Only necessary for legacy Apache config; only created when the
-        ``--old-style`` flag is passed to the :func:`.link` task.
+        ``--old-style`` flag is passed to the :func:`.link` command.
 
     """
 
@@ -105,7 +105,7 @@ class Deployer:
         self.show_info()
         self.confirm()
         self.do_local_preprocessing()
-        self.do_remote_tasks()
+        self.do_remote_commands()
         if git.current_branch() != self.current_branch:
             git.run(['checkout', self.current_branch])
 
@@ -174,7 +174,7 @@ class Deployer:
 
     # Remote
 
-    remote_tasks = (
+    remote_commands = (
         'provision',
         'push',
         'wheels',
@@ -184,11 +184,11 @@ class Deployer:
         'set_permissions',
     )
 
-    def do_remote_tasks(self):
+    def do_remote_commands(self):
         """Build the new deployment environment."""
-        for task in self.remote_tasks:
-            if self.options[task]:
-                getattr(self, task)()
+        for command in self.remote_commands:
+            if self.options[command]:
+                getattr(self, command)()
 
     def provision(self):
         printer.header('Provisioning...')
@@ -247,11 +247,11 @@ class Deployer:
         ))
 
     def push_config(self):
-        """Copy task config, requirements, settings, scripts, etc."""
+        """Copy command config, requirements, settings, scripts, etc."""
         printer.header('Pushing config...')
         config, opts = self.config, self.options
         exe_mode = 'ug+rwx,o-rwx'
-        self._push_task_config(exe_mode)
+        self._push_command_config(exe_mode)
         copy_file(
             config, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
             mode=exe_mode)
@@ -272,35 +272,35 @@ class Deployer:
             copy_file(
                 config, 'arctasks:templates/requirements.txt.template', remote_path, template=True)
 
-    def _push_task_config(self, exe_mode):
+    def _push_command_config(self, exe_mode):
         # This is split out of push_config because it's somewhat complex
         config = self.config
 
-        # Wrapper for TaskRunner script that sets the default env to the
-        # env of the deployment and adds the virtualenv's bin directory
-        # to the front of $PATH.
+        # Wrapper for RunCommands script that sets the default env to
+        # the env of the deployment and adds the virtualenv's bin
+        # directory to the front of $PATH.
         copy_file(
-            config, 'arctasks:templates/runtasks.template', '{remote.build.dir}/runtasks',
+            config, 'arctasks:templates/runcommands.template', '{remote.build.dir}/runcommands',
             template=True, mode=exe_mode)
 
-        if os.path.exists('tasks.cfg'):
-            task_config = ConfigParser(interpolation=ExtendedInterpolation())
-            with open('tasks.cfg') as tasks_file:
-                task_config.read_file(tasks_file)
+        if os.path.exists('commands.cfg'):
+            commands_config = ConfigParser(interpolation=ExtendedInterpolation())
+            with open('commands.cfg') as commands_file:
+                commands_config.read_file(commands_file)
             extra_config = {
                 'version': config.version,
                 'local_settings_file': config.remote.build.local_settings_file,
                 'deployed_at': self.started.isoformat(),
             }
             extra_config = {k: json.dumps(v) for (k, v) in extra_config.items()}
-            task_config['DEFAULT'].update(extra_config)
+            commands_config['DEFAULT'].update(extra_config)
             temp_fd, temp_file = tempfile.mkstemp(text=True)
             with os.fdopen(temp_fd, 'w') as t:
-                task_config.write(t)
-            copy_file(config, temp_file, '{remote.build.dir}/tasks.cfg')
+                commands_config.write(t)
+            copy_file(config, temp_file, '{remote.build.dir}/commands.cfg')
 
-        if os.path.exists('tasks.py'):
-            copy_file(config, 'tasks.py', '{remote.build.dir}')
+        if os.path.exists('commands.py'):
+            copy_file(config, 'commands.py', '{remote.build.dir}')
 
     def migrate(self):
         """Run database migrations."""
@@ -343,13 +343,13 @@ class Deployer:
         chmod('ug=rwX,o-rwx', '{remote.build.dir} {remote.path.log_dir} {remote.path.static}')
 
 
-@task(default_env='stage', timed=True)
+@command(default_env='stage', timed=True)
 def deploy(config, version=None, deployer_class=None, provision=True, overwrite=False, push=True,
            static=True, build_static=True, remove_distributions=None, wheels=True, install=True,
            push_config=True, migrate=False, make_active=True, set_permissions=True):
     """Deploy a new version.
 
-    All of the task options are used to construct a :class:`Deployer`,
+    All of the command options are used to construct a :class:`Deployer`,
     then the deployer's `run` method is called. To implement a different
     deployment strategy, pass an alternate ``deployer_class``. Such a
     class must accept a ``config`` arg plus arbitrary keyword args (which
@@ -385,7 +385,7 @@ deploy.deployer_class = Deployer
 deploy.set_deployer_class = lambda deployer_class: setattr(deploy, 'deployer_class', deployer_class)
 
 
-@task(help={
+@command(help={
     'rm': 'Remove the specified build',
     'yes': 'Skip confirmations',
 })
@@ -461,7 +461,7 @@ def builds(config, active=False, rm=None, yes=False):
             printer.warning('No {env} builds found in {remote.build.root}'.format(**config))
 
 
-@task
+@command
 def clean_builds(config, keep=3):
     if keep < 1:
         abort(1, 'You have to keep at least the active version')
@@ -492,7 +492,7 @@ def clean_builds(config, keep=3):
         printer.warning('No versions to remove')
 
 
-@task
+@command
 def link(config, version, staticfiles_manifest=True, old_style=None):
     build_dir = '{config.remote.build.root}/{version}'.format_map(locals())
 
@@ -519,7 +519,7 @@ def link(config, version, staticfiles_manifest=True, old_style=None):
         remote(config, ('ln -sfn {remote.path.root}/static/{env}', static_dir))
 
 
-@task
+@command
 def push_app(config, deps=None, echo=False, hide=None):
     sdist = 'setup.py sdist -d {path.build.dist}'
     local(config, (sys.executable, sdist), echo=echo, hide=hide)
@@ -536,7 +536,7 @@ def push_app(config, deps=None, echo=False, hide=None):
     rsync(config, '{path.build.dist}/*', '{remote.build.dist}')
 
 
-@task
+@command
 def push_static(config, build=True, dry_run=False, delete=False, echo=False, hide='stdout'):
     static_root = config.path.build.static_root
     if build:
@@ -551,7 +551,7 @@ def push_static(config, build=True, dry_run=False, delete=False, echo=False, hid
         copy_file(config, manifest, config.remote.build.dir)
 
 
-@task
+@command
 def restart(config, get=True, scheme='http', path='/'):
     settings = django.get_settings(config)
     remote(config, '{remote.build.restart}')

@@ -1,0 +1,4 @@
+#!/bin/bash
+export RUNCOMMANDS_DEFAULT_ENV="{env}"
+export PATH="{remote.build.bin}:$PATH"
+{remote.build.bin}/runcommands "$@"

@@ -1,6 +1,6 @@
-from taskrunner import task
-from taskrunner.tasks import local, remote, show_config  # noqa
-from taskrunner.util import abort, printer
+from runcommands import command
+from runcommands.commands import local, remote, show_config  # noqa
+from runcommands.util import abort, printer
 
 from arctasks.remote import copy_file, rsync
 
@@ -17,13 +17,13 @@ __all__ = [
 ]
 
 
-@task(config={
+@command(config={
     'defaults.arctasks.remote.copy_file.run_as': None,
     'defaults.arctasks.remote.copy_file.sudo': True,
     'defaults.arctasks.remote.rsync.run_as': None,
     'defaults.arctasks.remote.rsync.sudo': True,
-    'defaults.taskrunner.runners.tasks.remote.run_as': None,
-    'defaults.taskrunner.runners.tasks.remote.sudo': True,
+    'defaults.runcommands.runners.commands.remote.run_as': None,
+    'defaults.runcommands.runners.commands.remote.sudo': True,
 })
 def provision(config, create_cert=False):
     """Provision an existing EC2 instance.
@@ -91,7 +91,7 @@ def provision(config, create_cert=False):
     ))
 
 
-@task
+@command
 def deploy(config, version=None, provision_=False, create_cert=False, overwrite=False,
            overwrite_venv=False, restart_uwsgi_=False, restart_nginx_=False):
     if version:
@@ -171,13 +171,13 @@ def deploy(config, version=None, provision_=False, create_cert=False, overwrite=
         restart_nginx(config)
 
 
-@task
+@command
 def restart_uwsgi(config):
     """Restart the app's uWSGI process."""
     remote(config, 'touch /etc/uwsgi/{package}.ini', sudo=True)
 
 
-@task
+@command
 def restart_uwsgi_emperor(config):
     """Restart the uWSGI Emperor process.
 
@@ -187,11 +187,11 @@ def restart_uwsgi_emperor(config):
     remote(config, 'restart uwsgi', sudo=True)
 
 
-@task
+@command
 def push_nginx_config(config):
     copy_file(config, 'etc/nginx/conf.d/nginx.conf', '/etc/nginx/conf.d/{package}.conf', sudo=True)
 
 
-@task
+@command
 def restart_nginx(config):
     remote(config, 'service nginx restart', sudo=True)

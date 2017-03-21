@@ -2,13 +2,13 @@ import os
 from getpass import getpass
 from tempfile import mkstemp
 
-from taskrunner import task
-from taskrunner.config import Config
-from taskrunner.tasks import local
-from taskrunner.util import abort, as_tuple, confirm
+from runcommands import command
+from runcommands.config import Config
+from runcommands.commands import local
+from runcommands.util import abort, as_tuple, confirm
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def createdb(config, type=None, user='{db.user}', host='{db.host}', port='{db.port}',
              name='{db.name}', drop=False, with_postgis=False, extensions=()):
     if type is None:
@@ -100,7 +100,7 @@ def create_mysql_db(config, user='{db.user}', host='{db.host}', port='{db.port}'
     run_command('CREATE DATABASE', name)
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def load_prod_data(config,
                    reset=False,
                    source='prod', source_user=None, source_host=None, source_port=None,
@@ -178,7 +178,7 @@ def load_prod_data(config,
         raise ValueError('Unknown database type: {db.type}'.format(**config))
 
 
-@task
+@command
 def reset_db(config, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
              truncate=False):
     """DROP CASCADE tables in database.

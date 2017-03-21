@@ -1,10 +1,10 @@
 # ARC Tasks
 
-This package implements common tasks for ARC Django projects.
+This package implements common commands for ARC Django projects.
 
-The tasks in this package have been extracted from various other ARC projects,
-cleaned up, generalized, and made more configurable. The lineage is `rethink`
-=> `ohslib` => `neighborhoodpulse` => `arctasks`.
+The commands in this package have been extracted from various other ARC
+projects, cleaned up, generalized, and made more configurable. The lineage is
+`rethink` => `ohslib` => `neighborhoodpulse` => `arctasks`.
 
 ## Using ARC Tasks in a Project
 
@@ -15,15 +15,15 @@ cleaned up, generalized, and made more configurable. The lineage is `rethink`
   - Add `git+https://github.com/PSU-OIT-ARC/arctasks#egg=psu.oit.arc.tasks`
     to the project's pip requirements file
 
-- Add a `tasks.py` module to the project's top level directory
+- Add a `commands.py` module to the project's top level directory
 
-- Add `from arctasks import *` to `tasks.py`; a default set of tasks is now
-  available, which can be listed with `runtasks --list`
+- Add `from arctasks import *` to `commands.py`; a default set of commands is
+  now available, which can be listed with `runcommands --list`
 
-- Write the project's `init` task in `tasks.py`; here's a simple example (all
-  of the tasks used in this `init` task are provided by ARC Tasks):
+- Write the project's `init` command in `commands.py`; here's a simple example
+  (all of the commands used in this `init` command are provided by ARC Tasks):
 
-        @task(default_env='dev', timed=True)
+        @command(default_env='dev', timed=True)
         def init(config, overwrite=False):
             virtualenv(config, overwrite=overwrite)
             install(config)  # Does `pip install -r requirements.txt` by default

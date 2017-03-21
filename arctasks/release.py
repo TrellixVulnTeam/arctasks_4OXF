@@ -1,9 +1,9 @@
-"""Release-related tasks.
+"""Release-related commands.
 
-The main tasks are:
+The main commands are:
 
-    - release; this runs the tasks below in order and will typically be
-      the only task from this module that you need to run
+    - release; this runs the commands below in order and will typically be
+      the only command from this module that you need to run
     - prepare_release
     - merge_release
     - tag_release
@@ -15,8 +15,8 @@ import os
 import re
 import subprocess
 
-from taskrunner import task
-from taskrunner.util import abort, abs_path, confirm, printer
+from runcommands import command
+from runcommands.util import abort, abs_path, confirm, printer
 
 from . import git
 
@@ -47,7 +47,7 @@ SETUP_GLOBAL_VERSION_RE = r'VERSION += +(?P<quote>(\'|"))(?P<old_version>.+)(\1)
 SETUP_VERSION_RE = r'version=(?P<quote>(\'|"))(?P<old_version>.+)(\1),'
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def release(config, version, release_date=None, changelog=DEFAULT_CHANGELOG,
             freeze_requirements=True, merge_to_branch='master', tag_name=None, next_version=None,
             prepare=True, merge=True, tag=True, resume=True, dry_run=False, debug=False):
@@ -106,7 +106,7 @@ def release(config, version, release_date=None, changelog=DEFAULT_CHANGELOG,
     printer.warning('NOTE: You still need to `git push` and `git push --tags`')
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def prepare_release(config, version, release_date=None, changelog=DEFAULT_CHANGELOG,
                     freeze_requirements=True, dry_run=False, debug=False):
     """Prepare a release.
@@ -183,7 +183,7 @@ def prepare_release(config, version, release_date=None, changelog=DEFAULT_CHANGE
         git.commit_files(files_to_commit, commit_message)
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def merge_release(config, version, to_branch='master', dry_run=False, debug=False):
     """Merge release.
 
@@ -221,7 +221,7 @@ def merge_release(config, version, to_branch='master', dry_run=False, debug=Fals
     git.run(['checkout', current_branch])
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def tag_release(config, tag_name, to_branch='master', dry_run=False, debug=False):
     """Tag release.
 
@@ -255,7 +255,7 @@ def tag_release(config, tag_name, to_branch='master', dry_run=False, debug=False
     git.tag(tag_name, to_branch, message=commit_message)
 
 
-@task(default_env='dev')
+@command(default_env='dev')
 def resume_development(config, version=None, changelog=DEFAULT_CHANGELOG, dry_run=False,
                        debug=False):
     """Resume development.
