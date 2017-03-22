@@ -1,5 +1,5 @@
 from runcommands import command
-from runcommands.commands import local, remote, show_config  # noqa
+from runcommands.commands import local, remote
 from runcommands.util import abort, printer
 
 from arctasks.remote import copy_file, rsync
