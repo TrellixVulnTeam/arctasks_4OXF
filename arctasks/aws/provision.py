@@ -1,3 +1,5 @@
+import posixpath
+
 import boto3
 import botocore.exceptions
 
@@ -174,7 +176,7 @@ def terminate_instance(config, id_, region=DEFAULT_REGION, dry_run=False):
     'defaults.runcommands.runners.commands.remote.run_as': None,
     'defaults.runcommands.runners.commands.remote.sudo': True,
 })
-def provision(config, create_cert=False):
+def provision(config, create_cert=False, timezone='America/Los_Angeles'):
     """Provision an existing EC2 instance.
 
     - Installs Nginx, Python 3.5, and uWSGI
@@ -184,6 +186,9 @@ def provision(config, create_cert=False):
       Encrypt)
 
     """
+    timezone_path = posixpath.join('/usr/share/zoneinfo', timezone)
+    remote(config, ('ln -sf', timezone_path, '/etc/localtime'))
+
     # Create service user for deployments
     remote(config, (
         'id {deploy.user} ||',
