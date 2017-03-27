@@ -4,7 +4,7 @@ from distutils.core import setup
 install_requires = [
     'boto3>=1.4.4',
     'runcommands>=1.0a7',
-    'setuptools>=34.3.2',
+    'setuptools>=34.3.3',
 ]
 
 if sys.version_info[:2] < (3, 4):
