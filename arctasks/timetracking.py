@@ -38,7 +38,7 @@ def time_spent(config, key, after=None, since=None, rate=0, debug=False):
 
     """
     seconds = []
-    args =['log']
+    args = ['log']
     if after:
         args.append('{after}..'.format_map(locals()))
     if since:

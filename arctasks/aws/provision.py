@@ -243,5 +243,3 @@ def provision(config, create_cert=False, timezone='America/Los_Angeles'):
         'chown {deploy.user}:{deploy.user} {deploy.root} &&'
         'chmod 771 {deploy.root}',
     ))
-
-

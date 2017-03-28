@@ -186,9 +186,9 @@ class Deployer:
 
     def do_remote_commands(self):
         """Build the new deployment environment."""
-        for command in self.remote_commands:
-            if self.options[command]:
-                getattr(self, command)()
+        for remote_command in self.remote_commands:
+            if self.options[remote_command]:
+                getattr(self, remote_command)()
 
     def provision(self):
         printer.header('Provisioning...')
@@ -249,7 +249,7 @@ class Deployer:
     def push_config(self):
         """Copy command config, requirements, settings, scripts, etc."""
         printer.header('Pushing config...')
-        config, opts = self.config, self.options
+        config = self.config
         exe_mode = 'ug+rwx,o-rwx'
         self._push_command_config(exe_mode)
         copy_file(
