@@ -490,34 +490,35 @@ def find_and_update_version(version, **kwargs):
         The file where the version was found
 
     """
-    f = locals()
     if os.path.isfile('VERSION'):
         version_file = 'VERSION'
-        def version_updater(match, line):
-            return version
-        not_found_message = 'No version found in VERSION file'
+
         find_and_update_line(
-            version_file, r'.+', version_updater,
-            not_found_message=not_found_message,
+            'VERSION',
+            r'.+',
+            lambda match, line: version,
+            not_found_message='No version found in VERSION file',
             **kwargs
         )
     else:
         version_file = 'setup.py'
-        def global_version_updater(match, line):
-            return match.expand(r'VERSION = \g<quote>{version}\g<quote>'.format_map(f))
+
         found = find_and_update_line(
-            version_file, SETUP_GLOBAL_VERSION_RE, global_version_updater,
+            version_file,
+            SETUP_GLOBAL_VERSION_RE,
+            lambda match, line: match.expand(r'VERSION = \g<quote>%s\g<quote>' % version),
             abort_when_not_found=False,
             **kwargs
         )
+
         if not found:
-            def version_updater(match, line):
-                return match.expand(r'version=\g<quote>{version}\g<quote>,'.format_map(f))
-            not_found_message = (
-                'Could not find VERSION global in setup.py or version keyword arg in setup()')
             find_and_update_line(
-                version_file, SETUP_VERSION_RE, version_updater,
-                not_found_message=not_found_message,
+                version_file,
+                SETUP_VERSION_RE,
+                lambda match, line: match.expand(r'version=\g<quote>%s\g<quote>,' % version),
+                not_found_message=(
+                    'Could not find VERSION global in setup.py or version keyword arg in setup()'),
                 **kwargs
             )
+
     return version_file
