@@ -18,7 +18,9 @@ def clean(config):
 
 @command(default_env='dev')
 def install(config, requirements='{pip.requirements}', upgrade=False):
-    local(config, ('{bin.pip}', 'install', '--upgrade' if upgrade else '', '-r', requirements), echo=config._get_dotted('run.echo'))
+    local(config, (
+        '{bin.pip}', 'install', '--upgrade' if upgrade else '', '-r', requirements,
+    ), echo=config._get_dotted('run.echo'))
 
 
 @command(default_env='dev')
@@ -150,7 +152,8 @@ def retrieve(config, source, destination, overwrite=False, chmod=None):
 
     if os.path.exists(destination):
         if not overwrite:
-            printer.warning('{destination} exists; pass --overwrite to re-fetch it'.format(**f_args))
+            printer.warning(
+                '{destination} exists; pass --overwrite to re-fetch it'.format(**f_args))
             return destination
         else:
             printer.warning('Overwriting {destination}...'.format(**f_args))

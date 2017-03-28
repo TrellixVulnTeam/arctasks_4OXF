@@ -214,7 +214,8 @@ def merge_release(config, version, to_branch='master', dry_run=False, debug=Fals
         printer.info('[DRY RUN] Merge commit message:')
         print(commit_message)
         return
-    if not confirm(config, 'Merge these changes into {to_branch}?'.format_map(f), yes_values=('yes',)):
+    confirm_msg = 'Merge these changes into {to_branch}?'.format_map(f)
+    if not confirm(config, confirm_msg, yes_values=('yes',)):
         abort(message='Aborted merge from {current_branch} to {to_branch}'.format_map(f))
     git.run(['checkout', to_branch])
     git.run(['merge', '--no-ff', current_branch, '-m', commit_message])

@@ -142,7 +142,8 @@ def build_static(config, css=True, css_sources=None, js=True, js_sources=None, c
     if js:
         build_js(config, sources=js_sources, optimize=optimize)
     if collect:
-        collectstatic(config, static_root=static_root, default_ignore=default_ignore, ignore=ignore)
+        collectstatic(
+            config, static_root=static_root, default_ignore=default_ignore, ignore=ignore)
 
 
 @command(default_env='dev')

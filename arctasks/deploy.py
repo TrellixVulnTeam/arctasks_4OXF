@@ -382,7 +382,7 @@ def deploy(config, version=None, deployer_class=None, provision=True, overwrite=
 
 
 deploy.deployer_class = Deployer
-deploy.set_deployer_class = lambda deployer_class: setattr(deploy, 'deployer_class', deployer_class)
+deploy.set_deployer_class = lambda class_: setattr(deploy, 'deployer_class', class_)
 
 
 @command(help={
@@ -420,7 +420,8 @@ def builds(config, active=False, rm=None, yes=False):
             if yes or confirm(config, prompt, color='error', yes_values=('yes',)):
                 remote(config, cmd)
     else:
-        active = remote(config, 'readlink {remote.path.env}', abort_on_failure=False, hide='stdout')
+        active = remote(
+            config, 'readlink {remote.path.env}', abort_on_failure=False, hide='stdout')
         active = active.stdout.strip() if active.succeeded else ''
         printer.header('Builds for {env} (in {remote.build.root}; newest first):'.format(**config))
         # Get a list of all the build directories.
