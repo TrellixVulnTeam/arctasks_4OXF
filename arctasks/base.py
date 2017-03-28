@@ -1,5 +1,8 @@
+import glob
 import os
+import posixpath
 import shutil
+import site
 import sys
 import urllib.request
 
@@ -17,10 +20,23 @@ def clean(config):
 
 
 @command(default_env='dev')
-def install(config, requirements='{pip.requirements}', upgrade=False):
+def install(config, requirements='{pip.requirements}', upgrade=False, add_to_path=True):
     local(config, (
         '{bin.pip}', 'install', '--upgrade' if upgrade else '', '-r', requirements,
     ), echo=config._get_dotted('run.echo'))
+
+    # Add (or re-add) virtualenv site-packages to sys.path
+    if add_to_path:
+        printer.info('Adding virtualenv site-packages to sys.path')
+        paths = glob.glob(posixpath.join(config.venv, 'lib/python*/site-packages'))
+        num_paths = len(paths)
+        if num_paths == 0:
+            abort(1, 'Could not find site-packages after install')
+        elif num_paths == 1:
+            printer.info('Found site-packages at', paths[0])
+            site.addsitedir(paths[0])
+        else:
+            abort(1, 'Too many site-packages directories found after install')
 
 
 @command(default_env='dev')
