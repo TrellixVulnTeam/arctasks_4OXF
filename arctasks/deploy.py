@@ -386,10 +386,10 @@ deploy.set_deployer_class = lambda class_: setattr(deploy, 'deployer_class', cla
 
 
 @command(help={
-    'rm': 'Remove the specified build',
+    'rm': 'Remove the specified build(s)',
     'yes': 'Skip confirmations',
 })
-def builds(config, active=False, rm=None, yes=False):
+def builds(config, active=False, rm=(), yes=False):
     """List/manage builds on remote host.
 
     --active shows the version of the currently-deployed build
@@ -405,8 +405,9 @@ def builds(config, active=False, rm=None, yes=False):
         if result.failed:
             printer.error('Could not read link for active version')
     elif rm:
-        versions = as_list(rm)
-        build_dirs = ['{build_root}/{v}'.format(build_root=build_root, v=v) for v in versions]
+        if isinstance(rm, str):
+            rm = [rm]
+        build_dirs = ['{build_root}/{v}'.format(build_root=build_root, v=v) for v in rm]
         cmd = ' && '.join('test -d {d}'.format(d=d) for d in build_dirs)
         result = remote(config, cmd, echo=False, abort_on_failure=False)
         if result.failed:
