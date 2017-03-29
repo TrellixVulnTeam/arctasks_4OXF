@@ -58,10 +58,32 @@ def migrate(config, app=None, migration=None):
 
 
 @command(default_env='test')
-def test(config, test=None, failfast=False, keepdb=True, verbosity=1):
-    args = [test]
-    args = [a for a in args if a]
-    call_command(config, 'test', *args, failfast=failfast, keepdb=keepdb, verbosity=verbosity)
+def test(config, test_=(), failfast=False, keepdb=True, verbosity=1, force_env=None):
+    if force_env and force_env != config.env:
+        # NOTE: We have to use a subprocess for this because calling
+        # django.setup() again in the same process will have no effect.
+        printer.warning(
+            'Forcing tests to run in {force_env} env instead of {config.env}'
+            .format_map(locals()))
+
+        # Don't propagate these to the subprocess
+        django_settings_module = os.environ.pop('DJANGO_SETTINGS_MODULE', None)
+        local_settings_file = os.environ.pop('LOCAL_SETTINGS_FILE', None)
+
+        local(config, (
+            'runcommand', '--env', force_env, 'test',
+            [('--test', t) for t in test_],
+            '--failfast' if failfast else '',
+            '--keepdb' if keepdb else '',
+            '--verbosity', str(verbosity),
+        ), echo=config.debug)
+
+        if django_settings_module is not None:
+            os.environ['DJANGO_SETTINGS_MODULE'] = django_settings_module
+        if local_settings_file is not None:
+            os.environ['LOCAL_SETTINGS_FILE'] = local_settings_file
+    else:
+        call_command(config, 'test', *test_, failfast=failfast, keepdb=keepdb, verbosity=verbosity)
 
 
 @command(default_env='test')
