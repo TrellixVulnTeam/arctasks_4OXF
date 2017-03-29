@@ -418,7 +418,7 @@ def builds(config, active=False, rm=None, yes=False):
                 print(d)
             prompt = 'Remove builds?'.format(cmd=cmd)
             if yes or confirm(config, prompt, color='error', yes_values=('yes',)):
-                remote(config, cmd)
+                remote(config, cmd, 'hrimfaxi.oit.pdx.edu')
     else:
         active = remote(
             config, 'readlink {remote.path.env}', abort_on_failure=False, hide='stdout')
