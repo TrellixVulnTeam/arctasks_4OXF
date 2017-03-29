@@ -487,7 +487,7 @@ def clean_builds(config, keep=3):
         if confirm(config, 'Really remove these versions?', yes_values=('really',)):
             printer.danger('Removing {0}...'.format(versions_to_remove_str))
             rm_paths = [posixpath.join(config.remote.build.root, v) for v in versions_to_remove]
-            remote(config, ('rm -r', rm_paths), echo=True)
+            remote(config, ('rm -r', rm_paths), 'hrimfaxi.oit.pdx.edu', echo=True)
             builds(config)
     else:
         printer.warning('No versions to remove')
