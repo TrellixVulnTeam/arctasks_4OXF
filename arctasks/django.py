@@ -58,7 +58,8 @@ def migrate(config, app=None, migration=None):
 
 
 @command(default_env='test')
-def test(config, test_=(), failfast=False, keepdb=True, verbosity=1, force_env=None):
+def test(config, test_=(), failfast=False, keepdb=True, verbosity=1, with_coverage=False,
+         force_env=None):
     if force_env and force_env != config.env:
         # NOTE: We have to use a subprocess for this because calling
         # django.setup() again in the same process will have no effect.
@@ -76,6 +77,7 @@ def test(config, test_=(), failfast=False, keepdb=True, verbosity=1, force_env=N
             '--failfast' if failfast else '',
             '--keepdb' if keepdb else '',
             '--verbosity', str(verbosity),
+            '--with-coverage' if with_coverage else '',
         ), echo=config.debug)
 
         if django_settings_module is not None:
@@ -83,7 +85,14 @@ def test(config, test_=(), failfast=False, keepdb=True, verbosity=1, force_env=N
         if local_settings_file is not None:
             os.environ['LOCAL_SETTINGS_FILE'] = local_settings_file
     else:
+        if with_coverage:
+            from coverage import coverage
+            cov = coverage(source=[config.package])
+            cov.start()
         call_command(config, 'test', *test_, failfast=failfast, keepdb=keepdb, verbosity=verbosity)
+        if with_coverage:
+            cov.stop()
+            cov.report()
 
 
 @command(default_env='test')
