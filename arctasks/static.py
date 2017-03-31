@@ -136,7 +136,7 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
 
 @command(default_env='dev')
 def build_static(config, css=True, css_sources=None, js=True, js_sources=None, collect=True,
-                 optimize=True, static_root=None, default_ignore=True, ignore=None):
+                 optimize=True, static_root=None, default_ignore=True, ignore=()):
     if css:
         build_css(config, sources=css_sources, optimize=optimize)
     if js:
@@ -168,7 +168,7 @@ _collectstatic_default_ignore = (
 
 
 @command(default_env='dev')
-def collectstatic(config, static_root=None, default_ignore=True, ignore=None):
+def collectstatic(config, static_root=None, default_ignore=True, ignore=()):
     settings = get_settings(config)
     override_static_root = bool(static_root)
 
@@ -177,7 +177,7 @@ def collectstatic(config, static_root=None, default_ignore=True, ignore=None):
         original_static_root = settings.STATIC_ROOT
         settings.STATIC_ROOT = static_root
 
-    ignore = as_list(ignore)
+    ignore = list(ignore)
     if default_ignore:
         ignore.extend(_collectstatic_default_ignore)
 
