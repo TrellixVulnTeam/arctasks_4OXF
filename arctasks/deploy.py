@@ -385,10 +385,12 @@ deploy.deployer_class = Deployer
 deploy.set_deployer_class = lambda class_: setattr(deploy, 'deployer_class', class_)
 
 
-@command(help={
-    'rm': 'Remove the specified build(s)',
-    'yes': 'Skip confirmations',
-})
+@command(
+    env=True,
+    help={
+        'rm': 'Remove the specified build(s)',
+        'yes': 'Skip confirmations',
+    })
 def builds(config, active=False, rm=(), yes=False):
     """List/manage builds on remote host.
 
@@ -463,7 +465,7 @@ def builds(config, active=False, rm=(), yes=False):
             printer.warning('No {env} builds found in {remote.build.root}'.format(**config))
 
 
-@command
+@command(env=True)
 def clean_builds(config, keep=3):
     if keep < 1:
         abort(1, 'You have to keep at least the active version')
