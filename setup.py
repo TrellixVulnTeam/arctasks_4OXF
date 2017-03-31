@@ -19,9 +19,18 @@ setup(
     license='MIT',
     url='https://github.com/PSU-OIT-ARC/arctasks',
     install_requires=install_requires,
-    packages=['arctasks'],
+    packages=['arctasks', 'arctasks.aws'],
     package_data={
-        'arctasks': ['rsync.excludes', 'commands.cfg', 'templates/*'],
+        'arctasks': [
+            'commands.cfg',
+            'rsync.excludes',
+            'templates/*.template',
+        ],
+        'arctasks.aws': [
+            '*.conf',
+            '*.ini',
+            'commands.cfg',
+        ],
     },
     classifiers=[
         'Development Status :: 4 - Beta',
