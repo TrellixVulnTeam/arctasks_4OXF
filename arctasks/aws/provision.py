@@ -22,6 +22,7 @@ __all__ = [
 
 
 DEFAULT_REGION = 'us-west-2'
+DEFAULT_YUM_PACKAGES = ['nginx']
 
 
 def make_client(region=DEFAULT_REGION):
@@ -176,7 +177,8 @@ def terminate_instance(config, id_, region=DEFAULT_REGION, dry_run=False):
     'defaults.runcommands.runners.commands.remote.run_as': None,
     'defaults.runcommands.runners.commands.remote.sudo': True,
 })
-def provision(config, create_cert=False, timezone='America/Los_Angeles'):
+def provision(config, create_cert=False, timezone='America/Los_Angeles', package=(),
+              additional_package=(), with_python='3.5', with_uwsgi='latest'):
     """Provision an existing EC2 instance.
 
     - Installs Nginx, Python 3.5, and uWSGI
@@ -198,28 +200,38 @@ def provision(config, create_cert=False, timezone='America/Los_Angeles'):
     # Upgrade system packages
     remote(config, 'yum update -y')
 
+    # Install other packages
+    packages = package or DEFAULT_YUM_PACKAGES
+    packages.extend(additional_package)
+
+    if with_python or with_uwsgi:
+        v = with_python.replace('.', '')
+        python_packages = [
+            'python{v}',
+            'python{v}-devel',
+            'python{v}-pip',
+            'python{v}-virtualenv',
+        ]
+        python_packages = [p.format(v=v) for p in python_packages]
+        packages.extend(python_packages)
+        pip = '/usr/bin/pip-{v}'.format(v=with_python)
+
     # Install system packages
-    remote(config, (
-        'yum install -y',
-        'nginx',
-        'python35',
-        'python35-devel',
-        'python35-pip',
-        'python35-virtualenv',
-    ))
+    remote(config, ('yum install -y', packages))
 
-    # Install and configure uWSGI
-    remote(config, '/usr/bin/pip-3.5 install uwsgi')
-    remote(config, 'mkdir -p /etc/uwsgi /var/log/uwsgi /var/run/uwsgi')
-    copy_file(config, '{deploy.uwsgi.init_file}', '/etc/init/uwsgi.conf')
-
-    # Install Let's Encrypt
-    remote(config, (
-        'curl -O https://dl.eff.org/certbot-auto &&',
-        'chmod +x certbot-auto',
-    ), cd='/usr/local/bin')
+    if with_uwsgi:
+        # Install and configure uWSGI
+        uwsgi_version = '' if with_uwsgi == 'latest' else with_uwsgi
+        remote(config, (pip, 'install uwsgi', uwsgi_version))
+        remote(config, 'mkdir -p /etc/uwsgi /var/log/uwsgi /var/run/uwsgi')
+        copy_file(config, '{deploy.uwsgi.init_file}', '/etc/init/uwsgi.conf')
 
     if create_cert:
+        # Install and configure Let's Encrypt
+        remote(config, (
+            'curl -O https://dl.eff.org/certbot-auto &&',
+            'chmod +x certbot-auto',
+        ), cd='/usr/local/bin')
         remote(config, 'mkdir -p /etc/pki/nginx')
         remote(config, (
             'test -f /etc/pki/nginx/{domain_name}.pem ||',
@@ -234,8 +246,9 @@ def provision(config, create_cert=False, timezone='America/Los_Angeles'):
             '--standalone',
         ))
 
-    # Start web server now and make sure it starts on boot
-    remote(config, 'service nginx start && chkconfig nginx on')
+    if 'nginx' in packages:
+        # Start web server now and make sure it starts on boot
+        remote(config, 'service nginx start && chkconfig nginx on')
 
     # Create root directory for deployments
     remote(config, (
