@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile
 from runcommands import command
 from runcommands.commands import local
 from runcommands.runners.commands import get_default_prepend_path
-from runcommands.util import abort, abs_path, args_to_str, as_list, Hide
+from runcommands.util import abort, abs_path, args_to_str, as_list, Hide, printer
 
 from .django import call_command, get_settings
 from .remote import rsync
@@ -180,6 +180,11 @@ def collectstatic(config, static_root=None, default_ignore=True, ignore=()):
     ignore = list(ignore)
     if default_ignore:
         ignore.extend(_collectstatic_default_ignore)
+
+    if not os.path.isdir(settings.STATIC_ROOT):
+        printer.info('{0.STATIC_ROOT} does not exist;'.format(settings), end=' ')
+        os.makedirs(settings.STATIC_ROOT)
+        printer.info('created')
 
     print('Collecting static files into {0.STATIC_ROOT} ...'.format(settings))
     call_command(config, 'collectstatic', interactive=False, ignore=ignore, clear=True, hide='all')
