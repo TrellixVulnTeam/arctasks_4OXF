@@ -1,4 +1,5 @@
 import os
+import string
 import tempfile
 
 from runcommands import command
@@ -73,18 +74,30 @@ def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run
 
 @command
 def copy_file(config, local_path, remote_path, user=None, host=None, sudo=False, run_as=None,
-              template=False, mode=_rsync_default_mode):
+              template=False, template_type=None, mode=_rsync_default_mode):
     local_path = abs_path(local_path, format_kwargs=config)
+    rsync_args = dict(user=user, host=host, sudo=sudo, run_as=run_as, mode=mode)
 
     if template:
         with open(local_path) as in_fp:
-            contents = in_fp.read().format(**config)
-        temp_fd, local_path = tempfile.mkstemp(
-            prefix='%s-' % config.package,
-            suffix='-%s' % os.path.basename(local_path),
-            text=True)
-        os.write(temp_fd, contents.encode('utf-8'))
-        os.close(temp_fd)
+            contents = in_fp.read()
 
-    rsync(
-        config, local_path, remote_path, user=user, host=host, sudo=sudo, run_as=run_as, mode=mode)
+        if template_type in (None, 'format'):
+            contents = contents.format_map(config)
+        elif template_type == 'string':
+            template = string.Template(contents)
+            contents = template.substitute(config)
+        else:
+            raise ValueError('Unrecognized template type: %s' % template_type)
+
+        prefix = '%s-' % config.package
+        suffix = '-%s' % os.path.basename(local_path)
+        temp_fd, temp_path = tempfile.mkstemp(prefix=prefix, suffix=suffix, text=True)
+
+        with os.fdopen(temp_fd, 'w') as temp_file:
+            temp_file.write(contents)
+
+        rsync(config, temp_path, remote_path, **rsync_args)
+        os.remove(temp_path)
+    else:
+        rsync(config, local_path, remote_path, **rsync_args)
