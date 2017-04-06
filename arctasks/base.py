@@ -1,6 +1,4 @@
-import glob
 import os
-import posixpath
 import shutil
 import site
 import sys
@@ -27,16 +25,15 @@ def install(config, requirements='{pip.requirements}', upgrade=False, add_to_pat
 
     # Add (or re-add) virtualenv site-packages to sys.path
     if add_to_path:
-        printer.info('Adding virtualenv site-packages to sys.path')
-        paths = glob.glob(posixpath.join(config.venv, 'lib/python*/site-packages'))
-        num_paths = len(paths)
-        if num_paths == 0:
-            abort(1, 'Could not find site-packages after install')
-        elif num_paths == 1:
-            printer.info('Found site-packages at', paths[0])
-            site.addsitedir(paths[0])
+        site_packages = config.site_packages
+        rel_site_packages = os.path.relpath(site_packages, os.getcwd())
+        msg = 'Adding virtualenv site-packages {rel_site_packages} to sys.path...'
+        printer.info(msg.format_map(locals()))
+        if os.path.isdir(site_packages):
+            site.addsitedir(site_packages)
         else:
-            abort(1, 'Too many site-packages directories found after install')
+            msg = 'Could not find site-packages directory {rel_site_packages} after install'
+            abort(1, msg.format_map(locals()))
 
 
 @command(default_env='dev')
