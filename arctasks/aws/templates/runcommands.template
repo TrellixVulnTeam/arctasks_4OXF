@@ -1,0 +1,3 @@
+#!/bin/bash
+export PATH="{deploy.bin}:$PATH"
+{deploy.bin}/runcommands --default-env {env} --env {env} --version {version} "$@"

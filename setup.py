@@ -30,6 +30,7 @@ setup(
             '*.conf',
             '*.ini',
             'commands.cfg',
+            'templates/*.template',
         ],
     },
     classifiers=[
