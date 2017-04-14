@@ -127,7 +127,7 @@ class Deployer:
         printer.success('New version: {version} ({remote.build.dir})'.format(**config))
 
         printer.info('Configuration:')
-        show_config(config, defaults=False, initial_level=1)
+        show_config(config, defaults=False)
         printer.warning('\nPlease review the configuration above.')
 
         if not opts['migrate']:
