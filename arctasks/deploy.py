@@ -221,6 +221,7 @@ class Deployer:
         else:
             abort(1, 'Could not find source distribution for {distribution}'.format(**config))
         remote(config, (
+            'LANG=en_US.UTF-8',
             '{remote.build.pip} wheel',
             '--wheel-dir {remote.pip.wheel_dir}',
             '--cache-dir {remote.pip.cache_dir}',
