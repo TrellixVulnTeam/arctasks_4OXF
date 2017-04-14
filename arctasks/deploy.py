@@ -27,7 +27,7 @@ def provision(config, overwrite=False):
 
     if overwrite:
         # Remove existing build directory if present
-        remote(config, ('rm -rf', build_dir))
+        remote(config, ('rm -rf', build_dir), host='hrimfaxi.oit.pdx.edu')
 
     # Make build directories
     build_dirs = ['{remote.build.dir}', '{remote.build.dist}']
