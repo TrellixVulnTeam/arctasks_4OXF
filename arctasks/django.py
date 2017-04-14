@@ -60,6 +60,7 @@ def migrate(config, app=None, migration=None):
 @command(default_env='test')
 def test(config, test_=(), failfast=False, keepdb=True, verbosity=1, with_coverage=False,
          force_env=None):
+    debug = config._get_dotted('run.debug', None)
     if force_env and force_env != config.env:
         # NOTE: We have to use a subprocess for this because calling
         # django.setup() again in the same process will have no effect.
@@ -78,7 +79,7 @@ def test(config, test_=(), failfast=False, keepdb=True, verbosity=1, with_covera
             '--keepdb' if keepdb else '',
             '--verbosity', str(verbosity),
             '--with-coverage' if with_coverage else '',
-        ), echo=config.debug)
+        ), echo=debug)
 
         if django_settings_module is not None:
             os.environ['DJANGO_SETTINGS_MODULE'] = django_settings_module
