@@ -201,7 +201,7 @@ class Deployer:
             self.push_config()
         if self.options['static']:
             printer.header('Pushing static files...')
-            push_static(self.config, hide='stdout')
+            push_static(self.config, build=False, hide='stdout')
 
     def wheels(self):
         """Build and cache packages (as wheels)."""
