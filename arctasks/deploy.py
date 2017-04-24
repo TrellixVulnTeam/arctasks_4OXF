@@ -497,7 +497,11 @@ def clean_builds(config, keep=3):
         printer.warning('No versions to remove')
 
 
-@command
+@command(
+    config={
+        'remote.host': 'hrimfaxi.oit.pdx.edu',
+    },
+)
 def link(config, version, staticfiles_manifest=True, old_style=None):
     build_dir = '{config.remote.build.root}/{version}'.format_map(locals())
 
