@@ -1,5 +1,3 @@
-import glob
-import itertools
 import os
 import shutil
 from subprocess import Popen
@@ -8,10 +6,11 @@ from tempfile import NamedTemporaryFile
 from runcommands import command
 from runcommands.commands import local
 from runcommands.runners.commands import get_default_prepend_path
-from runcommands.util import abort, abs_path, args_to_str, as_list, Hide, printer
+from runcommands.util import abort, abs_path, args_to_str, Hide, printer
 
 from .django import call_command, get_settings
 from .remote import rsync
+from .util import flatten_globs
 
 
 @command(default_env='dev')
@@ -37,7 +36,36 @@ _autoprefixer_browsers = ','.join((
 
 
 @command(default_env='dev')
-def lessc(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers):
+def build_static(config, css=True, css_sources=(), js=True, js_sources=(), collect=True,
+                 optimize=True, static_root=None, default_ignore=True, ignore=(), echo=False,
+                 hide=None):
+    if css:
+        build_css(config, sources=css_sources, optimize=optimize, echo=echo, hide=hide)
+    if js:
+        build_js(config, sources=js_sources, optimize=optimize, echo=echo, hide=hide)
+    if collect:
+        collectstatic(
+            config, static_root=static_root, default_ignore=default_ignore, ignore=ignore,
+            echo=echo, hide=hide)
+
+
+@command(default_env='dev')
+def build_css(config, sources=(), optimize=True, echo=False, hide=None):
+    if not sources:
+        sources = []
+        sources.extend(config._get_dotted('defaults.arctasks.static.lessc.sources', default=[]))
+        sources.extend(config._get_dotted('defaults.arctasks.static.sass.sources', default=[]))
+    less_sources = [s for s in sources if s.endswith('less')]
+    sass_sources = [s for s in sources if s.endswith('scss')]
+    if less_sources:
+        lessc(config, sources=less_sources, optimize=optimize, echo=echo, hide=hide)
+    if sass_sources:
+        sass(config, sources=sass_sources, optimize=optimize, echo=echo, hide=hide)
+
+
+@command(default_env='dev')
+def lessc(config, sources=(), optimize=True, autoprefixer_browsers=_autoprefixer_browsers,
+          echo=False, hide=None):
     """Compile the LESS files specified by ``sources``.
 
     Each LESS file will be compiled into a CSS file with the same root
@@ -49,9 +77,10 @@ def lessc(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefix
     which = local(config, 'which lessc', echo=False, hide='stdout', abort_on_failure=False)
     if which.failed:
         abort(1, 'less must be installed (via npm) and on $PATH')
-    sources = [abs_path(s, format_kwargs=config) for s in as_list(sources)]
-    sources = [glob.glob(s) for s in sources]
-    for source in itertools.chain(*sources):
+
+    sources = flatten_globs(config, sources)
+
+    for source in sources:
         root, ext = os.path.splitext(source)
         if ext != '.less':
             abort(1, 'Expected a .less file; got "{source}"'.format(source=source))
@@ -61,11 +90,11 @@ def lessc(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefix
             '--autoprefix="%s"' % autoprefixer_browsers,
             '--clean-css' if optimize else '',
             source, destination
-        ))
+        ), echo=echo, hide=hide)
 
 
 @command(default_env='dev')
-def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixer_browsers,
+def sass(config, sources=(), optimize=True, autoprefixer_browsers=_autoprefixer_browsers,
          echo=False, hide=None):
     """Compile the SASS files specified by ``sources``.
 
@@ -75,14 +104,7 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
     TODO: Make destination paths configurable?
 
     """
-    sources = as_list(sources)
-    sources = [abs_path(s, format_kwargs=config) for s in sources]
-
-    for s in sources:
-        if not glob.glob(s):
-            abort(1, 'No SASS sources found for "{s}"'.format(s=s))
-
-    sources = [glob.glob(s) for s in sources]
+    sources = flatten_globs(config, sources)
 
     hide_stdout = Hide.hide_stdout(hide)
     echo = echo and not hide_stdout
@@ -93,7 +115,7 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
     env = os.environ.copy()
     env['PATH'] = ':'.join((path, env['PATH']))
 
-    for source in itertools.chain(*sources):
+    for source in sources:
         root, ext = os.path.splitext(source)
         destination = '{root}.css'.format(root=root)
 
@@ -135,76 +157,17 @@ def sass(config, sources=None, optimize=True, autoprefixer_browsers=_autoprefixe
 
 
 @command(default_env='dev')
-def build_static(config, css=True, css_sources=None, js=True, js_sources=None, collect=True,
-                 optimize=True, static_root=None, default_ignore=True, ignore=()):
-    if css:
-        build_css(config, sources=css_sources, optimize=optimize)
-    if js:
-        build_js(config, sources=js_sources, optimize=optimize)
-    if collect:
-        collectstatic(
-            config, static_root=static_root, default_ignore=default_ignore, ignore=ignore)
+def build_js(config, sources=(), main_config_file='{package}:static/requireConfig.js',
+             base_url='{package}:static', optimize=True, paths=(), echo=False, hide=None):
+    sources = flatten_globs(config, sources)
 
-
-@command(default_env='dev')
-def build_css(config, sources=None, optimize=True):
-    if sources is None:
-        sources = []
-        sources.extend(config._get_dotted('defaults.arctasks.static.lessc.sources', default=[]))
-        sources.extend(config._get_dotted('defaults.arctasks.static.sass.sources', default=[]))
-    else:
-        sources = as_list(sources)
-    less_sources = [s for s in sources if s.endswith('less')]
-    sass_sources = [s for s in sources if s.endswith('scss')]
-    if less_sources:
-        lessc(config, sources=less_sources, optimize=optimize)
-    if sass_sources:
-        sass(config, sources=sass_sources, optimize=optimize)
-
-
-_collectstatic_default_ignore = (
-    'node_modules',
-)
-
-
-@command(default_env='dev')
-def collectstatic(config, static_root=None, default_ignore=True, ignore=()):
-    settings = get_settings(config)
-    override_static_root = bool(static_root)
-
-    if override_static_root:
-        static_root = static_root.format(**config)
-        original_static_root = settings.STATIC_ROOT
-        settings.STATIC_ROOT = static_root
-
-    ignore = list(ignore)
-    if default_ignore:
-        ignore.extend(_collectstatic_default_ignore)
-
-    if not os.path.isdir(settings.STATIC_ROOT):
-        printer.info('{0.STATIC_ROOT} does not exist;'.format(settings), end=' ')
-        os.makedirs(settings.STATIC_ROOT)
-        printer.info('created')
-
-    print('Collecting static files into {0.STATIC_ROOT} ...'.format(settings))
-    call_command(config, 'collectstatic', interactive=False, ignore=ignore, clear=True, hide='all')
-
-    if override_static_root:
-        settings.STATIC_ROOT = original_static_root
-
-
-@command(default_env='dev')
-def build_js(config, sources=None, main_config_file='{package}:static/requireConfig.js',
-             base_url='{package}:static', optimize=True, paths=None):
-    sources = [abs_path(s, format_kwargs=config) for s in as_list(sources)]
-    sources = [glob.glob(s) for s in sources]
     main_config_file = abs_path(main_config_file, format_kwargs=config)
     base_url = abs_path(base_url, format_kwargs=config)
     optimize = 'uglify' if optimize else 'none'
-    paths = as_list(paths)
     if paths:
         paths = ' '.join('paths.{k}={v}'.format(k=k, v=v) for k, v in paths.items())
-    for source in itertools.chain(*sources):
+
+    for source in sources:
         name = os.path.relpath(source, base_url)
         if name.endswith('.js'):
             name = name[:-3]
@@ -219,7 +182,43 @@ def build_js(config, sources=None, main_config_file='{package}:static/requireCon
             paths or '',
             'out={out}',
         ), format_kwargs=locals())
-        local(config, cmd, hide='stdout')
+        local(config, cmd, echo=echo, hide=hide)
+
+
+_collectstatic_default_ignore = (
+    'node_modules',
+)
+
+
+@command(default_env='dev')
+def collectstatic(config, static_root=None, default_ignore=True, ignore=(), echo=False, hide=None):
+    settings = get_settings(config)
+    override_static_root = bool(static_root)
+
+    if override_static_root:
+        static_root = static_root.format(**config)
+        original_static_root = settings.STATIC_ROOT
+        settings.STATIC_ROOT = static_root
+
+    ignore = list(ignore)
+    if default_ignore:
+        ignore.extend(_collectstatic_default_ignore)
+
+    hide_stdout = Hide.hide_stdout(hide)
+    echo = echo and not hide_stdout
+
+    if not os.path.isdir(settings.STATIC_ROOT):
+        printer.info('{0.STATIC_ROOT} does not exist;'.format(settings), end=' ')
+        os.makedirs(settings.STATIC_ROOT)
+        printer.info('created')
+
+    if echo:
+        print('Collecting static files into {0.STATIC_ROOT} ...'.format(settings))
+
+    call_command(config, 'collectstatic', interactive=False, ignore=ignore, clear=True, hide=hide)
+
+    if override_static_root:
+        settings.STATIC_ROOT = original_static_root
 
 
 @command(default_env='prod')
