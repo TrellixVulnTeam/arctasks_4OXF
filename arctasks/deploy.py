@@ -43,7 +43,7 @@ def provision(config, overwrite=False):
             '&& tar xvfz {virtualenv.tarball_name}',
         ), cd='{remote.build.dir}', hide='all')
         remote(config, (
-            '{remote.bin.python} virtualenv.py {remote.build.venv}'
+            '{remote.bin.python} virtualenv.py -p python{python.version} {remote.build.venv}'
         ), cd='{remote.build.dir}/{virtualenv.base_name}')
 
     # Provision virtualenv with basics
