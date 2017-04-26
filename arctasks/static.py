@@ -37,8 +37,8 @@ _autoprefixer_browsers = ','.join((
 
 @command(default_env='dev')
 def build_static(config, css=True, css_sources=(), js=True, js_sources=(), collect=True,
-                 optimize=True, static_root=None, default_ignore=True, ignore=(), echo=False,
-                 hide=None):
+                 optimize=True, static_root=None, default_ignore=True, ignore=(), exclude=(),
+                 include=(), echo=False, hide=None):
     if css:
         build_css(config, sources=css_sources, optimize=optimize, echo=echo, hide=hide)
     if js:
@@ -46,7 +46,7 @@ def build_static(config, css=True, css_sources=(), js=True, js_sources=(), colle
     if collect:
         collectstatic(
             config, static_root=static_root, default_ignore=default_ignore, ignore=ignore,
-            echo=echo, hide=hide)
+            exclude=exclude, include=include, echo=echo, hide=hide)
 
 
 @command(default_env='dev')
@@ -191,7 +191,8 @@ _collectstatic_default_ignore = (
 
 
 @command(default_env='dev')
-def collectstatic(config, static_root=None, default_ignore=True, ignore=(), echo=False, hide=None):
+def collectstatic(config, static_root=None, default_ignore=True, ignore=(), exclude=(), include=(),
+                  echo=False, hide=None):
     settings = get_settings(config)
     override_static_root = bool(static_root)
 
@@ -215,7 +216,17 @@ def collectstatic(config, static_root=None, default_ignore=True, ignore=(), echo
     if echo:
         print('Collecting static files into {0.STATIC_ROOT} ...'.format(settings))
 
-    call_command(config, 'collectstatic', interactive=False, ignore=ignore, clear=True, hide=hide)
+    args = {
+        'interactive': False,
+        'ignore': ignore,
+        'clear': True,
+        'hide': hide,
+    }
+
+    if include or exclude:
+        args.update(exclude=exclude, include=include)
+
+    call_command(config, 'collectstatic', **args)
 
     if override_static_root:
         settings.STATIC_ROOT = original_static_root
