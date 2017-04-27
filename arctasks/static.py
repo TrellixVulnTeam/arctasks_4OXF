@@ -5,7 +5,7 @@ from tempfile import NamedTemporaryFile
 
 from runcommands import command
 from runcommands.commands import local
-from runcommands.runners.commands import get_default_prepend_path
+from runcommands.runners.commands import get_default_local_prepend_path
 from runcommands.util import abort, abs_path, args_to_str, Hide, printer
 
 from .django import call_command, get_settings
@@ -111,9 +111,11 @@ def sass(config, sources=(), optimize=True, autoprefixer_browsers=_autoprefixer_
 
     run_postcss = bool(optimize or autoprefixer_browsers)
 
-    path = 'PATH={path}'.format(path=get_default_prepend_path(config))
     env = os.environ.copy()
-    env['PATH'] = ':'.join((path, env['PATH']))
+
+    path = get_default_local_prepend_path(config)
+    if path:
+        env['PATH'] = os.pathsep.join((path, env['PATH']))
 
     for source in sources:
         root, ext = os.path.splitext(source)
