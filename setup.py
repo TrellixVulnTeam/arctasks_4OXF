@@ -3,8 +3,8 @@ from distutils.core import setup
 
 install_requires = [
     'boto3>=1.4.4',
-    'runcommands>=1.0a17',
     'setuptools>=35.0.1',
+    'runcommands>=1.0a18',
 ]
 
 if sys.version_info[:2] < (3, 4):
