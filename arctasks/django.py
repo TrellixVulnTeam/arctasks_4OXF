@@ -2,7 +2,9 @@ import os
 
 from runcommands import command
 from runcommands.commands import local
-from runcommands.util import Hide, abort, abs_path, as_list, printer
+from runcommands.util import Hide, abort, abs_path, printer
+
+from .util import as_list
 
 
 def setup(config):

@@ -4,7 +4,9 @@ import tempfile
 
 from runcommands import command
 from runcommands.commands import local, remote
-from runcommands.util import abs_path, args_to_str, as_tuple
+from runcommands.util import abs_path, args_to_str
+
+from .util import as_tuple
 
 
 @command

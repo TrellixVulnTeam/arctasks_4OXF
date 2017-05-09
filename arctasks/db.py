@@ -5,7 +5,9 @@ from tempfile import mkstemp
 from runcommands import command
 from runcommands.config import Config
 from runcommands.commands import local
-from runcommands.util import abort, as_tuple, confirm
+from runcommands.util import abort, confirm
+
+from .util import as_tuple
 
 
 @command(default_env='dev')

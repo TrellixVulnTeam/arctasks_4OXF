@@ -31,7 +31,7 @@ def deploy(config, version=None, provision_=False, create_cert=False, overwrite=
            overwrite_venv=False, install=True, static=True, link=True, restart_uwsgi_=False,
            restart_nginx_=False, restart_all=False):
     if version:
-        config = config._clone(version=version)
+        config = config.copy(version=version)
     elif config.get('version'):
         printer.info('Using default version:', config.version)
     else:

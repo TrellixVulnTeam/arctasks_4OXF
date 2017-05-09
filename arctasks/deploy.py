@@ -11,13 +11,14 @@ from urllib.request import urlretrieve
 
 from runcommands import command
 from runcommands.commands import show_config, local, remote
-from runcommands.util import abort, as_list, confirm, load_object, printer
+from runcommands.util import abort, confirm, load_object, printer
 
 from . import django
 from . import git
 from .base import clean, install
 from .remote import manage as remote_manage, rsync, copy_file
 from .static import build_static
+from .util import as_list
 
 
 @command
@@ -92,7 +93,7 @@ class Deployer:
         self.current_branch = git.current_branch()
         version = self.options['version']
         if version is not None:
-            self.config = config._clone(version=version)
+            self.config = config.copy(version=version)
 
     def init_options(self, options):
         config = self.config
