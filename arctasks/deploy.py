@@ -119,13 +119,13 @@ class Deployer:
             config, 'readlink {remote.path.env}', echo=False, hide='all', abort_on_failure=False)
         active_path = result.stdout.strip()
 
-        printer.header('Preparing to deploy {name} to {env} ({remote.host})'.format(**config))
+        printer.header('Preparing to deploy {name} to {env} ({remote.host})'.format_map(config))
         if active_path:
             active_version = posixpath.basename(active_path)
             printer.error('Active version: {} ({})'.format(active_version, active_path))
         else:
             printer.warning('There is no active version')
-        printer.success('New version: {version} ({remote.build.dir})'.format(**config))
+        printer.success('New version: {version} ({remote.build.dir})'.format_map(config))
 
         printer.info('Configuration:')
         show_config(config, defaults=False)
@@ -158,9 +158,10 @@ class Deployer:
         """Make the local build directory."""
         build_dir = self.config.path.build.root
         if os.path.isdir(build_dir):
-            printer.header('Removing existing build directory: {build_dir} ...'.format(**locals()))
+            printer.header(
+                'Removing existing build directory: {build_dir} ...'.format_map(locals()))
             shutil.rmtree(build_dir)
-        printer.header('Creating build directory: {build_dir}'.format(**locals()))
+        printer.header('Creating build directory: {build_dir}'.format_map(locals()))
         os.makedirs(build_dir)
 
     def build_static(self):
@@ -220,7 +221,7 @@ class Deployer:
             if dist.startswith(config.distribution):
                 break
         else:
-            abort(1, 'Could not find source distribution for {distribution}'.format(**config))
+            abort(1, 'Could not find source distribution for {distribution}'.format_map(config))
         remote(config, (
             'LANG=en_US.UTF-8',
             '{remote.build.pip} wheel',
@@ -428,7 +429,8 @@ def builds(config, active=False, rm=(), yes=False):
         active = remote(
             config, 'readlink {remote.path.env}', abort_on_failure=False, hide='stdout')
         active = active.stdout.strip() if active.succeeded else ''
-        printer.header('Builds for {env} (in {remote.build.root}; newest first):'.format(**config))
+        printer.header(
+            'Builds for {env} (in {remote.build.root}; newest first):'.format_map(config))
         # Get a list of all the build directories.
         result = remote(config, (
             'find', build_root, '-mindepth 1 -maxdepth 1 -type d'
@@ -464,7 +466,7 @@ def builds(config, active=False, rm=(), yes=False):
                 else:
                     print(out)
         else:
-            printer.warning('No {env} builds found in {remote.build.root}'.format(**config))
+            printer.warning('No {env} builds found in {remote.build.root}'.format_map(config))
 
 
 @command(env=True)
@@ -487,7 +489,7 @@ def clean_builds(config, keep=3):
         print(', '.join(versions_to_keep))
     if versions_to_remove:
         versions_to_remove_str = ', '.join(versions_to_remove)
-        printer.danger('Versions that will be removed from {remote.build.root}:'.format(**config))
+        printer.danger('Versions that will be removed from {remote.build.root}:'.format_map(config))
         print(versions_to_remove_str)
         if confirm(config, 'Really remove these versions?', yes_values=('really',)):
             printer.danger('Removing {0}...'.format(versions_to_remove_str))

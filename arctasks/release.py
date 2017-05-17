@@ -299,7 +299,7 @@ def resume_development(config, version=None, changelog=DEFAULT_CHANGELOG, dry_ru
         ]
         lines[1:1] = new_lines
         if dry_run:
-            printer.info('[DRY RUN] Added change log section for {version}'.format(**f))
+            printer.info('[DRY RUN] Added change log section for {version}'.format_map(f))
         else:
             fp.writelines(lines)
 
@@ -313,7 +313,7 @@ def resume_development(config, version=None, changelog=DEFAULT_CHANGELOG, dry_ru
     if os.path.isfile('requirements-frozen.txt'):
         files_to_commit.append('requirements-frozen.txt')
         with open(abs_path('arctasks:templates/requirements.txt.template')) as fp:
-            contents = fp.read().format(**config)
+            contents = fp.read().format_map(config)
         with open((os.devnull if dry_run else 'requirements-frozen.txt'), 'w') as fp:
             if dry_run:
                 printer.info('[DRY RUN] New requirements-frozen.txt content would be:')

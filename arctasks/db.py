@@ -22,7 +22,7 @@ def createdb(config, type=None, user='{db.user}', host='{db.host}', port='{db.po
         args += (with_postgis, extensions)
         creator = create_postgresql_db
     else:
-        raise ValueError('Unknown database type: {db.type}'.format(**config))
+        raise ValueError('Unknown database type: {db.type}'.format_map(config))
     creator(*args)
 
 
@@ -93,8 +93,8 @@ def create_mysql_db(config, user='{db.user}', host='{db.host}', port='{db.port}'
 
     f = locals()
 
-    run_command("CREATE USER '{user}'@'{host}'".format(**f))
-    run_command("GRANT ALL PRIVILEGES on *.* TO '{user}'@'{host}' WITH GRANT OPTION".format(**f))
+    run_command("CREATE USER '{user}'@'{host}'".format_map(f))
+    run_command("GRANT ALL PRIVILEGES on *.* TO '{user}'@'{host}' WITH GRANT OPTION".format_map(f))
 
     if drop:
         run_command('DROP DATABASE', name)
@@ -136,8 +136,8 @@ def load_prod_data(config,
         reset_db(config, user, host, port, name)
 
     source_config = Config(config_file=config.config_file, env=source)
-    source_pw = getpass('{source} database password: '.format(**locals()))
-    env_pw = getpass('{env} database password: '.format(**config))
+    source_pw = getpass('{source} database password: '.format_map(locals()))
+    env_pw = getpass('{env} database password: '.format_map(config))
     temp_fd, temp_path = mkstemp()
 
     if config.db.type == 'postgresql':
@@ -177,7 +177,7 @@ def load_prod_data(config,
     elif config.db.type == 'mysql':
         raise NotImplementedError('load_prod_data not yet implemented for MySQL')
     else:
-        raise ValueError('Unknown database type: {db.type}'.format(**config))
+        raise ValueError('Unknown database type: {db.type}'.format_map(config))
 
 
 @command
@@ -215,7 +215,7 @@ def reset_db(config, user='{db.user}', host='{db.host}', port='{db.port}', name=
     if not confirm(config, msg):
         abort(0)
 
-    password = getpass('{env} database password: '.format(**config))
+    password = getpass('{env} database password: '.format_map(config))
     if password:
         os.environ['PGPASSWORD'] = password
 

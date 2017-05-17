@@ -34,7 +34,7 @@ def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run
     ``source='remote'``.
 
     """
-    remote_path = '{user}@{host}:{remote_path}'.format(**locals())
+    remote_path = '{user}@{host}:{remote_path}'.format_map(locals())
 
     if source == 'local':
         source_path, destination_path = local_path, remote_path

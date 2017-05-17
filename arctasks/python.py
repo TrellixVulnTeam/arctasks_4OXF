@@ -64,4 +64,4 @@ def show_upgraded_packages(config):
                 'is not in range specified in requirements: '
                 '{specified_min_op}{specified_min_version},'
                 '{specified_max_op}{specified_max_version}'
-                .format(**locals()))
+                .format_map(locals()))

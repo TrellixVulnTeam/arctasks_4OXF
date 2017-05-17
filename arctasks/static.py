@@ -199,7 +199,7 @@ def collectstatic(config, static_root=None, default_ignore=True, ignore=(), excl
     override_static_root = bool(static_root)
 
     if override_static_root:
-        static_root = static_root.format(**config)
+        static_root = static_root.format_map(config)
         original_static_root = settings.STATIC_ROOT
         settings.STATIC_ROOT = static_root
 

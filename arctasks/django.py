@@ -114,7 +114,7 @@ _runserver_port = 8000
 
 @command(default_env='dev')
 def runserver(config, host=_runserver_host, port=_runserver_port):
-    call_command(config, 'runserver', '{host}:{port}'.format(**locals()))
+    call_command(config, 'runserver', '{host}:{port}'.format_map(locals()))
 
 
 @command(default_env='dev')

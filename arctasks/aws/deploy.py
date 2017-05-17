@@ -80,8 +80,8 @@ def deploy(config, version=None, provision_=False, create_cert=False, overwrite=
     # {deploy.dir}/{destination}. Files that end with ".template" will
     # be copied as templates (i.e., config values will be injected).
     for source, destination in config.deploy.copy_files.items():
-        source = source.format(**config)
-        destination = destination.format(**config)
+        source = source.format_map(config)
+        destination = destination.format_map(config)
         deploy_dir = config.deploy.dir
 
         source_base_name, ext = os.path.splitext(os.path.basename(source))

@@ -148,8 +148,8 @@ def retrieve(config, source, destination, overwrite=False, chmod=None):
     destination).
 
     """
-    source = source.format(**config)
-    destination = destination.format(**config)
+    source = source.format_map(config)
+    destination = destination.format_map(config)
     chmod = int(chmod, 8) if isinstance(chmod, str) else chmod
     make_dir = None
 
@@ -168,22 +168,22 @@ def retrieve(config, source, destination, overwrite=False, chmod=None):
     if os.path.exists(destination):
         if not overwrite:
             printer.warning(
-                '{destination} exists; pass --overwrite to re-fetch it'.format(**f_args))
+                '{destination} exists; pass --overwrite to re-fetch it'.format_map(f_args))
             return destination
         else:
-            printer.warning('Overwriting {destination}...'.format(**f_args))
+            printer.warning('Overwriting {destination}...'.format_map(f_args))
     else:
-        printer.info('Retrieving {source}...'.format(**f_args))
+        printer.info('Retrieving {source}...'.format_map(f_args))
 
     if make_dir:
         os.makedirs(make_dir, exist_ok=True)
 
     urllib.request.urlretrieve(source, destination, _retrieve_report_hook)
-    print('\r{source} saved to {destination}'.format(**f_args), end='')
+    print('\r{source} saved to {destination}'.format_map(f_args), end='')
 
     if chmod is not None:
         os.chmod(destination, chmod)
-        print(' with mode {chmod:o}'.format(**f_args))
+        print(' with mode {chmod:o}'.format_map(f_args))
     else:
         print()
 
