@@ -17,7 +17,7 @@ from . import django
 from . import git
 from .base import clean, install
 from .remote import manage as remote_manage, rsync, copy_file
-from .static import build_static
+from .static import build_static, collectstatic
 from .util import as_list
 
 
@@ -172,7 +172,8 @@ class Deployer:
 
         """
         printer.header('Building static files...')
-        build_static(self.config, static_root='{path.build.static_root}')
+        build_static(self.config, collect=False)
+        collectstatic(self.config, static_root='{path.build.static_root}', hide='stdout')
 
     # Remote
 
