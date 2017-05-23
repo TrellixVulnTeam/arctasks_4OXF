@@ -135,7 +135,9 @@ def load_prod_data(config,
     if reset:
         reset_db(config, user, host, port, name)
 
-    source_config = Config(config_file=config.config_file, env=source)
+    run_config = config.run.copy()
+    run_config.env = source
+    source_config = Config(run=run_config)
     source_pw = getpass('{source} database password: '.format_map(locals()))
     env_pw = getpass('{env} database password: '.format_map(config))
     temp_fd, temp_path = mkstemp()
