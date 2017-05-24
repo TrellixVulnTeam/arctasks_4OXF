@@ -242,7 +242,6 @@ class Deployer:
             remote(config, ('{remote.build.pip} uninstall -y', dist), abort_on_failure=False)
         remote(config, (
             '{remote.build.pip} install',
-            '--ignore-installed',
             '--no-index',
             '--find-links {remote.pip.wheel_dir}',
             '--disable-pip-version-check',
