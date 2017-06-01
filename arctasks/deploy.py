@@ -478,7 +478,11 @@ def builds(config, active=False, rm=(), yes=False):
             printer.warning('No {env} builds found in {remote.build.root}'.format_map(config))
 
 
-@command(env=True)
+@command(
+    env=True,
+    config={
+        'remote.host': 'hrimfaxi.oit.pdx.edu',
+    })
 def clean_builds(config, keep=3):
     if keep < 1:
         abort(1, 'You have to keep at least the active version')
@@ -503,7 +507,7 @@ def clean_builds(config, keep=3):
         if confirm(config, 'Really remove these versions?', yes_values=('really',)):
             printer.danger('Removing {0}...'.format(versions_to_remove_str))
             rm_paths = [posixpath.join(config.remote.build.root, v) for v in versions_to_remove]
-            remote(config, ('rm -r', rm_paths), 'hrimfaxi.oit.pdx.edu', echo=True)
+            remote(config, ('rm -r', rm_paths), echo=True)
             builds(config)
     else:
         printer.warning('No versions to remove')
