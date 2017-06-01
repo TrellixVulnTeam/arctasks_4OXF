@@ -4,8 +4,6 @@ from runcommands import command
 from runcommands.commands import local
 from runcommands.util import Hide, abort, abs_path, printer
 
-from .util import as_list
-
 
 def setup(config):
     os.environ.setdefault('DJANGO_SETTINGS_MODULE', config.get('django_settings_module'))
@@ -118,10 +116,9 @@ def runserver(config, host=_runserver_host, port=_runserver_port):
 
 
 @command(default_env='dev')
-def run_mod_wsgi(config, host=_runserver_host, port=_runserver_port, processes=2, threads=25,
-                 aliases=None, proxies=None):
-    aliases = as_list(aliases)
-    proxies = as_list(proxies)
+def mod_wsgi_express(config, host=_runserver_host, port=_runserver_port, processes=2, threads=2,
+                     aliases=(), proxies=()):
+    aliases = list(aliases)
 
     settings = get_settings(config)
     media_url = settings.MEDIA_URL.rstrip('/')
@@ -129,7 +126,7 @@ def run_mod_wsgi(config, host=_runserver_host, port=_runserver_port, processes=2
     default_media_alias = (media_url, settings.MEDIA_ROOT)
     default_static_alias = (static_url, settings.STATIC_ROOT)
 
-    has_alias = lambda url: any((path == url) for (path, _) in aliases)
+    has_alias = lambda check_url: any((alias_url == check_url) for (alias_url, _) in aliases)
 
     if not has_alias(media_url):
         aliases.append(default_media_alias)
