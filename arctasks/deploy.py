@@ -390,6 +390,9 @@ deploy.set_deployer_class = lambda class_: setattr(deploy, 'deployer_class', cla
 
 @command(
     env=True,
+    config={
+        'remote.host': 'hrimfaxi.oit.pdx.edu',
+    },
     help={
         'rm': 'Remove the specified build(s)',
         'yes': 'Skip confirmations',
@@ -405,13 +408,22 @@ def builds(config, active=False, rm=(), yes=False):
 
     """
     build_root = config.remote.build.root
+
+    def get_active(**kwargs):
+        kwargs.setdefault('abort_on_failure', False)
+        kwargs.setdefault('hide', 'stdout')
+        return remote(config, 'readlink {remote.path.env}', **kwargs)
+
     if active:
-        result = remote(config, 'readlink {remote.path.env}', abort_on_failure=False)
-        if result.failed:
-            printer.error('Could not read link for active version')
+        result = get_active()
+        if result:
+            version = result.stdout.strip()
+            printer.success('Active version for {config.env}: {version}'.format_map(locals()))
+        else:
+            printer.error(
+                'Could not read link for {config.env} active version'.format_map(locals()))
     elif rm:
-        if isinstance(rm, str):
-            rm = [rm]
+        rm = [rm] if isinstance(rm, str) else rm
         build_dirs = ['{build_root}/{v}'.format(build_root=build_root, v=v) for v in rm]
         cmd = ' && '.join('test -d {d}'.format(d=d) for d in build_dirs)
         result = remote(config, cmd, echo=False, abort_on_failure=False)
@@ -422,34 +434,31 @@ def builds(config, active=False, rm=(), yes=False):
             printer.header('The following builds will be removed:')
             for d in build_dirs:
                 print(d)
-            prompt = 'Remove builds?'.format(cmd=cmd)
+            prompt = 'Remove builds?'
             if yes or confirm(config, prompt, color='error', yes_values=('yes',)):
-                remote(config, cmd, 'hrimfaxi.oit.pdx.edu')
+                remote(config, cmd)
     else:
-        active = remote(
-            config, 'readlink {remote.path.env}', abort_on_failure=False, hide='stdout')
-        active = active.stdout.strip() if active.succeeded else ''
+        active = get_active().stdout.strip()
         printer.header(
             'Builds for {env} (in {remote.build.root}; newest first):'.format_map(config))
         # Get a list of all the build directories.
         result = remote(config, (
             'find', build_root, '-mindepth 1 -maxdepth 1 -type d'
         ), cd='/', echo=False, hide='stdout')
-        if result.stdout_lines:
-            dirs = ' '.join(result.stdout_lines)
+        if result and result.stdout_lines:
             # Get path and timestamp of last modification for each build
             # directory.
             # Example stat entry:
-            #    "/vol/www/project_x/builds/stage/1.0.0 1453426316"
-            result = remote(
-                config, 'stat -c "%n %Y" {dirs}'.format(dirs=dirs), echo=False, hide='all')
-            data = result.stdout.strip().splitlines()
-            # Parse each stat entry into (path, timestamp).
-            data = [d.split(' ', 1) for d in data]
-            # Parse further into (full path, base name, datetime object).
+            #    "/vol/www/xyz/builds/stage/1.0.0 1453426316"
+            result = remote(config, (
+                'stat -c "%n %Y"', result.stdout_lines,
+            ), echo=False, hide='stdout')
+            # Parse each stat entry into path, timestamp.
+            data = [line.split(' ', 1) for line in result.stdout_lines]
+            # Parse further into full path, version (base name), datetime object.
             data = [
-                (d[0], posixpath.basename(d[0]), datetime.fromtimestamp(int(d[1])))
-                for d in data
+                (path, posixpath.basename(path), datetime.fromtimestamp(int(timestamp)))
+                for (path, timestamp) in data
             ]
             # Sort entries by timestamp.
             data = sorted(data, key=lambda item: item[2], reverse=True)
