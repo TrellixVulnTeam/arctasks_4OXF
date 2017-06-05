@@ -18,7 +18,6 @@ from . import git
 from .base import clean, install
 from .remote import manage as remote_manage, rsync, copy_file
 from .static import build_static, collectstatic
-from .util import as_list
 
 
 @command
@@ -97,7 +96,7 @@ class Deployer:
 
     def init_options(self, options):
         config = self.config
-        remove_distributions = as_list(options.get('remove_distributions'))
+        remove_distributions = list(options.get('remove_distributions') or ())
         options['remove_distributions'] = [config.distribution] + remove_distributions
         return options
 
@@ -348,7 +347,7 @@ class Deployer:
 
 @command(default_env='stage', timed=True)
 def deploy(config, version=None, deployer_class=None, provision=True, overwrite=False, push=True,
-           static=True, build_static=True, remove_distributions=None, wheels=True, install=True,
+           static=True, build_static=True, remove_distributions=(), wheels=True, install=True,
            push_config=True, migrate=False, make_active=True, set_permissions=True):
     """Deploy a new version.
 
@@ -545,10 +544,10 @@ def link(config, version, staticfiles_manifest=True, old_style=None):
 
 
 @command
-def push_app(config, deps=None, echo=False, hide=None):
+def push_app(config, deps=(), echo=False, hide=None):
     sdist = 'setup.py sdist -d {path.build.dist}'
     local(config, (sys.executable, sdist), echo=echo, hide=hide)
-    for path in as_list(deps):
+    for path in deps:
         local(config, (sys.executable, sdist), cd=path, echo=echo, hide=hide)
     local(config, (
         '{bin.pip}',

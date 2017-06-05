@@ -6,8 +6,6 @@ from runcommands import command
 from runcommands.commands import local, remote
 from runcommands.util import abs_path, args_to_str
 
-from .util import as_tuple
-
 
 @command
 def manage(config, args):
@@ -57,7 +55,6 @@ def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run
     else:
         exclude_from = None
 
-    excludes = as_tuple(excludes)
     if excludes:
         excludes = tuple("--exclude '{p}'".format(p=p) for p in excludes)
 

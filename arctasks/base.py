@@ -8,8 +8,6 @@ from runcommands import command
 from runcommands.commands import local
 from runcommands.util import abort, abs_path, printer
 
-from .util import as_list
-
 
 @command
 def clean(config):
@@ -114,7 +112,6 @@ def npm_install(config, where='.', modules=_npm_install_modules, force=False, ov
     if overwrite and os.path.isdir(node_modules):
         printer.warning('Removing {node_modules}...'.format_map(locals()))
         shutil.rmtree(node_modules)
-    modules = as_list(modules)
     local(config, ('npm install', ('--force' if force else ''), modules), cd=where)
 
 

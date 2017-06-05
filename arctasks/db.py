@@ -7,8 +7,6 @@ from runcommands.config import Config
 from runcommands.commands import local
 from runcommands.util import abort, confirm
 
-from .util import as_tuple
-
 
 @command(default_env='dev')
 def createdb(config, type=None, user='{db.user}', host='{db.host}', port='{db.port}',
@@ -38,9 +36,8 @@ def create_postgresql_db(config, user='{db.user}', host='{db.host}', port='{db.p
     database. This only works with PostgreSQL 9.1+ and PostGIS 2.0+.
 
     """
-    extensions = as_tuple(extensions)
     if with_postgis and 'postgis' not in extensions:
-        extensions = ('postgis',) + extensions
+        extensions = ['postgis'] + list(extensions)
 
     # Try to run the drop and create commands with the postgres user; if
     # that user doesn't exist, run those commands as the current user.
