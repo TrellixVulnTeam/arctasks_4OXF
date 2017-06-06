@@ -2,7 +2,9 @@ import json
 import os
 import posixpath
 import shutil
+import string
 import sys
+import tarfile
 import tempfile
 from configparser import ConfigParser, ExtendedInterpolation
 from datetime import datetime
@@ -18,43 +20,7 @@ from . import git
 from .base import clean, install
 from .remote import manage as remote_manage, rsync, copy_file
 from .static import build_static, collectstatic
-
-
-@command
-def provision(config, overwrite=False):
-    build_dir = config.remote.build.dir
-    venv = config.remote.build.venv
-
-    if overwrite:
-        # Remove existing build directory if present
-        remote(config, ('rm -rf', build_dir), host='hrimfaxi.oit.pdx.edu')
-
-    # Make build directories
-    build_dirs = ['{remote.build.dir}', '{remote.build.dist}']
-    if config.remote.build.wsgi_dir:
-        build_dirs.append('{remote.build.wsgi_dir}')
-    remote(config, ('mkdir -p -m ug=rwx,o-rwx', build_dirs))
-
-    # Create virtualenv for build
-    result = remote(config, ('test -d', venv), abort_on_failure=False)
-    if result.failed:
-        remote(config, (
-            'curl -L -o {virtualenv.tarball_name} {virtualenv.download_url}',
-            '&& tar xvfz {virtualenv.tarball_name}',
-        ), cd='{remote.build.dir}', hide='all')
-        remote(config, (
-            '{remote.bin.python} virtualenv.py -p python{python.version} {remote.build.venv}'
-        ), cd='{remote.build.dir}/{virtualenv.base_name}')
-
-    # Provision virtualenv with basics
-    pip_install = (config.remote.build.pip, 'install')
-    pip_upgrade = pip_install + ('--upgrade',)
-    has_pip_version = config.pip.get('version')
-    remote(config, (
-        (pip_upgrade, 'setuptools'), '&&',
-        (pip_install, '"pip=={pip.version}"') if has_pip_version else (pip_upgrade, 'pip'), '&&',
-        (pip_install, 'wheel'),
-    ))
+from .util import abs_path
 
 
 class Deployer:
@@ -87,17 +53,27 @@ class Deployer:
 
     def __init__(self, config, **options):
         self.started = datetime.now()
-        self.config = config
-        self.options = self.init_options(options)
-        self.current_branch = git.current_branch()
-        version = self.options['version']
-        if version is not None:
-            self.config = config.copy(version=version)
 
-    def init_options(self, options):
-        config = self.config
+        version = options['version']
+        if version is not None:
+            config = config.copy(version=version)
+
+        self.options = self.init_options(config, options)
+        self.config = config
+        self.build_dir = config.path.build.root
+        self.current_branch = git.current_branch()
+
+        self.remote_build_root = config.remote.build.root
+        self.remote_build_dir = config.remote.build.dir
+
+        archive_directory = os.path.dirname(self.build_dir)
+        archive_file_name = '{config.version}.tgz'.format_map(locals())
+        self.archive_path = os.path.join(archive_directory, archive_file_name)
+
+    def init_options(self, config, options):
         remove_distributions = list(options.get('remove_distributions') or ())
         options['remove_distributions'] = [config.distribution] + remove_distributions
+        options['build_static'] = options['static'] and options['build_static']
         return options
 
     def run(self):
@@ -105,6 +81,8 @@ class Deployer:
         self.show_info()
         self.confirm()
         self.do_local_preprocessing()
+        if self.options['push']:
+            self.push()
         self.do_remote_commands()
         if git.current_branch() != self.current_branch:
             git.run(['checkout', self.current_branch])
@@ -112,7 +90,7 @@ class Deployer:
     def show_info(self):
         """Show some info about what's being deployed."""
         config = self.config
-        opts = self.options
+        options = self.options
 
         result = remote(
             config, 'readlink {remote.path.env}', echo=False, hide='all', abort_on_failure=False)
@@ -130,7 +108,7 @@ class Deployer:
         show_config(config, defaults=False)
         printer.warning('\nPlease review the configuration above.')
 
-        if not opts['migrate']:
+        if not options['migrate']:
             printer.warning(
                 '\nNOTE: Migrations are not run by default; pass --migrate to run them\n')
 
@@ -143,25 +121,34 @@ class Deployer:
 
     def do_local_preprocessing(self):
         """Prepare for deployment."""
-        opts = self.options
-        self.make_build_dir()
-        if opts['version']:
-            git.run(['checkout', opts['version']])
+        config = self.config
+        options = self.options
+
+        if options['version']:
+            git.run(['checkout', options['version']])
             printer.header('Attempting to create a clean local install for version...')
-            clean(self.config)
-            install(self.config)
-        if opts['static'] and opts['build_static']:
+            clean(config)
+            install(config)
+
+        self.make_build_dir()
+        if self.options['build_static']:
             self.build_static()
+        self.make_dists()
+        self.copy_files()
+        self.create_archive()
 
     def make_build_dir(self):
         """Make the local build directory."""
-        build_dir = self.config.path.build.root
+        build_dir = self.build_dir
         if os.path.isdir(build_dir):
             printer.header(
-                'Removing existing build directory: {build_dir} ...'.format_map(locals()))
+                'Removing existing build directory: {build_dir}...'.format_map(locals()))
             shutil.rmtree(build_dir)
         printer.header('Creating build directory: {build_dir}'.format_map(locals()))
         os.makedirs(build_dir)
+        os.makedirs(os.path.join(build_dir, 'dist'))
+        os.makedirs(os.path.join(build_dir, 'static'))
+        os.makedirs(os.path.join(build_dir, 'wsgi'))
 
     def build_static(self):
         """Process static files and collect them.
@@ -171,14 +158,106 @@ class Deployer:
 
         """
         printer.header('Building static files...')
+        static_root = self.config.path.build.static_root
         build_static(self.config, collect=False)
-        collectstatic(self.config, static_root='{path.build.static_root}', hide='stdout')
+        collectstatic(self.config, static_root=static_root, hide='stdout')
+
+    def make_dists(self):
+        printer.header('Making source distributions...')
+        config = self.config
+        options = self.options
+        dist_dir = config.path.build.dist
+        make_dist(config, '.', dist_dir=dist_dir)
+        for path in options['deps']:
+            make_dist(config, path, dist_dir)
+        urlretrieve(
+            'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
+            os.path.join(dist_dir, 'psu.oit.arc.tasks-0.0.0.tar.gz'))
+
+    def copy_files(self):
+        config = self.config
+        build_dir = self.build_dir
+
+        copy_file_local(config, 'local.base.cfg', build_dir)
+        copy_file_local(config, config.local_settings_file, os.path.join(build_dir, 'local.cfg'))
+        copy_file_local(config, config.wsgi_file, os.path.join(build_dir, 'wsgi'))
+
+        # Copy requirements file. If a frozen requirements files exists,
+        # copy that; if it doesn't, copy a default requirements file.
+        destination_path = os.path.join(build_dir, 'requirements.txt')
+        if os.path.isfile('requirements-frozen.txt'):
+            copy_file_local(config, 'requirements-frozen.txt', destination_path)
+        else:
+            path = 'arctasks:templates/requirements.txt.template'
+            copy_file_local(config, path, destination_path, template=True)
+
+        # Copy scripts
+        kwargs = dict(template=True, mode=0o770)
+        copy_file_local(config, '{remote.build.manage_template}', build_dir, **kwargs)
+        copy_file_local(config, '{remote.build.restart_template}', build_dir, **kwargs)
+        copy_file_local(config, '{remote.build.runcommands_template}', build_dir, **kwargs)
+
+        # Copy RunCommands commands & config
+        if os.path.exists('commands.py'):
+            copy_file_local(config, 'commands.py', build_dir)
+
+        if os.path.exists('commands.cfg'):
+            commands_config = ConfigParser(interpolation=ExtendedInterpolation())
+            with open('commands.cfg') as commands_file:
+                commands_config.read_file(commands_file)
+            extra_config = {
+                'version': config.version,
+                'local_settings_file': config.remote.build.local_settings_file,
+                'deployed_at': self.started.isoformat(),
+            }
+            extra_config = {k: json.dumps(v) for (k, v) in extra_config.items()}
+            commands_config['DEFAULT'].update(extra_config)
+            temp_fd, temp_file = tempfile.mkstemp(text=True)
+            with os.fdopen(temp_fd, 'w') as t:
+                commands_config.write(t)
+            copy_file_local(config, temp_file, os.path.join(build_dir, 'commands.cfg'))
+
+        if self.options['provision']:
+            # Download and copy virtualenv
+            tarball_path = os.path.join(build_dir, 'virtualenv.tgz')
+            urlretrieve(config.virtualenv.download_url, tarball_path)
+            with tarfile.open(tarball_path, 'r') as tarball:
+                tarball.extractall(build_dir)
+            os.remove(tarball_path)
+            os.rename(
+                os.path.join(build_dir, config.virtualenv.base_name),
+                os.path.join(build_dir, 'virtualenv'))
+
+    def create_archive(self):
+        printer.header('Creating archive...')
+        with tarfile.open(self.archive_path, mode='w:gz') as tarball:
+            tarball.add(self.build_dir, self.config.version)
+
+    def push(self):
+        printer.header('Pushing archive...')
+        config = self.config
+        options = self.options
+        build_root = self.remote_build_root
+        build_dir = self.remote_build_dir
+
+        if self.options['overwrite']:
+            remote(config, ('rm -rf', build_dir), host='hrimfaxi.oit.pdx.edu')
+
+        copy_file(self.config, self.archive_path, self.config.remote.build.root, quiet=True)
+
+        remote(config, (
+            'tar xvf', os.path.basename(self.archive_path),
+        ), cd=build_root, hide='stdout')
+
+        if options['static']:
+            remote(config, (
+                'rsync -rlqtvz --exclude staticfiles.json static/ {remote.path.static}',
+            ), cd=build_dir)
 
     # Remote
 
     remote_commands = (
         'provision',
-        'push',
         'wheels',
         'install',
         'migrate',
@@ -194,30 +273,26 @@ class Deployer:
 
     def provision(self):
         printer.header('Provisioning...')
-        provision(self.config, self.options['overwrite'])
-
-    def push(self):
-        printer.header('Pushing app...')
-        push_app(self.config, hide='all')
-        if self.options['push_config']:
-            self.push_config()
-        if self.options['static']:
-            printer.header('Pushing static files...')
-            push_static(self.config, build=False, hide='stdout')
+        remote(self.config, (
+            'test -d {remote.build.venv} ||',
+            '{remote.bin.python} {remote.build.dir}/virtualenv/virtualenv.py',
+            '-p python{python.version}',
+            '{remote.build.venv}'
+        ))
 
     def wheels(self):
         """Build and cache packages (as wheels)."""
         printer.header('Building wheels...')
-        config, opts = self.config, self.options
+        config = self.config
+        options = self.options
         wheel_dir = config.remote.pip.wheel_dir
         paths_to_remove = []
-        for dist in opts['remove_distributions']:
+        for dist in options['remove_distributions']:
             path = '/'.join((wheel_dir, '{dist}*'.format(dist=dist.replace('-', '_'))))
             paths_to_remove.append(path)
         remote(config, ('rm -f', paths_to_remove))
         result = remote(config, 'ls {remote.build.dist}', echo=False, hide='stdout')
-        dists = result.stdout.strip().splitlines()
-        for dist in dists:
+        for dist in result.stdout_lines:
             if dist.startswith(config.distribution):
                 break
         else:
@@ -236,9 +311,16 @@ class Deployer:
     def install(self):
         """Install new version in deployment environment."""
         printer.header('Installing...')
-        config, opts = self.config, self.options
-        for dist in opts['remove_distributions']:
-            remote(config, ('{remote.build.pip} uninstall -y', dist), abort_on_failure=False)
+        config = self.config
+        options = self.options
+
+        uninstall_commands = []
+        for dist in options['remove_distributions']:
+            uninstall_commands.append(
+                '{config.remote.build.pip} uninstall -y {dist}'.format_map(locals()))
+        if uninstall_commands:
+            remote(config, '; '.join(uninstall_commands), abort_on_failure=False)
+
         remote(config, (
             '{remote.build.pip} install',
             '--no-index',
@@ -247,62 +329,6 @@ class Deployer:
             '--no-compile',
             '-r {remote.build.dir}/requirements.txt',
         ))
-
-    def push_config(self):
-        """Copy command config, requirements, settings, scripts, etc."""
-        printer.header('Pushing config...')
-        config = self.config
-        exe_mode = 'ug+rwx,o-rwx'
-        self._push_command_config(exe_mode)
-        copy_file(
-            config, '{remote.build.manage_template}', '{remote.build.manage}', template=True,
-            mode=exe_mode)
-        copy_file(
-            config, '{remote.build.restart_template}', '{remote.build.restart}', template=True,
-            mode=exe_mode)
-        copy_file(config, 'local.base.cfg', '{remote.build.dir}')
-        copy_file(config, '{local_settings_file}', '{remote.build.local_settings_file}')
-        if config.remote.build.wsgi_file:
-            copy_file(config, '{wsgi_file}', '{remote.build.wsgi_file}')
-
-        # Copy requirements file. If a frozen requirements files exists,
-        # copy that; if it doesn't, copy a default requirements file.
-        remote_path = '{remote.build.dir}/requirements.txt'
-        if os.path.isfile('requirements-frozen.txt'):
-            copy_file(config, 'requirements-frozen.txt', remote_path)
-        else:
-            copy_file(
-                config, 'arctasks:templates/requirements.txt.template', remote_path, template=True)
-
-    def _push_command_config(self, exe_mode):
-        # This is split out of push_config because it's somewhat complex
-        config = self.config
-
-        # Wrapper for RunCommands script that sets the default env to
-        # the env of the deployment and adds the virtualenv's bin
-        # directory to the front of $PATH.
-        copy_file(
-            config, 'arctasks:templates/runcommands.template', '{remote.build.dir}/runcommands',
-            template=True, mode=exe_mode)
-
-        if os.path.exists('commands.cfg'):
-            commands_config = ConfigParser(interpolation=ExtendedInterpolation())
-            with open('commands.cfg') as commands_file:
-                commands_config.read_file(commands_file)
-            extra_config = {
-                'version': config.version,
-                'local_settings_file': config.remote.build.local_settings_file,
-                'deployed_at': self.started.isoformat(),
-            }
-            extra_config = {k: json.dumps(v) for (k, v) in extra_config.items()}
-            commands_config['DEFAULT'].update(extra_config)
-            temp_fd, temp_file = tempfile.mkstemp(text=True)
-            with os.fdopen(temp_fd, 'w') as t:
-                commands_config.write(t)
-            copy_file(config, temp_file, '{remote.build.dir}/commands.cfg')
-
-        if os.path.exists('commands.py'):
-            copy_file(config, 'commands.py', '{remote.build.dir}')
 
     def migrate(self):
         """Run database migrations."""
@@ -347,8 +373,8 @@ class Deployer:
 
 @command(default_env='stage', timed=True)
 def deploy(config, version=None, deployer_class=None, provision=True, overwrite=False, push=True,
-           static=True, build_static=True, remove_distributions=(), wheels=True, install=True,
-           push_config=True, migrate=False, make_active=True, set_permissions=True):
+           static=True, build_static=True, deps=(), remove_distributions=(), wheels=True,
+           install=True, push_config=True, migrate=False, make_active=True, set_permissions=True):
     """Deploy a new version.
 
     All of the command options are used to construct a :class:`Deployer`,
@@ -369,6 +395,7 @@ def deploy(config, version=None, deployer_class=None, provision=True, overwrite=
         push=push,
         static=static,
         build_static=build_static,
+        deps=deps,
         remove_distributions=remove_distributions,
         wheels=wheels,
         install=install,
@@ -518,46 +545,26 @@ def clean_builds(config, keep=3):
     },
 )
 def link(config, version, staticfiles_manifest=True, old_style=None):
-    build_dir = '{config.remote.build.root}/{version}'.format_map(locals())
+    config = config.copy(version=version)
 
-    result = remote(config, ('test -d', build_dir), abort_on_failure=False)
-    if not result.succeeded:
-        abort(1, 'Build directory {build_dir} does not exist'.format_map(locals()))
+    cmd = [
+        'test -d {remote.build.dir}',
+        'ln -sfn {remote.build.dir} {remote.path.env}',
+    ]
 
-    remote(config, ('ln -sfn', build_dir, '{remote.path.env}'))
-
-    # Link the specified version's static manifest
     if staticfiles_manifest:
-        remote(config, (
-            'ln -sf',
-            '{build_dir}/staticfiles.json'.format_map(locals()),
-            '{remote.path.static}/staticfiles.json'
-        ))
+        cmd.append(
+            'ln -sfn {remote.build.static}/staticfiles.json {remote.path.static}/staticfiles.json')
+
+    remote(config, ' && '.join(cmd))
 
     # XXX: This supports old-style deployments where the media and
     #      static directories are in the source directory.
     if old_style:
-        media_dir = '{build_dir}/media'.format_map(locals())
-        static_dir = '{build_dir}/static'.format_map(locals())
-        remote(config, ('ln -sfn {remote.path.root}/media/{env}', media_dir))
-        remote(config, ('ln -sfn {remote.path.root}/static/{env}', static_dir))
-
-
-@command
-def push_app(config, deps=(), echo=False, hide=None):
-    sdist = 'setup.py sdist -d {path.build.dist}'
-    local(config, (sys.executable, sdist), echo=echo, hide=hide)
-    for path in deps:
-        local(config, (sys.executable, sdist), cd=path, echo=echo, hide=hide)
-    local(config, (
-        '{bin.pip}',
-        'wheel',
-        '--wheel-dir {path.build.dist}',
-        '--find-links {remote.pip.find_links}',
-        'https://github.com/PSU-OIT-ARC/arctasks/archive/master.tar.gz',
-    ), echo=echo, hide=hide)
-    remote(config, 'rm -f {remote.build.dist}/*')
-    rsync(config, '{path.build.dist}/*', '{remote.build.dist}')
+        remote(config, (
+            'ln -sfn {remote.path.media} {remote.build.dir}/media &&',
+            'ln -sfn {remote.path.static} {remote.build.dir}/static',
+        ))
 
 
 @command
@@ -572,7 +579,12 @@ def push_static(config, build=True, dry_run=False, delete=False, echo=False, hid
         hide=hide, excludes=('staticfiles.json',))
     manifest = os.path.join(static_root, 'staticfiles.json')
     if os.path.isfile(manifest):
-        copy_file(config, manifest, config.remote.build.dir)
+        copy_file(config, manifest, config.remote.build.static)
+        remote(config, (
+            'ln -sf',
+            '{remote.build.static}/staticfiles.json',
+            '{remote.path.static}/staticfiles.json',
+        ))
 
 
 @command
@@ -596,3 +608,54 @@ def restart(config, get=True, scheme='http', path='/'):
             urlretrieve(url, os.devnull)
         except (HTTPError, URLError) as exc:
             abort(1, 'Failed to retrieve {url}: {exc}'.format_map(locals()))
+
+
+# Utilities
+
+
+def copy_file_local(config, path, destination_path, template=False, template_type=None, mode=None):
+    path = abs_path(path, format_kwargs=config)
+    destination_path = abs_path(destination_path, format_kwargs=config)
+
+    if template:
+        with open(path) as in_fp:
+            contents = in_fp.read()
+
+        if template_type in (None, 'format'):
+            contents = contents.format_map(config)
+        elif template_type == 'string':
+            template = string.Template(contents)
+            contents = template.substitute(config)
+        else:
+            raise ValueError('Unrecognized template type: %s' % template_type)
+
+        prefix = '%s-' % config.package
+        suffix = '-%s' % os.path.basename(path)
+        temp_fd, temp_path = tempfile.mkstemp(prefix=prefix, suffix=suffix, text=True)
+
+        with os.fdopen(temp_fd, 'w') as temp_file:
+            temp_file.write(contents)
+
+        if os.path.isdir(destination_path):
+            base_name = os.path.basename(path)
+            name, ext = os.path.splitext(base_name)
+            if ext == '.template':
+                destination_path = os.path.join(destination_path, name)
+
+        copy_path = shutil.copy(temp_path, destination_path)
+        os.remove(temp_path)
+    else:
+        copy_path = shutil.copy(path, destination_path)
+
+    if mode is not None:
+        os.chmod(copy_path, mode)
+
+    return copy_path
+
+
+def make_dist(config, path, dist_dir=None):
+    cmd = [sys.executable, 'setup.py sdist']
+    if dist_dir:
+        cmd.append('-d {dist_dir}'.format_map(locals()))
+    printer.info('Making sdist in {path}; saving to {dist_dir}...'.format_map(locals()))
+    local(config, cmd, cd=path, hide='all')
