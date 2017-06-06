@@ -23,7 +23,7 @@ _rsync_default_mode = 'ug=rwX,o-rwx'
 
 @command
 def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run_as=None,
-          dry_run=False, delete=False, excludes=(), default_excludes=True,
+          dry_run=False, delete=False, excludes=(), default_excludes=True, quiet=False,
           echo=True, hide=None, mode=_rsync_default_mode, source='local'):
     """Copy files using rsync.
 
@@ -61,6 +61,7 @@ def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run
     local(config, (
         'rsync',
         '-rltvz',
+        '--quiet' if quiet else '',
         '--dry-run' if dry_run else '',
         '--delete' if delete else '',
         rsync_path,
@@ -73,9 +74,9 @@ def rsync(config, local_path, remote_path, user=None, host=None, sudo=False, run
 
 @command
 def copy_file(config, local_path, remote_path, user=None, host=None, sudo=False, run_as=None,
-              template=False, template_type=None, mode=_rsync_default_mode):
+              quiet=False, template=False, template_type=None, mode=_rsync_default_mode):
     local_path = abs_path(local_path, format_kwargs=config)
-    rsync_args = dict(user=user, host=host, sudo=sudo, run_as=run_as, mode=mode)
+    rsync_args = dict(user=user, host=host, sudo=sudo, run_as=run_as, quiet=quiet, mode=mode)
 
     if template:
         with open(local_path) as in_fp:
