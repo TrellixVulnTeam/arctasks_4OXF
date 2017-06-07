@@ -3,6 +3,7 @@ from distutils.core import setup
 
 install_requires = [
     'boto3>=1.4.4',
+    'packaging>=16.8',
     'runcommands>=1.0a22',
     'setuptools>=36.0.1',
 ]
