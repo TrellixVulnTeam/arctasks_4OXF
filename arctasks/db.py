@@ -228,7 +228,7 @@ def reset_db(config, user='{db.user}', host='{db.host}', port='{db.port}', name=
         "AND tableowner = '" + user + "' "
         "AND tablename NOT IN ('geography_columns', 'geometry_columns', 'spatial_ref_sys');",
         '"',
-    ), hide='stdout')
+    ), hide='stdout', use_pty=False)
 
     tables = sorted(s.strip() for s in result.stdout.strip().splitlines())
     if not tables:
