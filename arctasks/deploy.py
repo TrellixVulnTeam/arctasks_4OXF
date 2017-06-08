@@ -414,6 +414,14 @@ deploy.deployer_class = Deployer
 deploy.set_deployer_class = lambda class_: setattr(deploy, 'deployer_class', class_)
 
 
+def get_active_version(config, **kwargs):
+    kwargs.setdefault('abort_on_failure', False)
+    kwargs.setdefault('hide', 'stdout')
+    result = remote(config, 'readlink {remote.path.env}', **kwargs)
+    active_version = result.stdout.strip() if result else None
+    return result, active_version
+
+
 @command(
     env=True,
     config={
@@ -433,21 +441,15 @@ def builds(config, active=False, rm=(), yes=False):
     When no options are passed, a list of builds is displayed.
 
     """
+    env = config.env
     build_root = config.remote.build.root
 
-    def get_active(**kwargs):
-        kwargs.setdefault('abort_on_failure', False)
-        kwargs.setdefault('hide', 'stdout')
-        return remote(config, 'readlink {remote.path.env}', **kwargs)
-
     if active:
-        result = get_active()
+        result, active_version = get_active_version(config)
         if result:
-            version = result.stdout.strip()
-            printer.success('Active version for {config.env}: {version}'.format_map(locals()))
+            printer.success('Active version for {env}: {active_version}'.format_map(locals()))
         else:
-            printer.error(
-                'Could not read link for {config.env} active version'.format_map(locals()))
+            printer.error('Could not read link for {env} active version'.format_map(locals()))
     elif rm:
         rm = [rm] if isinstance(rm, str) else rm
         build_dirs = ['{build_root}/{v}'.format(build_root=build_root, v=v) for v in rm]
@@ -464,34 +466,37 @@ def builds(config, active=False, rm=(), yes=False):
             if yes or confirm(config, prompt, color='error', yes_values=('yes',)):
                 remote(config, cmd)
     else:
-        active = get_active().stdout.strip()
-        printer.header(
-            'Builds for {env} (in {remote.build.root}; newest first):'.format_map(config))
-        # Get a list of all the build directories.
-        result = remote(config, (
-            'find', build_root, '-mindepth 1 -maxdepth 1 -type d'
-        ), cd='/', echo=False, hide='stdout')
+        printer.header('Builds for {env} (in {build_root}; newest first):'.format_map(locals()))
+        data = []
+
+        _, active_version = get_active_version(config)
+
+        # Get path and timestamp of last modification for each build
+        # directory.
+        #
+        # Example stat entry:
+        #
+        #    "/vol/www/xyz/builds/stage/1.0.0/ 1453426316"
+        stat_path = '{build_root}/*/'.format_map(locals())
+        result = remote(config, ('stat -c "%n %Y"', stat_path), echo=False, hide='stdout')
+
         if result and result.stdout_lines:
-            # Get path and timestamp of last modification for each build
-            # directory.
-            # Example stat entry:
-            #    "/vol/www/xyz/builds/stage/1.0.0 1453426316"
-            result = remote(config, (
-                'stat -c "%n %Y"', result.stdout_lines,
-            ), echo=False, hide='stdout')
-            # Parse each stat entry into path, timestamp.
-            data = [line.split(' ', 1) for line in result.stdout_lines]
-            # Parse further into full path, version (base name), datetime object.
-            data = [
-                (path, posixpath.basename(path), datetime.fromtimestamp(int(timestamp)))
-                for (path, timestamp) in data
-            ]
+            # Parse each stat entry into path, base name, timestamp.
+            for line in result.stdout_lines:
+                path, timestamp = line.split(' ', 1)
+                path = path.rstrip(posixpath.sep)
+                base_name = posixpath.basename(path)
+                timestamp = datetime.fromtimestamp(int(timestamp))
+                data.append((path, base_name, timestamp))
+
             # Sort entries by timestamp.
             data = sorted(data, key=lambda item: item[2], reverse=True)
+
+            # Print the builds in timestamp order (newest first).
             longest = max(len(d[1]) for d in data)
             for d in data:
                 path, version, timestamp = d
-                is_active = path == active
+                is_active = path == active_version
                 out = ['{0:<{longest}} {1}'.format(version, timestamp, longest=longest)]
                 if is_active:
                     out.append('[active]')
@@ -501,42 +506,49 @@ def builds(config, active=False, rm=(), yes=False):
                 else:
                     print(out)
         else:
-            printer.warning('No {env} builds found in {remote.build.root}'.format_map(config))
+            printer.warning('No {env} builds found in {build_root}'.format_map(locals()))
+
+        return active_version, data
 
 
 @command(
     env=True,
     config={
         'remote.host': 'hrimfaxi.oit.pdx.edu',
+        'defaults.remote.timeout': None,
     })
 def clean_builds(config, keep=3):
     if keep < 1:
         abort(1, 'You have to keep at least the active version')
-    result = remote(config, 'readlink {remote.path.env}', hide='stdout')
-    active_path = result.stdout.strip()
-    active_version = posixpath.basename(active_path)
-    builds(config)
-    result = remote(config, 'ls -c {remote.build.root}', hide='stdout')
-    versions = result.stdout.strip().splitlines()
+
+    build_root = config.remote.build.root
+
+    active_version, versions = builds(config)
+    versions = [item[1] for item in versions]
+
+    # Move active version to beginning to ensure it's not removed
     if active_version in versions:
         versions.remove(active_version)
         versions.insert(0, active_version)
+
     versions_to_keep = versions[:keep]
     versions_to_remove = versions[keep:]
+
     if versions_to_keep:
-        printer.success('Versions that will be kept:')
+        printer.success('\nVersions that will be kept:')
         print(', '.join(versions_to_keep))
+
     if versions_to_remove:
         versions_to_remove_str = ', '.join(versions_to_remove)
-        printer.danger('Versions that will be removed from {remote.build.root}:'.format_map(config))
+        printer.danger('\nVersions that will be removed from {build_root}:'.format_map(locals()))
         print(versions_to_remove_str)
-        if confirm(config, 'Really remove these versions?', yes_values=('really',)):
+        if confirm(config, '\nReally remove these versions?', yes_values=('really',)):
             printer.danger('Removing {0}...'.format(versions_to_remove_str))
-            rm_paths = [posixpath.join(config.remote.build.root, v) for v in versions_to_remove]
+            rm_paths = [posixpath.join(build_root, v) for v in versions_to_remove]
             remote(config, ('rm -r', rm_paths), echo=True)
             builds(config)
     else:
-        printer.warning('No versions to remove')
+        printer.warning('\nNo versions to remove')
 
 
 @command(
