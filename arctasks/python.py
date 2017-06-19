@@ -58,7 +58,7 @@ def show_upgraded_packages(config):
         if specified_min_version < installed_version:
             print(dep.project_name, specified_min_version, '=>', installed_version)
 
-        if not req.specifier.contains(installed_version):
+        if not req.specifier.contains(str(installed_version)):
             printer.warning(
                 '{dep.project_name} {installed_version} '
                 'is not in range specified in requirements: '
