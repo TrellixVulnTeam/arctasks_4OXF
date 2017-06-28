@@ -303,8 +303,14 @@ def resume_development(config, version=None, changelog=DEFAULT_CHANGELOG, dry_ru
         else:
             fp.writelines(lines)
 
+    if version == 'next':
+        dev_version = ''
+        commit_message = 'Resume development'
+    else:
+        dev_version = '{version}.dev0'.format(version=version)
+        commit_message = 'Resume development at {version}'.format_map(f)
+
     # Update package version
-    dev_version = '{version}.dev0'.format(version=version)
     version_file = find_and_update_version(dev_version, dry_run=dry_run, debug=debug)
 
     files_to_commit = [changelog, version_file]
@@ -321,7 +327,6 @@ def resume_development(config, version=None, changelog=DEFAULT_CHANGELOG, dry_ru
             else:
                 fp.write(contents)
 
-    commit_message = 'Resume development at {version}'.format_map(f)
     if dry_run:
         printer.info('[DRY RUN] Resume commit message:')
         print(commit_message)
