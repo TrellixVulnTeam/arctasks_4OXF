@@ -179,7 +179,7 @@ def load_prod_data(config,
         raise ValueError('Unknown database type: {db.type}'.format_map(config))
 
 
-@command
+@command(default_env='dev')
 def reset_db(config, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
              truncate=False):
     """DROP CASCADE tables in database.
