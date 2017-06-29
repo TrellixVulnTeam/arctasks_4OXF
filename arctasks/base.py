@@ -109,9 +109,14 @@ def npm_install(config, where='.', modules=_npm_install_modules, force=False, ov
         abort(1, 'node and npm must be installed first')
     where = abs_path(where, format_kwargs=config)
     node_modules = os.path.join(where, 'node_modules')
-    if overwrite and os.path.isdir(node_modules):
-        printer.warning('Removing {node_modules}...'.format_map(locals()))
-        shutil.rmtree(node_modules)
+    lock_file = os.path.join(where, 'package-lock.json')
+    if overwrite:
+        if os.path.isdir(node_modules):
+            printer.warning('Removing {node_modules}...'.format_map(locals()))
+            shutil.rmtree(node_modules)
+        if os.path.isfile(lock_file):
+            printer.warning('Removing {lock_file}...'.format_map(locals()))
+            os.remove(lock_file)
     local(config, ('npm install', ('--force' if force else ''), modules), cd=where)
 
 
