@@ -1,11 +1,7 @@
 import os
-import shutil
-from subprocess import Popen
-from tempfile import NamedTemporaryFile
 
 from runcommands import command
 from runcommands.commands import local
-from runcommands.runners.commands import get_default_local_prepend_path
 from runcommands.util import abort, abs_path, args_to_str, Hide, printer
 
 from .django import call_command, get_settings
@@ -105,57 +101,29 @@ def sass(config, sources=(), optimize=True, autoprefixer_browsers=_autoprefixer_
 
     """
     sources = flatten_globs(config, sources)
-
-    hide_stdout = Hide.hide_stdout(hide)
-    echo = echo and not hide_stdout
-
     run_postcss = bool(optimize or autoprefixer_browsers)
-
-    env = os.environ.copy()
-
-    path = get_default_local_prepend_path(config)
-    if path:
-        env['PATH'] = os.pathsep.join((path, env['PATH']))
 
     for source in sources:
         root, ext = os.path.splitext(source)
+        out_dir = os.path.dirname(source)
         destination = '{root}.css'.format(root=root)
-
-        if not hide_stdout:
-            print('Compiling {source} to {destination}'.format_map(locals()))
 
         if ext != '.scss':
             abort(1, 'Expected a .scss file; got "{source}"'.format(source=source))
 
-        def do_or_die(args, in_file=None):
-            if in_file is not None:
-                in_file.seek(0)
-            out_file = NamedTemporaryFile()
-            if echo:
-                print(' '.join(args))
-            cmd = Popen(args, stdin=in_file, stdout=out_file, env=env)
-            cmd.wait()
-            if cmd.returncode:
-                abort(cmd.returncode, 'Aborted due to errors', color=False)
-            return out_file
-
-        out = do_or_die(['node-sass', source])
+        local(config, ('node-sass', source, '--output', out_dir), echo=echo, hide=hide)
 
         if run_postcss:
-            postcss_args = ['postcss']
-
-            if autoprefixer_browsers:
-                postcss_args += [
-                    '--use', 'autoprefixer',
-                    '--autoprefixer.browsers', autoprefixer_browsers
-                ]
+            args = ('postcss', destination, '--replace')
 
             if optimize:
-                postcss_args += ['--use', 'postcss-clean']
+                args += ('--use', 'postcss-clean')
 
-            out = do_or_die(postcss_args, in_file=out)
+            if autoprefixer_browsers:
+                browsers = "'{autoprefixer_browsers}'".format_map(locals()),
+                args += ('--use', 'autoprefixer', '--autoprefixer.browsers', browsers)
 
-        shutil.copyfile(out.name, destination)
+            local(config, args, echo=echo, hide=hide)
 
 
 @command(default_env='dev')
