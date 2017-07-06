@@ -1,5 +1,5 @@
 import sys
-from distutils.core import setup
+from setuptools import setup
 
 install_requires = [
     'boto3>=1.4.4',
