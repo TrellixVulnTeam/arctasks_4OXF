@@ -40,8 +40,8 @@ def build_static(config, css=True, css_sources=(), js=True, js_sources=(), colle
 def build_css(config, sources=(), optimize=True, echo=False, hide=None):
     if not sources:
         sources = []
-        sources.extend(config._get_dotted('defaults.arctasks.static.lessc.sources', default=[]))
-        sources.extend(config._get_dotted('defaults.arctasks.static.sass.sources', default=[]))
+        sources.extend(lessc.get_default(config, 'sources', []))
+        sources.extend(sass.get_default(config, 'sources', []))
     less_sources = [s for s in sources if s.endswith('less')]
     sass_sources = [s for s in sources if s.endswith('scss')]
     if less_sources:
