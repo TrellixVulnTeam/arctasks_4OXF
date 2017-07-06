@@ -7,5 +7,5 @@ from .django import (
     coverage, dbshell, makemigrations, migrate, runserver, mod_wsgi_express, shell, test)
 from .python import show_upgraded_packages
 from .release import release, prepare_release, merge_release, tag_release, resume_development
-from .static import build_css, build_js, build_static, bower, collectstatic, lessc, pull_media, sass
+from .static import build_css, build_js, build_static, collectstatic, lessc, pull_media, sass
 from .timetracking import time_spent

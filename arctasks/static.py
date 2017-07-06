@@ -9,15 +9,6 @@ from .remote import rsync
 from .util import flatten_globs
 
 
-@command(default_env='dev')
-def bower(config, where='{package}:static', update=False):
-    which = local(config, 'which bower', echo=False, hide='stdout', abort_on_failure=False)
-    if which.failed:
-        abort(1, 'bower must be installed (via npm) and on $PATH')
-    where = abs_path(where, format_kwargs=config)
-    local(config, ('bower', 'update' if update else 'install'), cd=where)
-
-
 # Copied from Bootstrap (from grunt/configBridge.json in the source)
 _autoprefixer_browsers = ','.join((
     'Android 2.3',

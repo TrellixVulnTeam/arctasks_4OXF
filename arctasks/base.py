@@ -83,7 +83,6 @@ def lint(config, where=None):
 
 _npm_install_modules = (
     'autoprefixer',
-    'bower',
     'jshint',
     'less',
     'less-plugin-autoprefix',
