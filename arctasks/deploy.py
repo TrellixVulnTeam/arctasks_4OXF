@@ -296,7 +296,7 @@ class Deployer:
             '{remote.build.pip} wheel',
             '--wheel-dir {remote.pip.wheel_dir}',
             '--cache-dir {remote.pip.cache_dir}',
-            '--find-links {remote.build.dir}/dist',
+            '--find-links {remote.build.dist}',
             '--find-links {remote.pip.find_links}',
             '--disable-pip-version-check',
             '-r {remote.build.dir}/requirements.txt',
