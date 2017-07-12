@@ -291,12 +291,6 @@ class Deployer:
             path = '/'.join((wheel_dir, '{dist}*'.format(dist=dist.replace('-', '_'))))
             paths_to_remove.append(path)
         remote(config, ('rm -f', paths_to_remove))
-        result = remote(config, 'ls {remote.build.dist}', echo=False, hide='stdout')
-        for dist in result.stdout_lines:
-            if dist.startswith(config.distribution):
-                break
-        else:
-            abort(1, 'Could not find source distribution for {distribution}'.format_map(config))
         remote(config, (
             'LANG=en_US.UTF-8',
             '{remote.build.pip} wheel',
