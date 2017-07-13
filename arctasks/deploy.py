@@ -2,6 +2,7 @@ import json
 import os
 import posixpath
 import shutil
+import ssl
 import string
 import sys
 import tarfile
@@ -9,7 +10,7 @@ import tempfile
 from configparser import ConfigParser, ExtendedInterpolation
 from datetime import datetime
 from urllib.error import HTTPError, URLError
-from urllib.request import urlretrieve
+from urllib.request import urlopen
 
 from runcommands import command
 from runcommands.commands import show_config, local, remote
@@ -610,8 +611,12 @@ def restart(config, get=True, scheme='http', path='/'):
             path = '/{path}'.format(path=path)
         url = '{scheme}://{host}{path}'.format_map(locals())
         printer.info('Getting {url}...'.format_map(locals()))
+        urlopen_args = {}
+        if sys.version_info[:2] > (3, 3):
+            urlopen_args['context'] = ssl.SSLContext()
         try:
-            urlretrieve(url, os.devnull)
+            with urlopen(url, **urlopen_args) as url_fp:
+                data = url_fp.read()
         except (HTTPError, URLError) as exc:
             abort(1, 'Failed to retrieve {url}: {exc}'.format_map(locals()))
 
