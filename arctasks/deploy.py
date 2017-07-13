@@ -595,9 +595,9 @@ def push_static(config, build=True, dry_run=False, delete=False, echo=False, hid
 
 
 @command
-def restart(config, get=True, scheme='http', path='/'):
+def restart(config, get=True, scheme='https', path='/', show=False):
     settings = django.get_settings(config)
-    remote(config, '{remote.build.restart}')
+    remote(config, '{remote.path.env}/restart')
     if get:
         host = getattr(settings, 'DOMAIN_NAME', None)
         if host is None:
@@ -619,6 +619,8 @@ def restart(config, get=True, scheme='http', path='/'):
                 data = url_fp.read()
         except (HTTPError, URLError) as exc:
             abort(1, 'Failed to retrieve {url}: {exc}'.format_map(locals()))
+        if show:
+            print(data.decode('utf-8'))
 
 
 # Utilities
