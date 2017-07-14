@@ -10,7 +10,7 @@ import tempfile
 from configparser import ConfigParser, ExtendedInterpolation
 from datetime import datetime
 from urllib.error import HTTPError, URLError
-from urllib.request import urlopen
+from urllib.request import urlopen, urlretrieve
 
 from runcommands import command
 from runcommands.commands import show_config, local, remote
