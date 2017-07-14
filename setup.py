@@ -4,8 +4,8 @@ from setuptools import setup
 install_requires = [
     'boto3>=1.4.4',
     'packaging>=16.8',
-    'setuptools>=36.0.1',
     'runcommands>=1.0a25',
+    'setuptools>=36.2.0',
 ]
 
 if sys.version_info[:2] < (3, 4):
