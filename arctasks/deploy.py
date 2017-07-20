@@ -439,13 +439,7 @@ def builds(config, active=False, rm=(), yes=False):
     env = config.env
     build_root = config.remote.build.root
 
-    if active:
-        result, active_version = get_active_version(config)
-        if result:
-            printer.success('Active version for {env}: {active_version}'.format_map(locals()))
-        else:
-            printer.error('Could not read link for {env} active version'.format_map(locals()))
-    elif rm:
+    if rm:
         rm = [rm] if isinstance(rm, str) else rm
         build_dirs = ['{build_root}/{v}'.format(build_root=build_root, v=v) for v in rm]
         cmd = ' && '.join('test -d {d}'.format(d=d) for d in build_dirs)
@@ -461,7 +455,13 @@ def builds(config, active=False, rm=(), yes=False):
             if yes or confirm(config, prompt, color='error', yes_values=('yes',)):
                 remote(config, cmd)
     else:
-        printer.header('Builds for {env} (in {build_root}; newest first):'.format_map(locals()))
+        if active:
+            header = 'Active version for {env} (in {build_root}):'
+        else:
+            header = 'Builds for {env} (in {build_root}; newest first):'
+
+        printer.header(header.format_map(locals()))
+
         data = []
 
         _, active_version = get_active_version(config)
@@ -493,12 +493,12 @@ def builds(config, active=False, rm=(), yes=False):
                 path, version, timestamp = d
                 is_active = path == active_version
                 out = ['{0:<{longest}} {1}'.format(version, timestamp, longest=longest)]
-                if is_active:
+                if is_active and not active:
                     out.append('[active]')
                 out = ' '.join(out)
                 if is_active:
                     printer.success(out)
-                else:
+                elif not active:
                     print(out)
         else:
             printer.warning('No {env} builds found in {build_root}'.format_map(locals()))
