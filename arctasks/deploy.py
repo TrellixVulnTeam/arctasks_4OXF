@@ -597,7 +597,7 @@ def push_static(config, build=True, dry_run=False, delete=False, echo=False, hid
 @command
 def restart(config, get=True, scheme='https', path='/', show=False):
     settings = django.get_settings(config)
-    remote(config, '{remote.path.env}/restart')
+    remote(config, '$(readlink {remote.path.env})/restart')
     if get:
         host = getattr(settings, 'DOMAIN_NAME', None)
         if host is None:
