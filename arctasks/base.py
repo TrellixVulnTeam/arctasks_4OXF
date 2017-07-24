@@ -96,7 +96,8 @@ _npm_install_modules = (
 
 
 @command(default_env='dev')
-def npm_install(config, where='.', modules=_npm_install_modules, force=False, overwrite=False):
+def npm_install(config, where='.', modules=_npm_install_modules, force=False, update=False,
+                overwrite=False):
     """Install node modules via npm into ./node_modules.
 
     By default, any modules that are already installed will be skipped.
@@ -116,7 +117,8 @@ def npm_install(config, where='.', modules=_npm_install_modules, force=False, ov
         if os.path.isfile(lock_file):
             printer.warning('Removing {lock_file}...'.format_map(locals()))
             os.remove(lock_file)
-    local(config, ('npm install', ('--force' if force else ''), modules), cd=where)
+    npm_command = 'update' if update else 'install'
+    local(config, ('npm', npm_command, ('--force' if force else ''), modules), cd=where)
 
 
 @command
