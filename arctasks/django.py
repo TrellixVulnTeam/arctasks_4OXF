@@ -73,7 +73,7 @@ def test(config, test_=(), failfast=False, keepdb=True, verbosity=1, with_covera
         local_settings_file = os.environ.pop('LOCAL_SETTINGS_FILE', None)
 
         local(config, (
-            'runcommand', '--env', force_env, 'test',
+            '{venv}/bin/runcommand', '--env', force_env, 'test',
             [('--test', t) for t in test_],
             '--failfast' if failfast else '',
             '--keepdb' if keepdb else '',
