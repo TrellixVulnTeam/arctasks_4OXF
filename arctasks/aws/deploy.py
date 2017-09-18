@@ -27,8 +27,8 @@ __all__ = [
 
 
 @command(env=True)
-def deploy(config, version=None, provision_=False, create_cert=False, overwrite=False,
-           overwrite_venv=False, install=True, static=True, link=True, restart_uwsgi_=False,
+def deploy(config, version=None, overwrite=False, overwrite_venv=False,
+           install=True, static=True, link=True, restart_uwsgi_=False,
            restart_nginx_=False, restart_all=False):
     if version:
         config = config.copy(version=version)
@@ -39,11 +39,6 @@ def deploy(config, version=None, provision_=False, create_cert=False, overwrite=
 
     restart_uwsgi_ = restart_uwsgi_ or restart_all
     restart_nginx_ = restart_nginx_ or restart_all
-
-    if provision_:
-        provision(config, create_cert=create_cert)
-    else:
-        printer.info('Skipped provisioning')
 
     # Create directory for this version
     deploy_dir_exists = remote(config, 'test -d {deploy.dir}', abort_on_failure=False)
