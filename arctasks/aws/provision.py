@@ -1,8 +1,5 @@
 import posixpath
 
-import boto3
-import botocore.exceptions
-
 from runcommands import bool_or, command
 from runcommands.commands import remote
 from runcommands.util import confirm, printer
@@ -11,20 +8,20 @@ from arctasks.remote import copy_file
 
 
 __all__ = [
-    'provision',
+    'provision_host',
     'install_certbot',
     'make_cert',
 ]
 
 
+GIS_PACKAGES = ('binutils', 'gdal', 'proj')
 
 @command(
     env=True,
     config={
         'defaults.arctasks.remote.copy_file.run_as': None,
         'defaults.arctasks.remote.copy_file.sudo': True,
-        'defaults.arctasks.remote.rsync.run_as': None,
-        'defaults.arctasks.remote.rsync.sudo': True,
+        'defaults.runcommands.runners.commands.remote.cd': '/',
         'defaults.runcommands.runners.commands.remote.run_as': None,
         'defaults.runcommands.runners.commands.remote.sudo': True,
     },
@@ -32,8 +29,9 @@ __all__ = [
         'with_uwsgi': bool_or(str),
     }
 )
-def provision(config, create_cert=False, timezone='America/Los_Angeles', packages=('nginx',),
-              additional_packages=(), with_python='{python.version}', with_uwsgi='latest'):
+def provision_host(config, create_cert=False, timezone='America/Los_Angeles', packages=('nginx',),
+                   additional_packages=(), with_python='{python.version}', with_uwsgi='latest',
+                   with_gis=False):
     """Provision an existing EC2 instance.
 
     - Installs Nginx, Python, and uWSGI by default
@@ -48,8 +46,8 @@ def provision(config, create_cert=False, timezone='America/Los_Angeles', package
 
     # Create service user for deployments
     remote(config, (
-        'id {deploy.user} ||',
-        'adduser --home-dir {deploy.root} {deploy.user} --user-group'
+        'id {service.user} ||',
+        'adduser --home-dir {remote.path.root} {service.user} --user-group'
     ))
 
     # Upgrade system packages
@@ -82,13 +80,23 @@ def provision(config, create_cert=False, timezone='America/Los_Angeles', package
         uwsgi_version = '' if with_uwsgi in (True, 'latest') else with_uwsgi
         remote(config, (pip, 'install uwsgi', uwsgi_version))
         remote(config, 'mkdir -p /etc/uwsgi /var/log/uwsgi')
-        copy_file(config, '{deploy.uwsgi.init_file}', '/etc/init/uwsgi.conf')
+        copy_file(config, '{remote.uwsgi.init_file}', '/etc/init/uwsgi.conf')
+        remote(config, 'initctl start uwsgi || echo "uwsgi already running"')
+
+    if with_gis:
+        # Install and configure GIS dependencies
+        remote(config, 'yum-config-manager --enable epel')
+        remote(config, ('yum install -y', GIS_PACKAGES))
 
     if create_cert:
         install_certbot(config)
         make_cert(config.domain_name)
 
     if 'nginx' in packages:
+        # Install nginx app configuration
+        template = '{remote.nginx.config_file}'
+        destination = '/etc/nginx/conf.d/{package}.conf'
+        copy_file(config, template, destination, template=True)
         # Start web server now and make sure it starts on boot
         remote(config, 'service nginx start && chkconfig nginx on')
         if create_cert:
@@ -100,9 +108,9 @@ def provision(config, create_cert=False, timezone='America/Los_Angeles', package
 
     # Create root directory for deployments
     remote(config, (
-        'mkdir -p {deploy.root} &&',
-        'chown {deploy.user}:{deploy.user} {deploy.root} &&'
-        'chmod 771 {deploy.root}',
+        'mkdir -p {remote.path.root} &&',
+        'chown {service.user}:{service.user} {remote.path.root} &&'
+        'chmod 771 {remote.path.root}',
     ))
 
 
