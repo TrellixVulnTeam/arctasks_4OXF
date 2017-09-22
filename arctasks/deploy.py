@@ -251,6 +251,7 @@ class Deployer:
         ), cd=build_root, hide='stdout')
 
         if options['static']:
+            remote(config, 'mkdir -p {remote.path.static}')
             remote(config, (
                 'rsync -rlqtvz --exclude staticfiles.json static/ {remote.path.static}',
             ), cd=build_dir)
