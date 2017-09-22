@@ -19,7 +19,7 @@ from runcommands.util import abort, confirm, load_object, printer
 from . import django
 from . import git
 from .base import clean, install
-from .remote import manage as remote_manage, rsync, copy_file
+from .remote import rsync, copy_file
 from .static import build_static, collectstatic
 from .util import abs_path
 
@@ -108,10 +108,6 @@ class Deployer:
         printer.info('Configuration:')
         show_config(config, defaults=False)
         printer.warning('\nPlease review the configuration above.')
-
-        if not options['migrate']:
-            printer.warning(
-                '\nNOTE: Migrations are not run by default; pass --migrate to run them\n')
 
     def confirm(self):
         """Give ourselves a chance to change our minds."""
@@ -262,7 +258,7 @@ class Deployer:
         'provision',
         'wheels',
         'install',
-        'migrate',
+        'post_install',
         'make_active',
         'set_permissions',
     )
@@ -326,10 +322,11 @@ class Deployer:
             '-r {remote.build.dir}/requirements.txt',
         ))
 
-    def migrate(self):
-        """Run database migrations."""
-        printer.header('Running migrations...')
-        remote_manage(self.config, 'migrate')
+    def post_install(self):
+        """Performs any project-specific post-install operations."""
+        options = self.options
+        for op in options['post_install']:
+            op(self.config)
 
     def make_active(self):
         """Make the new version the active version.
@@ -370,7 +367,7 @@ class Deployer:
 @command(default_env='stage', timed=True)
 def deploy(config, version=None, deployer_class=None, provision=True, overwrite=False, push=True,
            static=True, build_static=True, deps=(), remove_distributions=(), wheels=True,
-           install=True, push_config=True, migrate=False, make_active=True, set_permissions=True):
+           install=True, post_install=(), push_config=True, make_active=True, set_permissions=True):
     """Deploy a new version.
 
     All of the command options are used to construct a :class:`Deployer`,
@@ -395,8 +392,8 @@ def deploy(config, version=None, deployer_class=None, provision=True, overwrite=
         remove_distributions=remove_distributions,
         wheels=wheels,
         install=install,
+        post_install=post_install,
         push_config=push_config,
-        migrate=migrate,
         make_active=make_active,
         set_permissions=set_permissions,
     )
