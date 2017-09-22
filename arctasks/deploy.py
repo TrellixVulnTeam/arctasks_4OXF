@@ -242,7 +242,7 @@ class Deployer:
         build_dir = self.remote_build_dir
 
         if self.options['overwrite']:
-            remote(config, ('rm -rf', build_dir), host='hrimfaxi.oit.pdx.edu')
+            remote(config, ('rm -rf', build_dir), host='{remote.deploy_host}')
 
         copy_file(self.config, self.archive_path, self.config.remote.build.root, quiet=True)
 
@@ -357,10 +357,10 @@ class Deployer:
         """
         printer.header('Setting permissions in background...')
 
-        def chmod(mode, where, options='-R', host='hrimfaxi.oit.pdx.edu'):
+        def chmod(mode, where, options='-R'):
             args = (options, mode, where)
             local(self.config, (
-                'ssh -f', host,
+                'ssh -f', '{remote.deploy_host}',
                 'sudo -u {service.user} sh -c "nohup chmod', args, '>/dev/null 2>&1 &"',
             ))
 
@@ -421,7 +421,7 @@ def get_active_version(config, **kwargs):
 @command(
     env=True,
     config={
-        'remote.host': 'hrimfaxi.oit.pdx.edu',
+        'remote.host': '{remote.deploy_host}',
     },
     help={
         'rm': 'Remove the specified build(s)',
@@ -510,7 +510,7 @@ def builds(config, active=False, rm=(), yes=False):
 @command(
     env=True,
     config={
-        'remote.host': 'hrimfaxi.oit.pdx.edu',
+        'remote.host': '{remote.deploy_host}',
         'defaults.remote.timeout': None,
     })
 def clean_builds(config, keep=3):
@@ -549,7 +549,7 @@ def clean_builds(config, keep=3):
 
 @command(
     config={
-        'remote.host': 'hrimfaxi.oit.pdx.edu',
+        'remote.host': '{remote.deploy_host}',
     },
 )
 def link(config, version, staticfiles_manifest=True, old_style=None):
