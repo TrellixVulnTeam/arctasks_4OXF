@@ -8,7 +8,7 @@ from arctasks.remote import copy_file
 
 
 __all__ = [
-    'provision_host',
+    'provision_webhost',
     'install_certbot',
     'make_cert',
 ]
@@ -29,9 +29,9 @@ GIS_PACKAGES = ('binutils', 'gdal', 'proj')
         'with_uwsgi': bool_or(str),
     }
 )
-def provision_host(config, create_cert=False, timezone='America/Los_Angeles', packages=('nginx',),
-                   additional_packages=(), with_python='{python.version}', with_uwsgi='latest',
-                   with_gis=False):
+def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles', packages=('nginx',),
+                      additional_packages=(), with_python='{python.version}', with_uwsgi='latest',
+                      with_gis=False):
     """Provision an existing EC2 instance.
 
     - Installs Nginx, Python, and uWSGI by default
