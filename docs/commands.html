@@ -1,0 +1,171 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml" lang="en_US">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    <title>Commands &#8212; arctasks  documentation</title>
+    <link rel="stylesheet" href="_static/alabaster.css" type="text/css" />
+    <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    './',
+        VERSION:     '',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="_static/jquery.js"></script>
+    <script type="text/javascript" src="_static/underscore.js"></script>
+    <script type="text/javascript" src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="Configuration" href="configuration.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head>
+  <body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="commands">
+<h1>Commands<a class="headerlink" href="#commands" title="Permalink to this headline">¶</a></h1>
+<p>ARC Tasks currently provides two implementations targetting distinct deployment environments.</p>
+<div class="section" id="example">
+<h2>Example<a class="headerlink" href="#example" title="Permalink to this headline">¶</a></h2>
+<p>Below is a simple example of an <code class="docutils literal"><span class="pre">init</span></code> command using only built-in commands:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="nd">@command</span><span class="p">(</span><span class="n">default_env</span><span class="o">=</span><span class="s1">&#39;dev&#39;</span><span class="p">,</span> <span class="n">timed</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span> <span class="nf">init</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="n">virtualenv</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">overwrite</span><span class="o">=</span><span class="n">overwrite</span><span class="p">)</span>
+    <span class="n">install</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>  <span class="c1"># Does `pip install -r requirements.txt` by default</span>
+    <span class="n">createdb</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">drop</span><span class="o">=</span><span class="n">overwrite</span><span class="p">)</span>  <span class="c1"># Creates a Postgres DB by default</span>
+    <span class="n">migrate</span><span class="p">(</span><span class="n">config</span><span class="p">)</span>
+    <span class="n">test</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">keepdb</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+<div class="section" id="legacy">
+<h2>Legacy<a class="headerlink" href="#legacy" title="Permalink to this headline">¶</a></h2>
+<p>The top-level package <cite>arctasks</cite> and its command configuration <cite>arctasks:commands.cfg</cite> implement
+the basic workflow to manage releases and deployment for projects deployed on the OIT infrastructure.
+To configure a project for these workflows, use <cite>arctasks.commands.cfg</cite> in the project configuration
+and use:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">arctasks.commands</span> <span class="k">import</span> <span class="o">*</span>
+</pre></div>
+</div>
+<p>to import commands in the projects <cite>commands</cite> module.</p>
+<div class="admonition note">
+<p class="first admonition-title">Note</p>
+<p class="last">Future work for this package will involve extracting functionality specific to this infrastructure into
+a new module <cite>arctasks.oit</cite> and its corresponding command configuration into <cite>arctasks.oit:commands.cfg</cite>.</p>
+</div>
+</div>
+<div class="section" id="aws-support">
+<h2>AWS Support<a class="headerlink" href="#aws-support" title="Permalink to this headline">¶</a></h2>
+<p>The <cite>arctasks.aws</cite> package and its corresponding configuration <cite>arctasks.aws:commands.cfg</cite> extend
+the basic implementation to modify workflows and to include additional commands which expose
+functionality specific to AWS deployments.</p>
+<p>An example configuration:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="p">[</span><span class="n">DEFAULT</span><span class="p">]</span>
+<span class="n">extends</span> <span class="o">=</span> <span class="s2">&quot;arctasks.aws:commands.cfg&quot;</span>
+
+<span class="o">...</span>
+</pre></div>
+</div>
+<p>The following is an example <cite>commands</cite> module which implements a deployment workflow. Note the
+use of the <cite>post_install</cite> step to handle resource initialization:</p>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">from</span> <span class="nn">arctasks.aws.commands</span> <span class="k">import</span> <span class="o">*</span>
+
+<span class="nd">@command</span>
+<span class="k">def</span> <span class="nf">deploy_app</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">provision</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">createdb</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">provision</span><span class="p">:</span>
+        <span class="n">provision_webhost</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">with_gis</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">createdb</span><span class="p">:</span>
+        <span class="n">createdb_aws</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">with_gis</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+
+    <span class="n">deploy_aws</span><span class="p">(</span><span class="n">config</span><span class="p">,</span> <span class="n">post_install</span><span class="o">=</span><span class="p">(</span>
+        <span class="n">migrate_db</span><span class="p">,</span>
+        <span class="n">rebuild_index</span>
+    <span class="p">))</span>
+</pre></div>
+</div>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">arctasks</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+<p class="caption"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Commands</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#example">Example</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#legacy">Legacy</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aws-support">AWS Support</a></li>
+</ul>
+</li>
+</ul>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+      <li>Previous: <a href="configuration.html" title="previous chapter">Configuration</a></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2017, PSU OIT Web Development Team.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 1.6.3</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.10</a>
+      
+      |
+      <a href="_sources/commands.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

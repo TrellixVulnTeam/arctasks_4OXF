@@ -17,6 +17,9 @@ $(venv):
 
 reinit: clean-all init
 
+documentation: init  ## Builds the currently available documentation.
+	@. $(venv)/bin/activate; sphinx-build docs/source docs/
+
 clean:
 	find . -name __pycache__ -type d -print0 | xargs -0 rm -r
 clean-all: clean-build clean-dist clean-venv

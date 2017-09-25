@@ -20,6 +20,12 @@ setup(
     license='MIT',
     url='https://github.com/PSU-OIT-ARC/arctasks',
     install_requires=install_requires,
+    extras_require={
+        'dev': [
+            'Sphinx>=1.6.3,<1.7',
+            'sphinx_rtd_theme'
+        ]
+    },
     packages=['arctasks', 'arctasks.aws'],
     package_data={
         'arctasks': [
