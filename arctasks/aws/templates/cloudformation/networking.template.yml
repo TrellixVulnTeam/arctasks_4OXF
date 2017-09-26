@@ -1,0 +1,13 @@
+  Networking:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3-us-west-2.amazonaws.com/cloudformation-templates.wdt.pdx.edu/ec2/private_host/networking.template.json
+      Parameters:
+        EC2Instance: !GetAtt Host.Outputs.InstanceId
+        PrivateIp: !GetAtt Host.Outputs.PrivateIP
+        DnsHostName: {package}
+        VpcStackName: {infrastructure.vpc_stack_name}
+        HostedZoneName: {infrastructure.dns_zone}.
+        InternalDNSZone: {infrastructure.internal_dns_zone}.
+        ELBListenerPriority: 1
+        ListenOn80: true

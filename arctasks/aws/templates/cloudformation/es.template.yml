@@ -1,0 +1,8 @@
+  SearchIndex:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3-us-west-2.amazonaws.com/cloudformation-templates.wdt.pdx.edu/es/domain.template.json
+      Parameters:
+        Name: {package}-index
+        Version: {infrastructure.es.version}
+        EC2StackName: !GetAtt Host.Outputs.StackName
