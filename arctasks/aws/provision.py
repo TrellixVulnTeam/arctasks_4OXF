@@ -47,6 +47,7 @@ def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles',
     # Create service user for deployments
     remote(config, (
         'id {service.user} ||',
+        'mkdir -p {remote.deploy_root} &&',
         'adduser --home-dir {remote.path.root} {service.user} --user-group'
     ))
 
