@@ -8,6 +8,7 @@ from arctasks.remote import copy_file
 
 
 __all__ = [
+    'provision_common',
     'provision_webhost',
     'install_certbot',
     'make_cert',
@@ -15,6 +16,26 @@ __all__ = [
 
 
 GIS_PACKAGES = ('binutils', 'gdal', 'proj')
+
+
+def provision_common(config, timezone):
+    timezone_path = posixpath.join('/usr/share/zoneinfo', timezone)
+    remote(config, ('ln -sf', timezone_path, '/etc/localtime'))
+
+    # Create service user for deployments
+    remote(config, (
+        'id {service.user} ||',
+        '(mkdir -p {remote.deploy_root} &&',
+        'adduser --home-dir {remote.path.root} {service.user} --user-group)'
+    ))
+
+    # Enable package installation from EPEL
+    remote(config, 'yum-config-manager --enable epel')
+
+    # Upgrade system packages
+    remote(config, 'yum update -y')
+    remote(config, 'yum upgrade -y')
+
 
 @command(
     env=True,
@@ -41,18 +62,8 @@ def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles',
       Let's Encrypt)
 
     """
-    timezone_path = posixpath.join('/usr/share/zoneinfo', timezone)
-    remote(config, ('ln -sf', timezone_path, '/etc/localtime'))
-
-    # Create service user for deployments
-    remote(config, (
-        'id {service.user} ||',
-        'mkdir -p {remote.deploy_root} &&',
-        'adduser --home-dir {remote.path.root} {service.user} --user-group'
-    ))
-
-    # Upgrade system packages
-    remote(config, 'yum update -y', timeout=120)
+    # Perform common provision tasks
+    provision_common(config, timezone)
 
     # Install other packages
     packages = list(packages)
@@ -86,7 +97,6 @@ def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles',
 
     if with_gis:
         # Install and configure GIS dependencies
-        remote(config, 'yum-config-manager --enable epel')
         remote(config, ('yum install -y', GIS_PACKAGES))
 
     if create_cert:
