@@ -1,7 +1,7 @@
   Database:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3-us-west-2.amazonaws.com/cloudformation-templates.wdt.pdx.edu/rds/postgres.template.json
+      TemplateURL: https://s3-us-west-2.amazonaws.com/cloudformation-templates.wdt.pdx.edu/rds/postgres.template.yml
       Parameters:
         VpcStackName: {infrastructure.vpc_stack_name}
         HostedZoneName: {infrastructure.dns_zone}.

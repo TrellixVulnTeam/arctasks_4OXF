@@ -1,7 +1,7 @@
   SearchIndex:
     Type: AWS::CloudFormation::Stack
     Properties:
-      TemplateURL: https://s3-us-west-2.amazonaws.com/cloudformation-templates.wdt.pdx.edu/es/domain.template.json
+      TemplateURL: https://s3-us-west-2.amazonaws.com/cloudformation-templates.wdt.pdx.edu/es/domain.template.yml
       Parameters:
         Name: {package}-index
         Version: {infrastructure.es.version}
