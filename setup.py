@@ -2,7 +2,7 @@ import sys
 from setuptools import setup
 
 install_requires = [
-    'boto3>=1.4.4',
+    'awscli',
     'packaging>=16.8',
     'runcommands>=1.0a25',
     'setuptools>=36.2.2',
@@ -34,10 +34,11 @@ setup(
             'templates/*.template',
         ],
         'arctasks.aws': [
-            '*.conf',
-            '*.ini',
             'commands.cfg',
             'templates/*.template',
+            'templates/*.conf',
+            'templates/*.ini',
+            'templates/cloudformation/*.template.yml',
         ],
     },
     classifiers=[
