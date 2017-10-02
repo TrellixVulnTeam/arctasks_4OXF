@@ -50,7 +50,16 @@ def virtualenv(config, where, executable=None, overwrite=False):
         if executable is None:
             executable = 'python{v.major}.{v.minor}'.format(v=sys.version_info)
             printer.info('Automatically selected {executable} for virtualenv'.format_map(locals()))
-        local(config, ('virtualenv', '-p', executable, where))
+
+        if shutil.which('virtualenv'):
+            local(config, ('virtualenv', '-p', executable, where))
+        elif sys.version_info.major >= 3 and sys.version_info.minor >= 3:
+            local(config, (executable, '-m', 'venv', where))
+        else:
+            msg = "Could not find 'virtualenv' executable and the 'venv' module " \
+                  "is available only in Python >= 3.3."
+            abort(1, msg)
+
         local(config, '{bin.pip} install -U setuptools')
         local(config, '{bin.pip} install -U pip')
 

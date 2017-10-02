@@ -1,5 +1,5 @@
 venv ?= .env
-python_version ?= 3.3
+python_version ?= 3.5
 
 pip := $(venv)/bin/pip
 python := $(venv)/bin/python
@@ -13,9 +13,16 @@ init: $(venv)
 	$(python) -m unittest discover .
 
 $(venv):
-	virtualenv -p python$(python_version) $(venv)
+	@if [ -e virtualenv ]; then \
+            virtualenv -p $(python_version) $(venv); \
+        else \
+            python$(python_version) -m venv $(venv); \
+        fi
 
 reinit: clean-all init
+
+documentation: init  ## Builds the currently available documentation.
+	@. $(venv)/bin/activate; sphinx-build docs/source docs/
 
 clean:
 	find . -name __pycache__ -type d -print0 | xargs -0 rm -r

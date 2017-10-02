@@ -2,7 +2,7 @@ import sys
 from setuptools import setup
 
 install_requires = [
-    'boto3>=1.4.4',
+    'awscli',
     'packaging>=16.8',
     'runcommands>=1.0a25',
     'setuptools>=36.2.2',
@@ -20,6 +20,12 @@ setup(
     license='MIT',
     url='https://github.com/PSU-OIT-ARC/arctasks',
     install_requires=install_requires,
+    extras_require={
+        'dev': [
+            'Sphinx>=1.6.3,<1.7',
+            'sphinx_rtd_theme'
+        ]
+    },
     packages=['arctasks', 'arctasks.aws'],
     package_data={
         'arctasks': [
@@ -28,10 +34,11 @@ setup(
             'templates/*.template',
         ],
         'arctasks.aws': [
-            '*.conf',
-            '*.ini',
             'commands.cfg',
             'templates/*.template',
+            'templates/*.conf',
+            'templates/*.ini',
+            'templates/cloudformation/*.template.yml',
         ],
     },
     classifiers=[

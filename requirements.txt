@@ -1,2 +1,2 @@
 -f https://pypi.research.pdx.edu/dist/
--e .
+-e .[dev]

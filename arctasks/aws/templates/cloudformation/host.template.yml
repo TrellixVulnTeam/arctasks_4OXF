@@ -1,0 +1,9 @@
+  Host:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3-us-west-2.amazonaws.com/cloudformation-templates.wdt.pdx.edu/ec2/private_host/private_host.template.yml
+      Parameters:
+        ImageId: {infrastructure.ec2.image}
+        HostName: {package}
+        VpcStackName: {infrastructure.vpc_stack_name}
+        HostedZoneName: {infrastructure.dns_zone}.

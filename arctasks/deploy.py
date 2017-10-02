@@ -19,7 +19,7 @@ from runcommands.util import abort, confirm, load_object, printer
 from . import django
 from . import git
 from .base import clean, install
-from .remote import manage as remote_manage, rsync, copy_file
+from .remote import rsync, copy_file
 from .static import build_static, collectstatic
 from .util import abs_path
 
@@ -108,10 +108,6 @@ class Deployer:
         printer.info('Configuration:')
         show_config(config, defaults=False)
         printer.warning('\nPlease review the configuration above.')
-
-        if not options['migrate']:
-            printer.warning(
-                '\nNOTE: Migrations are not run by default; pass --migrate to run them\n')
 
     def confirm(self):
         """Give ourselves a chance to change our minds."""
@@ -242,7 +238,7 @@ class Deployer:
         build_dir = self.remote_build_dir
 
         if self.options['overwrite']:
-            remote(config, ('rm -rf', build_dir), host='hrimfaxi.oit.pdx.edu')
+            remote(config, ('rm -rf', build_dir), host='{remote.deploy_host}')
 
         copy_file(self.config, self.archive_path, self.config.remote.build.root, quiet=True)
 
@@ -251,6 +247,7 @@ class Deployer:
         ), cd=build_root, hide='stdout')
 
         if options['static']:
+            remote(config, 'mkdir -p {remote.path.static}')
             remote(config, (
                 'rsync -rlqtvz --exclude staticfiles.json static/ {remote.path.static}',
             ), cd=build_dir)
@@ -261,7 +258,7 @@ class Deployer:
         'provision',
         'wheels',
         'install',
-        'migrate',
+        'post_install',
         'make_active',
         'set_permissions',
     )
@@ -325,10 +322,11 @@ class Deployer:
             '-r {remote.build.dir}/requirements.txt',
         ))
 
-    def migrate(self):
-        """Run database migrations."""
-        printer.header('Running migrations...')
-        remote_manage(self.config, 'migrate')
+    def post_install(self):
+        """Performs any project-specific post-install operations."""
+        options = self.options
+        for op in options['post_install']:
+            op(self.config)
 
     def make_active(self):
         """Make the new version the active version.
@@ -356,10 +354,10 @@ class Deployer:
         """
         printer.header('Setting permissions in background...')
 
-        def chmod(mode, where, options='-R', host='hrimfaxi.oit.pdx.edu'):
+        def chmod(mode, where, options='-R'):
             args = (options, mode, where)
             local(self.config, (
-                'ssh -f', host,
+                'ssh -f', '{remote.deploy_host}',
                 'sudo -u {service.user} sh -c "nohup chmod', args, '>/dev/null 2>&1 &"',
             ))
 
@@ -369,7 +367,7 @@ class Deployer:
 @command(default_env='stage', timed=True)
 def deploy(config, version=None, deployer_class=None, provision=True, overwrite=False, push=True,
            static=True, build_static=True, deps=(), remove_distributions=(), wheels=True,
-           install=True, push_config=True, migrate=False, make_active=True, set_permissions=True):
+           install=True, post_install=(), push_config=True, make_active=True, set_permissions=True):
     """Deploy a new version.
 
     All of the command options are used to construct a :class:`Deployer`,
@@ -394,8 +392,8 @@ def deploy(config, version=None, deployer_class=None, provision=True, overwrite=
         remove_distributions=remove_distributions,
         wheels=wheels,
         install=install,
+        post_install=post_install,
         push_config=push_config,
-        migrate=migrate,
         make_active=make_active,
         set_permissions=set_permissions,
     )
@@ -420,7 +418,7 @@ def get_active_version(config, **kwargs):
 @command(
     env=True,
     config={
-        'remote.host': 'hrimfaxi.oit.pdx.edu',
+        'remote.host': '{remote.deploy_host}',
     },
     help={
         'rm': 'Remove the specified build(s)',
@@ -509,7 +507,7 @@ def builds(config, active=False, rm=(), yes=False):
 @command(
     env=True,
     config={
-        'remote.host': 'hrimfaxi.oit.pdx.edu',
+        'remote.host': '{remote.deploy_host}',
         'defaults.remote.timeout': None,
     })
 def clean_builds(config, keep=3):
@@ -548,7 +546,7 @@ def clean_builds(config, keep=3):
 
 @command(
     config={
-        'remote.host': 'hrimfaxi.oit.pdx.edu',
+        'remote.host': '{remote.deploy_host}',
     },
 )
 def link(config, version, staticfiles_manifest=True, old_style=None):
