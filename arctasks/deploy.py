@@ -324,9 +324,6 @@ class Deployer:
 
     def post_install(self):
         """Performs any project-specific post-install operations."""
-        options = self.options
-        for op in options['post_install']:
-            op(self.config)
 
     def make_active(self):
         """Make the new version the active version.
@@ -367,7 +364,7 @@ class Deployer:
 @command(default_env='stage', timed=True)
 def deploy(config, version=None, deployer_class=None, provision=True, overwrite=False, push=True,
            static=True, build_static=True, deps=(), remove_distributions=(), wheels=True,
-           install=True, post_install=(), push_config=True, make_active=True, set_permissions=True):
+           install=True, post_install=True, push_config=True, make_active=True, set_permissions=True):
     """Deploy a new version.
 
     All of the command options are used to construct a :class:`Deployer`,
