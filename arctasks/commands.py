@@ -1,8 +1,5 @@
-from runcommands.commands import *
-
 from .base import clean, install, lint, npm_install, retrieve, virtualenv
-from .db import createdb, load_prod_data, reset_db
-from .deploy import builds, clean_builds, deploy, link, restart, push_static
+from .deploy import builds, clean_builds, link, restart, push_static
 from .django import (
     coverage, dbshell, makemigrations, migrate, runserver, mod_wsgi_express, shell, test)
 from .python import show_upgraded_packages
