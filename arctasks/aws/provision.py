@@ -8,6 +8,7 @@ from arctasks.remote import copy_file
 
 
 __all__ = [
+    'provision_volume',
     'provision_common',
     'provision_webhost',
     'install_certbot',
@@ -16,6 +17,27 @@ __all__ = [
 
 
 GIS_PACKAGES = ('binutils', 'gdal', 'proj')
+EFS_MOUNT_OPTIONS = "nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2"
+
+
+def _add_device_mount(config, device, filesystem, mount_point, mount_options):
+    result = remote(config, ('grep', device, '/etc/fstab'), abort_on_failure=False)
+    if result.failed:
+        fstab_entry = "{}\t{}\t{}\t{}".format(device, mount_point, filesystem, mount_options)
+        remote(config, 'echo "{}" >> /etc/fstab'.format(fstab_entry))
+    remote(config, ('mkdir', '-p', mount_point))
+    result = remote(config, ('mount', '|', 'grep', mount_point), abort_on_failure=False)
+    if result.failed:
+        remote(config, ('mount', mount_point))
+
+
+def provision_volume(config, device='/dev/sdk', filesystem='ext4',
+                     mount_point='/vol/local', mount_options="defaults"):
+    prompt = "Create {} filesystem on '{}'?".format(filesystem, device)
+    if confirm(config, prompt, color='error'):
+        remote(config, ('mkfs.{}'.format(filesystem), device))
+
+    _add_device_mount(config, device, filesystem, mount_point, mount_options)
 
 
 def provision_common(config, timezone):
@@ -35,6 +57,16 @@ def provision_common(config, timezone):
     # Upgrade system packages
     remote(config, 'yum update -y')
     remote(config, 'yum upgrade -y')
+
+    # Configure support for EFS
+    # Install NFS utilities
+    remote(config, 'yum install -y nfs-utils')
+    # Configure EFS mount
+    if config.infrastructure.efs.fsid:
+        device = "{}.efs.{}.amazonaws.com:/".format(config.infrastructure.efs.fsid,
+                                                    config.infrastructure.region)
+        mount_point = config.infrastructure.efs.mount_point
+        _add_device_mount(config, device, 'nfs4', mount_point, EFS_MOUNT_OPTIONS)
 
 
 @command(

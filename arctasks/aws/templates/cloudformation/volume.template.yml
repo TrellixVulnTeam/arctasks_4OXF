@@ -1,0 +1,8 @@
+  Volume:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: https://s3-us-west-2.amazonaws.com/cloudformation-templates.wdt.pdx.edu/ec2/ebs/volume.template.yml
+      Parameters:
+        Name: {package}-ebs-volume
+        AvailabilityZone: {infrastructure.availability_zone}
+        DeletionPolicy: {infrastructure.ebs.deletion_policy}
