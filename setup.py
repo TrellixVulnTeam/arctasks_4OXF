@@ -4,7 +4,7 @@ from setuptools import setup
 install_requires = [
     'awscli',
     'packaging>=16.8',
-    'runcommands>=1.0a25',
+    'runcommands>=1.0a26.dev0',
     'setuptools>=36.2.2',
 ]
 
