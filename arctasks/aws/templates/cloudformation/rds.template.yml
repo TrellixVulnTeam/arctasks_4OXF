@@ -7,7 +7,7 @@
         HostedZoneName: {infrastructure.dns_zone}.
         AvailabilityZone: {infrastructure.availability_zone}
         DBEngineVersion: {infrastructure.rds.version}
-        DBInstanceName: {package}-db
+        DBInstanceName: {db.name}
         DBUsername: {db.user}
-        DBPassword: {db.password}
+        DBPassword: __SECRET__
         EC2StackName: !GetAtt Host.Outputs.StackName

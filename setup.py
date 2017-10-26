@@ -2,10 +2,15 @@ import sys
 from setuptools import setup
 
 install_requires = [
-    'awscli',
     'packaging>=16.8',
     'runcommands>=1.0a26.dev0',
     'setuptools>=36.2.2',
+
+    # 'arctasks.aws' dependencies
+    'boto3',
+    'awscli',
+    'requests_aws4auth',
+    'pwgen'
 ]
 
 if sys.version_info[:2] < (3, 4):
