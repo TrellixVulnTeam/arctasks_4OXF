@@ -1,5 +1,5 @@
 import sys
-from setuptools import setup
+from setuptools import setup, find_packages
 
 install_requires = [
     'packaging>=16.8',
@@ -31,7 +31,7 @@ setup(
             'sphinx_rtd_theme'
         ]
     },
-    packages=['arctasks', 'arctasks.aws'],
+    packages = find_packages(),
     package_data={
         'arctasks': [
             'commands.cfg',
