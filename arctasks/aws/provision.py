@@ -118,7 +118,7 @@ def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles',
         packages.append('gcc')
 
     # Install system packages
-    remote(config, ('yum install -y', packages), timeout=120)
+    remote(config, ('yum install -y', packages))
 
     if with_uwsgi:
         # Install and configure uWSGI
