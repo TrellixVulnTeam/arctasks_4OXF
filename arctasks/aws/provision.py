@@ -17,6 +17,7 @@ __all__ = [
 
 
 GIS_PACKAGES = ('binutils', 'gdal', 'proj')
+NODEJS_DOWNLOAD_URL = 'https://rpm.nodesource.com/setup_8.x'
 EFS_MOUNT_OPTIONS = "nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2"
 
 
@@ -83,8 +84,8 @@ def provision_common(config, timezone):
     }
 )
 def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles', packages=('nginx',),
-                      additional_packages=(), with_python='{python.version}', with_uwsgi='latest',
-                      with_gis=False):
+                      additional_packages=(), with_python='{remote.python.version}', with_uwsgi='latest',
+                      with_gis=False, with_nodejs=False):
     """Provision an existing EC2 instance.
 
     - Installs Nginx, Python, and uWSGI by default
@@ -130,6 +131,13 @@ def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles',
     if with_gis:
         # Install and configure GIS dependencies
         remote(config, ('yum install -y', GIS_PACKAGES))
+
+    if with_nodejs:
+        # Install and configure NodeJS dependencies
+        nodejs_script = '/tmp/nodejs-8x.sh'
+        remote(config, ('curl', '-L', '-o', nodejs_script, NODEJS_DOWNLOAD_URL))
+        remote(config, ('bash', nodejs_script))
+        remote(config, ('yum install -y', 'nodejs'))
 
     if create_cert:
         install_certbot(config)
