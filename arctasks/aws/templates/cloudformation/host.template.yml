@@ -7,3 +7,4 @@
         HostName: {package}
         VpcStackName: {infrastructure.vpc_stack_name}
         HostedZoneName: {infrastructure.dns_zone}.
+        UseEFSFilesystem: true

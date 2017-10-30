@@ -8,6 +8,7 @@ from arctasks.remote import copy_file
 
 
 __all__ = [
+    'provision_volume',
     'provision_common',
     'provision_webhost',
     'install_certbot',
@@ -16,6 +17,28 @@ __all__ = [
 
 
 GIS_PACKAGES = ('binutils', 'gdal', 'proj')
+NODEJS_DOWNLOAD_URL = 'https://rpm.nodesource.com/setup_8.x'
+EFS_MOUNT_OPTIONS = "nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2"
+
+
+def _add_device_mount(config, device, filesystem, mount_point, mount_options):
+    result = remote(config, ('grep', device, '/etc/fstab'), abort_on_failure=False)
+    if result.failed:
+        fstab_entry = "{}\t{}\t{}\t{}".format(device, mount_point, filesystem, mount_options)
+        remote(config, 'echo "{}" >> /etc/fstab'.format(fstab_entry))
+    remote(config, ('mkdir', '-p', mount_point))
+    result = remote(config, ('mount', '|', 'grep', mount_point), abort_on_failure=False)
+    if result.failed:
+        remote(config, ('mount', mount_point))
+
+
+def provision_volume(config, device='/dev/sdk', filesystem='ext4',
+                     mount_point='/vol/local', mount_options="defaults"):
+    prompt = "Create {} filesystem on '{}'?".format(filesystem, device)
+    if confirm(config, prompt, color='error'):
+        remote(config, ('mkfs.{}'.format(filesystem), device))
+
+    _add_device_mount(config, device, filesystem, mount_point, mount_options)
 
 
 def provision_common(config, timezone):
@@ -36,6 +59,16 @@ def provision_common(config, timezone):
     remote(config, 'yum update -y')
     remote(config, 'yum upgrade -y')
 
+    # Configure support for EFS
+    # Install NFS utilities
+    remote(config, 'yum install -y nfs-utils')
+    # Configure EFS mount
+    if config.infrastructure.efs.fsid:
+        device = "{}.efs.{}.amazonaws.com:/".format(config.infrastructure.efs.fsid,
+                                                    config.infrastructure.region)
+        mount_point = config.infrastructure.efs.mount_point
+        _add_device_mount(config, device, 'nfs4', mount_point, EFS_MOUNT_OPTIONS)
+
 
 @command(
     env=True,
@@ -51,8 +84,8 @@ def provision_common(config, timezone):
     }
 )
 def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles', packages=('nginx',),
-                      additional_packages=(), with_python='{python.version}', with_uwsgi='latest',
-                      with_gis=False):
+                      additional_packages=(), with_python='{remote.python.version}', with_uwsgi='latest',
+                      with_gis=False, with_nodejs=False):
     """Provision an existing EC2 instance.
 
     - Installs Nginx, Python, and uWSGI by default
@@ -85,7 +118,7 @@ def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles',
         packages.append('gcc')
 
     # Install system packages
-    remote(config, ('yum install -y', packages), timeout=120)
+    remote(config, ('yum install -y', packages))
 
     if with_uwsgi:
         # Install and configure uWSGI
@@ -98,6 +131,13 @@ def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles',
     if with_gis:
         # Install and configure GIS dependencies
         remote(config, ('yum install -y', GIS_PACKAGES))
+
+    if with_nodejs:
+        # Install and configure NodeJS dependencies
+        nodejs_script = '/tmp/nodejs-8x.sh'
+        remote(config, ('curl', '-L', '-o', nodejs_script, NODEJS_DOWNLOAD_URL))
+        remote(config, ('bash', nodejs_script))
+        remote(config, ('yum install -y', 'nodejs'))
 
     if create_cert:
         install_certbot(config)

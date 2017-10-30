@@ -214,17 +214,6 @@ class Deployer:
                 commands_config.write(t)
             copy_file_local(config, temp_file, os.path.join(build_dir, 'commands.cfg'))
 
-        if self.options['provision']:
-            # Download and copy virtualenv
-            tarball_path = os.path.join(build_dir, 'virtualenv.tgz')
-            urlretrieve(config.virtualenv.download_url, tarball_path)
-            with tarfile.open(tarball_path, 'r') as tarball:
-                tarball.extractall(build_dir)
-            os.remove(tarball_path)
-            os.rename(
-                os.path.join(build_dir, config.virtualenv.base_name),
-                os.path.join(build_dir, 'virtualenv'))
-
     def create_archive(self):
         printer.header('Creating archive...')
         with tarfile.open(self.archive_path, mode='w:gz') as tarball:
@@ -273,9 +262,11 @@ class Deployer:
         printer.header('Provisioning...')
         remote(self.config, (
             'test -d {remote.build.venv} ||',
-            '{remote.bin.python} {remote.build.dir}/virtualenv/virtualenv.py',
-            '-p python{python.version}',
-            '{remote.build.venv}'
+            '{remote.bin.python} -m venv {remote.build.venv} --without-pip'
+        ))
+        remote(self.config, (
+            'wget https://bootstrap.pypa.io/get-pip.py -O /tmp/get-pip.py &&',
+            '{remote.build.venv}/bin/python /tmp/get-pip.py'
         ))
 
     def wheels(self):
