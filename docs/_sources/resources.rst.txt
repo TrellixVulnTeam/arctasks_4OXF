@@ -1,0 +1,8 @@
+=========
+Resources
+=========
+
+For backends with resource support, ARC Tasks allows you to declaratively define and manage
+infrastructure resources required by your project.
+
+Currently, support for resource management is only available in the *AWS* backend.

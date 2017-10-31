@@ -6,11 +6,11 @@ ARC Tasks is configured via the use of extensible `commands.cfg` definitions. At
 projects using this package are required to define the following::
 
     [DEFAULT]
-    extends = "{arctasks,arctasks.aws}:commands.cfg"
+    extends = "arctasks.{backend}:commands.cfg"
 
-    name = "My Python Application"
-    distribution = "psu.oit.wdt.mypythonproject"
-    package = "mypythonproject"
+    name = "My Application"
+    distribution = "org.myorg.apps.myproject"
+    package = "myproject"
 
 Common Settings
 ---------------

@@ -1,6 +1,5 @@
 
 
-
 <!DOCTYPE html>
 <!--[if IE 8]><html class="no-js lt-ie9" lang="en" > <![endif]-->
 <!--[if gt IE 8]><!--> <html class="no-js" lang="en" > <!--<![endif]-->
@@ -9,7 +8,7 @@
   
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   
-  <title>Index &mdash; arctasks  documentation</title>
+  <title>Backends &mdash; arctasks  documentation</title>
   
 
   
@@ -34,9 +33,11 @@
 
   
         <link rel="index" title="Index"
-              href="#"/>
+              href="genindex.html"/>
         <link rel="search" title="Search" href="search.html"/>
-    <link rel="top" title="arctasks  documentation" href="index.html"/> 
+    <link rel="top" title="arctasks  documentation" href="index.html"/>
+        <link rel="next" title="Configuration" href="configuration.html"/>
+        <link rel="prev" title="ARC Tasks" href="introduction.html"/> 
 
   
   <script src="_static/js/modernizr.min.js"></script>
@@ -85,9 +86,14 @@
               
             
             
-              <ul>
+              <ul class="current">
 <li class="toctree-l1"><a class="reference internal" href="introduction.html">ARC Tasks</a></li>
-<li class="toctree-l1"><a class="reference internal" href="backends.html">Backends</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Backends</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="#development">Development</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#oit-legacy">OIT (Legacy)</a></li>
+<li class="toctree-l2"><a class="reference internal" href="#aws">AWS</a></li>
+</ul>
+</li>
 <li class="toctree-l1"><a class="reference internal" href="configuration.html">Configuration</a></li>
 <li class="toctree-l1"><a class="reference internal" href="commands.html">Commands</a></li>
 <li class="toctree-l1"><a class="reference internal" href="resources.html">Resources</a></li>
@@ -135,12 +141,14 @@
     
       <li><a href="index.html">Docs</a> &raquo;</li>
         
-      <li>Index</li>
+      <li>Backends</li>
     
     
       <li class="wy-breadcrumbs-aside">
         
             
+            <a href="_sources/backends.rst.txt" rel="nofollow"> View page source</a>
+          
         
       </li>
     
@@ -152,11 +160,27 @@
           <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
            <div itemprop="articleBody">
             
-
-<h1 id="index">Index</h1>
-
-<div class="genindex-jumpbox">
- 
+  <div class="section" id="backends">
+<h1>Backends<a class="headerlink" href="#backends" title="Permalink to this headline">¶</a></h1>
+<p>In ARC Tasks, the <em>backend</em> refers to the abstract implementation of the infrastructure
+and resources your project intends to use.</p>
+<div class="section" id="development">
+<h2>Development<a class="headerlink" href="#development" title="Permalink to this headline">¶</a></h2>
+<p>This backend provides a basic, naive implementation intended for use during development;
+for example, orchestration tooling in a locally-provisioned environment or in combination with Docker.</p>
+</div>
+<div class="section" id="oit-legacy">
+<h2>OIT (Legacy)<a class="headerlink" href="#oit-legacy" title="Permalink to this headline">¶</a></h2>
+<p>This backend provides the legacy behavior of ARC Tasks prior to v1.1. It supports the PSU OIT on-
+premises infrastructure and provides only support for the deployment of applications. No support
+is provided for resource definitions or management and all such activities must be performed out-of-band.</p>
+</div>
+<div class="section" id="aws">
+<h2>AWS<a class="headerlink" href="#aws" title="Permalink to this headline">¶</a></h2>
+<p>This backend provides all the basic tooling available in other backends in addition to resource and
+infrastructure orchestration via the <a class="reference external" href="https://github.com/PSU-OIT-ARC/cloud-config">cloud-config</a> package as well as application life-cycle support.</p>
+<p>For further information on declaring resources, see the <a class="reference internal" href="resources.html"><span class="doc">Resources</span></a> section.</p>
+</div>
 </div>
 
 
@@ -166,6 +190,15 @@
            </div>
           </div>
           <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="configuration.html" class="btn btn-neutral float-right" title="Configuration" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="introduction.html" class="btn btn-neutral" title="ARC Tasks" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
   
 
   <hr/>

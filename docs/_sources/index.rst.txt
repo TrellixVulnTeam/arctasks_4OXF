@@ -6,10 +6,12 @@
 .. include:: introduction.rst
 .. toctree::
    :maxdepth: 2
-   :caption: Contents:
 
+   introduction
+   backends
    configuration
    commands
+   resources
 
 Indices and tables
 ==================
