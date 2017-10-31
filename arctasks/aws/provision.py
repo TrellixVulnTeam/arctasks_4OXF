@@ -165,6 +165,23 @@ def provision_webhost(config, create_cert=False, timezone='America/Los_Angeles',
     ))
 
 
+@command(
+    env=True,
+    config={
+        'defaults.runcommands.runners.commands.remote.cd': '/',
+        'defaults.runcommands.runners.commands.remote.run_as': None,
+        'defaults.runcommands.runners.commands.remote.sudo': True,
+    }
+)
+def patch_host(config):
+    """
+    TBD
+    """
+    # Upgrade system packages
+    remote(config, 'yum update -y')
+    remote(config, 'yum upgrade -y')
+
+
 @command(env=True)
 def install_certbot(config):
     """Install Let's Encrypt client."""
