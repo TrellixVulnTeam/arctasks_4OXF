@@ -1,17 +1,14 @@
-import boto3
+import os
+from getpass import getpass
+from tempfile import mkstemp
 
 from runcommands import command
 from runcommands.config import Config
-from runcommands.commands import remote
+from runcommands.commands import local
 from runcommands.util import abort, confirm
 
 
-@command(
-    env=True,
-    config={
-        'defaults.runcommands.runners.commands.remote.cd': '/'
-    }
-)
+@command(default_env='dev')
 def createdb(config, type=None, user='{db.user}', host='{db.host}', port='{db.port}',
              name='{db.name}', drop=False, with_postgis=False, extensions=()):
     if type is None:
@@ -31,42 +28,36 @@ def create_postgresql_db(config, user='{db.user}', host='{db.host}', port='{db.p
                          name='{db.name}', drop=False, with_postgis=False, extensions=()):
     """Create a PostgreSQL database with the specified ``name``.
 
+    This also creates the user specified by ``user`` as a superuser
+    with no password. This is insecure and should only be used in
+    development and testing.
+
     The --with-postgis flag can be used to spatially-enable the
     database. This only works with PostgreSQL 9.1+ and PostGIS 2.0+.
 
     """
-    remote(config, ('yum', 'install', '-y', 'postgresql95'), sudo=True)
-
     if with_postgis and 'postgis' not in extensions:
         extensions = ['postgis'] + list(extensions)
 
-    # fetch password from parameter store and install
-    # credentials in pgpass file.
-    region = config.db.host.split('.')[-4]
-    client = boto3.session.Session(region_name=region).client('ssm')
-    password = client.get_parameter(Name='/{}/DBPassword'.format(config.ssm.prefix),
-                                    WithDecryption=True)['Parameter']['Value']
+    # Try to run the drop and create commands with the postgres user; if
+    # that user doesn't exist, run those commands as the current user.
+    # This supports VM and Homebrew setups.
+    result = local(config, 'id -u postgres', echo=False, hide='all', abort_on_failure=False)
+    run_as = 'postgres' if result.succeeded else None
 
-    remote(config, (
-        "echo {}:5432:*:{}:{} > ~/.pgpass && chmod 400 ~/.pgpass".format(
-            config.db.host,
-            config.db.user,
-            password
-        ),
-    ))
-
-    def run_command(*command, database='postgres'):
+    def run_command(*command, superuser='postgres', database='postgres'):
         command = ' '.join(command)
         command = '"{command}"'.format(command=command)
-        remote(config, (
+        local(config, (
             'psql',
-            '-U', user,
-            '-w',
+            '-U', superuser,
             '-h', host,
             '-p', port,
             '-d', database,
             '-c', command,
-        ), abort_on_failure=False)
+        ), run_as=run_as, abort_on_failure=False)
+
+    run_command('CREATE USER', user, 'WITH SUPERUSER')
 
     if drop:
         run_command('DROP DATABASE', name) if drop else None
@@ -76,11 +67,9 @@ def create_postgresql_db(config, user='{db.user}', host='{db.host}', port='{db.p
     for extension in extensions:
         run_command('CREATE EXTENSION', extension, database=name)
 
-    remote(config, ('rm', '-f', '~/.pgpass'))
 
-
-def create_mysql_db(config, user='{db.user}', host='{db.host}', port='{db.port}',
-                    name='{db.name}', drop=False):
+def create_mysql_db(config, user='{db.user}', host='{db.host}', port='{db.port}', name='{db.name}',
+                    drop=False):
     """Create a MySQL database with the specified ``name``.
 
     This also creates the user specified by ``user`` as a superuser
@@ -88,12 +77,10 @@ def create_mysql_db(config, user='{db.user}', host='{db.host}', port='{db.port}'
     development and testing.
 
     """
-    remote(config, ('yum', 'install', '-y', 'mysql56'), sudo=True)
-
     def run_command(*command):
         command = ' '.join(command)
         command = '"{command}"'.format(command=command)
-        remote(config, (
+        local(config, (
             'mysql',
             '-h', host,
             '-p', port,
@@ -102,6 +89,9 @@ def create_mysql_db(config, user='{db.user}', host='{db.host}', port='{db.port}'
         ), abort_on_failure=False)
 
     f = locals()
+
+    run_command("CREATE USER '{user}'@'{host}'".format_map(f))
+    run_command("GRANT ALL PRIVILEGES on *.* TO '{user}'@'{host}' WITH GRANT OPTION".format_map(f))
 
     if drop:
         run_command('DROP DATABASE', name)

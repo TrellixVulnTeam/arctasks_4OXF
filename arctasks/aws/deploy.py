@@ -3,10 +3,9 @@ import posixpath
 
 from runcommands import command
 from runcommands.commands import remote
-from runcommands.util import printer
 
 from arctasks.remote import copy_file
-from arctasks.deploy import Deployer, deploy as _deploy
+from arctasks.deploy import Deployer
 
 
 __all__ = [

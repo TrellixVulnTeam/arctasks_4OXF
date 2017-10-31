@@ -6,5 +6,5 @@ from .infrastructure import (
     create_ssm_parameters, add_resource_configuration
 )
 from .provision import provision_webhost, patch_host, install_certbot, make_cert
-from .db import createdb_aws
+from .db import createdb
 from .deploy import push_uwsgi_config, restart_uwsgi
